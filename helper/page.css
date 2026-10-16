@@ -1,0 +1,136 @@
+/* The Drips page in Claude's colours: the tokens the Workspaces layout page
+   samples from the desktop app's Browser pane. Every rule uses the tokens;
+   none names a colour itself. */
+:root {
+  color-scheme: dark;
+  --c-outer: #151515;
+  --c-bg: #191918;
+  --c-field: #252424;
+  --c-line: #30302f;
+  --c-line-2: #3b3a3a;
+  --c-text: #edede9;
+  --c-text-2: #bbbaaf;
+  --c-btn: #fafafa;
+  --c-btn-text: #191918;
+  --c-btn-2: #4a4a49;
+  --c-accent: #d97757;
+  --c-danger: #e5675c;
+  --c-hover: color-mix(in srgb, var(--c-text) 8%, transparent);
+  --c-overlay: color-mix(in srgb, var(--c-outer) 70%, transparent);
+  --c-shadow: color-mix(in srgb, var(--c-outer) 80%, transparent);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --c-outer: #f0eee6;
+    --c-bg: #faf9f5;
+    --c-field: #ffffff;
+    --c-line: #e5e3da;
+    --c-line-2: #d6d3c8;
+    --c-text: #141413;
+    --c-text-2: #6b6a63;
+    --c-btn: #141413;
+    --c-btn-text: #faf9f5;
+    --c-btn-2: #e8e6dc;
+    --c-danger: #c4463b;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--c-bg); color: var(--c-text); font: 13px/1.4 var(--font); }
+button, input, select { font: inherit; color: inherit; }
+.hidden { display: none !important; }
+.spacer { flex: 1; }
+.muted { color: var(--c-text-2); font-size: 12px; }
+
+#app { max-width: 760px; margin: 0 auto; padding: 20px 16px 40px; }
+
+/* The list's header: title, search, the licence's line (Unlocked, Copy licence key), + Add. */
+#head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+#head h2 { margin: 0; font-size: 18px; font-weight: 600; flex: 1; }
+.search { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--c-line); border-radius: 7px;
+  background: var(--c-field); color: var(--c-text-2); width: 200px; }
+.search:focus-within { border-color: var(--c-accent); }
+.search svg { width: 14px; height: 14px; flex-shrink: 0; }
+.search input { flex: 1; min-width: 0; border: none; outline: none; background: none; font-size: 13px; color: var(--c-text); }
+#licence { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--c-text-2); }
+#licence:empty { display: none; }
+#licence .plan { color: var(--c-text); }
+
+.btn { border: 1px solid var(--c-line-2); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 13px; background: var(--c-field); color: var(--c-text); }
+.btn:hover { background: color-mix(in srgb, var(--c-field) 80%, var(--c-text) 8%); }
+.btn.primary { background: var(--c-btn); color: var(--c-btn-text); border-color: transparent; font-weight: 500; }
+.btn.primary:hover { opacity: 0.9; }
+.btn.secondary { background: var(--c-btn-2); border-color: transparent; }
+.btn.danger { color: var(--c-danger); border-color: color-mix(in srgb, var(--c-danger) 45%, transparent); background: none; }
+.btn.danger-solid { background: var(--c-danger); color: #fff; border-color: transparent; font-weight: 500; }
+.btn:focus-visible, .field:focus-visible, .back:focus-visible, .row:focus-visible { outline: 1px solid var(--c-accent); outline-offset: 1px; }
+
+#toolbar { display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--c-line); margin-bottom: 4px; }
+.tab { border: none; background: none; padding: 6px 2px; cursor: default; color: var(--c-text); border-bottom: 2px solid var(--c-text); margin-bottom: -1px; }
+
+/* The list: Drip | Recipe | Status, a row per drip. */
+.table { display: flex; flex-direction: column; }
+.tr { display: grid; grid-template-columns: 28px minmax(100px, 1fr) minmax(120px, 2fr) 72px; align-items: center; gap: 10px; padding: 8px 6px;
+  border-bottom: 1px solid var(--c-line); }
+.tr.head { color: var(--c-text-2); font-size: 12px; padding-top: 10px; }
+.tr.head span:first-child { grid-column: 1 / 3; }
+.row { cursor: pointer; border-radius: 6px; }
+.row:hover { background: var(--c-hover); }
+.icon { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; background: var(--c-field); font-size: 14px; }
+.name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recipe { font-family: var(--mono); font-size: 12px; color: var(--c-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status { display: flex; justify-content: flex-end; }
+.empty { padding: 28px 6px; color: var(--c-text-2); }
+.empty b { color: var(--c-text); font-weight: 500; }
+
+/* The editor. */
+.editor-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.back { display: inline-flex; align-items: center; gap: 2px; border: none; background: none; color: var(--c-text-2); cursor: pointer; padding: 4px 6px 4px 0; border-radius: 6px; }
+.back:hover { color: var(--c-text); }
+.back svg { width: 16px; height: 16px; }
+.detail { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.detail .stack { display: flex; }
+.detail .stack span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 7px; background: var(--c-field);
+  border: 2px solid var(--c-bg); margin-left: -8px; font-size: 15px; }
+.detail .stack span:first-child { margin-left: 0; }
+.detail .title { font-size: 16px; font-weight: 600; }
+.label { display: block; margin: 14px 0 6px; font-size: 12px; color: var(--c-text-2); }
+.field { width: 100%; height: 30px; padding: 0 10px; border: 1px solid var(--c-line); border-radius: 7px; background: var(--c-field); color: var(--c-text); font-size: 13px; outline: none; }
+.field:focus { border-color: var(--c-accent); }
+.field.invalid { border-color: var(--c-danger); }
+.field.auto { width: auto; }
+.field.small { width: 72px; }
+.inline { display: flex; gap: 8px; align-items: center; }
+#effects { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
+#effects .effect { display: flex; gap: 6px; align-items: center; }
+#effects .effect .field { flex: 1; }
+.remove { width: 30px; height: 30px; display: grid; place-items: center; padding: 0; }
+.remove svg { width: 12px; height: 12px; }
+.preview { display: block; padding: 8px 10px; background: var(--c-outer); border: 1px solid var(--c-line); border-radius: 6px; color: var(--c-text-2); font: 12px var(--mono); }
+.error { margin-bottom: 10px; padding: 8px 10px; border-radius: 6px; border: 1px solid color-mix(in srgb, var(--c-danger) 50%, transparent);
+  background: color-mix(in srgb, var(--c-danger) 12%, transparent); color: var(--c-danger); }
+.actions { display: flex; align-items: center; gap: 8px; margin-top: 28px; }
+
+/* Delete's question. */
+.overlay { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: var(--c-overlay); }
+.dialog { width: min(380px, calc(100% - 32px)); padding: 18px; border: 1px solid var(--c-line-2); border-radius: 10px; background: var(--c-bg); box-shadow: 0 8px 30px var(--c-shadow); }
+.dialog h3 { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+.dialog p { margin: 0; color: var(--c-text-2); }
+.dialog .actions { margin-top: 18px; }
+
+/* Not bought on this machine yet. */
+#locked { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: var(--c-bg); padding: 24px; }
+#locked .card { max-width: 520px; display: flex; flex-direction: column; gap: 10px; }
+#locked h1 { margin: 0 0 4px; font-size: 18px; font-weight: 600; }
+#locked p { margin: 0; color: var(--c-text-2); line-height: 1.5; }
+#locked .ended { color: var(--c-text); margin-top: 6px; }
+#locked .row-buttons { display: flex; gap: 10px; margin-top: 8px; }
+#locked .small { font-size: 12px; }
+
+@media (max-width: 520px) {
+  .search { width: 140px; }
+  .tr { grid-template-columns: 28px minmax(80px, 1fr) minmax(80px, 1.4fr) 64px; }
+}
