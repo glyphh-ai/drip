@@ -19,7 +19,7 @@ import { verify } from '../unlock/verify.ts'
 import { BUILTIN_EFFECT_LIST, ONE_SHOT_EFFECTS } from '../drips/effects.ts'
 import { loadDrips, loadGames, skippedText, type FolderDeps, type FolderGame } from '../content/folders.ts'
 import { readCustoms } from '../drips/library.ts'
-import { DIVIDER_SVG, LOCKUP_RATIO, LOCKUP_SVG, LOGO_ALT } from './brand.ts'
+import { LOCKUP_RATIO, LOCKUP_SVG, LOGO_ALT } from './brand.ts'
 import { GAMES, gameDoc, gameOf } from './games/index.ts'
 import type { Game } from './games/game.ts'
 import { GENERIC_ICON, ICONS } from './icons.ts'
@@ -248,15 +248,17 @@ export function arcade(on: On, options: PluginOptions) {
     const step = (p: number, by: number) => Math.max(0, Math.min(pages - 1, Math.min(p, pages - 1) + by))
     const turn = (by: number) => () => void (shown === 'games' ? update($, page, p => step(p, by)) : update($, dripPage, p => step(p, by)))
     return (
-      <Box flexDirection="column" gap={1} paddingX={2} paddingY={1} borderStyle="round" borderDimColor>
-        <Box flexDirection="row" alignItems="center" gap={2}>
+      <Box flexDirection="column" paddingX={3} paddingY={2} borderStyle="round" borderDimColor>
+        <Box flexDirection="row" alignItems="center" gap={3} marginBottom={2}>
           {Svg ? <Svg source={LOCKUP_SVG} alt={LOGO_ALT} height={16} width={Math.round(16 * LOCKUP_RATIO)} /> : <Text bold>glyphh&gt; drip</Text>}
           <Button key="tab:games" label="Games" plain dimColor={shown !== 'games'} onPress={() => void update($, tab, () => 'games' as const)} />
           <Button key="tab:drips" label="Drips" plain dimColor={shown !== 'drips'} onPress={() => void update($, tab, () => 'drips' as const)} />
         </Box>
-        {rows.flatMap((row, i) => (Svg ? [<Svg key={`line:${i}`} source={DIVIDER_SVG} alt=" " height={1} />, row] : [row]))}
+        <Box flexDirection="column" gap={2}>
+          {rows}
+        </Box>
         {isLocked || pages > 1 ? (
-          <Box flexDirection="row" justifyContent="space-between" alignItems="center" gap={1}>
+          <Box flexDirection="row" justifyContent="space-between" alignItems="center" gap={1} marginTop={3}>
             {isLocked ? (
               <Box flexDirection="row" alignItems="center" gap={2}>
                 <Button key="unlock" label={`Unlock ${PRODUCT}`} variant="primary" onPress={() => void checkout($)} />
