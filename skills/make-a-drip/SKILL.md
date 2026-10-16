@@ -1,6 +1,7 @@
 ---
 name: make-a-drip
 description: Make a drip (a visual effect with sound over Claude's window) for Glyphh Drip, the games and drips plugin for Claude. Use when the person asks to make, build or write a drip, an effect or an animation to play over Claude with /drip or in Glyphh Drip (for example "make me a snow drip").
+user-invocable: false
 ---
 
 # Make a drip for Glyphh Drip

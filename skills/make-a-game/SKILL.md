@@ -1,6 +1,7 @@
 ---
 name: make-a-game
 description: Make a game for Glyphh Drip, the games and drips plugin for Claude. Use when the person asks to make, build or write a game to play in Claude, over Claude's window, with /drip, or in Glyphh Drip (for example "make me a Snake game").
+user-invocable: false
 ---
 
 # Make a game for Glyphh Drip
