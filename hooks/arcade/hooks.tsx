@@ -132,17 +132,17 @@ async function listing($: EngineInterface): Promise<string> {
   return lines.join('\n')
 }
 
-/** Play on the card: the game, or checkout until Games is bought. */
+/** Play on the card: the game (nothing until it is bought: Unlock is below). */
 async function press($: EngineInterface, game: Game): Promise<void> {
-  if (refusal(await read($, licence))) return checkout($)
+  if (refusal(await read($, licence))) return
   const said = await play($, game).catch(err => `/drip: ${short(err)}`)
   if (!said.startsWith(game.title)) $.ui.toast(said) // the overlay could not run
 }
 
-/** Play on the Drips tab: queued for the drips' half to play, or checkout
- *  until it is bought. */
+/** Play on the Drips tab: queued for the drips' half to play (nothing until
+ *  it is bought). */
 async function pressDrip($: EngineInterface, name: string): Promise<void> {
-  if (refusal(await read($, licence))) return checkout($)
+  if (refusal(await read($, licence))) return
   const at = await $.clock.now()
   await update($, queued, () => ({ recipe: name, at }))
 }
@@ -197,6 +197,8 @@ export function arcade(on: On, options: PluginOptions) {
     // Every surface but the terminal draws SVG: the logo and the icons; the terminal gets words.
     const Svg = e.surface !== 'terminal' && 'Svg' in els ? els.Svg : null
     const shown = await read($, tab)
+    // Not bought: every Play is dimmed and does nothing; Unlock below opens checkout.
+    const isLocked = refusal(await read($, licence)) !== null
     const rows = []
     let at: number
     let pages: number
@@ -217,7 +219,7 @@ export function arcade(on: On, options: PluginOptions) {
               {isYours ? <Text dimColor>· yours</Text> : null}
             </Box>
             <Text dimColor>{best > 0 ? best.toLocaleString('en-GB') : ''}</Text>
-            <Button key={`play:${game.name}`} label="Play" variant="secondary" onPress={() => void press($, game)} />
+            <Button key={`play:${game.name}`} label="Play" variant="secondary" dimColor={isLocked} onPress={() => void (isLocked || press($, game))} />
           </Box>,
         )
       }
@@ -238,7 +240,7 @@ export function arcade(on: On, options: PluginOptions) {
               <Text>{drip.title}</Text>
               {drip.isYours ? <Text dimColor>· yours</Text> : null}
             </Box>
-            <Button key={`drip:${drip.name}`} label="Play" variant="secondary" onPress={() => void pressDrip($, drip.name)} />
+            <Button key={`drip:${drip.name}`} label="Play" variant="secondary" dimColor={isLocked} onPress={() => void (isLocked || pressDrip($, drip.name))} />
           </Box>,
         )
       }
@@ -253,13 +255,25 @@ export function arcade(on: On, options: PluginOptions) {
           <Button key="tab:drips" label="Drips" plain dimColor={shown !== 'drips'} onPress={() => void update($, tab, () => 'drips' as const)} />
         </Box>
         {rows.flatMap((row, i) => (Svg ? [<Svg key={`line:${i}`} source={DIVIDER_SVG} alt=" " height={1} />, row] : [row]))}
-        {pages > 1 ? (
-          <Box flexDirection="row" justifyContent="flex-end" alignItems="center" gap={1}>
-            <Button key="prev" label="‹" plain dimColor={at === 0} onPress={turn(-1)} />
-            <Text dimColor>
-              {at + 1} of {pages}
-            </Text>
-            <Button key="next" label="›" plain dimColor={at === pages - 1} onPress={turn(1)} />
+        {isLocked || pages > 1 ? (
+          <Box flexDirection="row" justifyContent="space-between" alignItems="center" gap={1}>
+            {isLocked ? (
+              <Box flexDirection="row" alignItems="center" gap={2}>
+                <Button key="unlock" label={`Unlock ${PRODUCT}`} variant="primary" onPress={() => void checkout($)} />
+                <Text dimColor>{PRICE} once</Text>
+              </Box>
+            ) : (
+              <Box />
+            )}
+            {pages > 1 ? (
+              <Box flexDirection="row" alignItems="center" gap={1}>
+                <Button key="prev" label="‹" plain dimColor={at === 0} onPress={turn(-1)} />
+                <Text dimColor>
+                  {at + 1} of {pages}
+                </Text>
+                <Button key="next" label="›" plain dimColor={at === pages - 1} onPress={turn(1)} />
+              </Box>
+            ) : null}
           </Box>
         ) : null}
       </Box>
