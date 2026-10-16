@@ -22,7 +22,7 @@ import { readCustoms } from '../drips/library.ts'
 import { LOCKUP_RATIO, LOCKUP_SVG, LOGO_ALT } from './brand.ts'
 import { GAMES, gameDoc, gameOf } from './games/index.ts'
 import type { Game } from './games/game.ts'
-import { GENERIC_ICON, ICONS } from './icons.ts'
+import { DRIP_ICONS, GAME_ICONS, GENERIC_DRIP_ICON, GENERIC_GAME_ICON, tiled } from './icons.ts'
 import { scoresOf, type Store } from './scores.ts'
 import { settingsOf, type Settings } from './settings.ts'
 
@@ -71,10 +71,10 @@ async function yourGames($: EngineInterface): Promise<{ games: FolderGame[]; ski
 }
 
 /** The person's own drips' names and titles (~/.glyphh/drips), for the card. */
-async function yourDripNames($: EngineInterface): Promise<{ name: string; title: string }[]> {
+async function yourDripNames($: EngineInterface): Promise<{ name: string; title: string; icon: string | null }[]> {
   const home = await $.env.get('HOME')
   if (!home) return []
-  return (await loadDrips(folderDeps($), home, new Set(Object.keys(ONE_SHOT_EFFECTS)))).drips.map(d => ({ name: d.name, title: d.title }))
+  return (await loadDrips(folderDeps($), home, new Set(Object.keys(ONE_SHOT_EFFECTS)))).drips.map(d => ({ name: d.name, title: d.title, icon: d.icon }))
 }
 
 /** A game by any of its names: built in, else the person's own. */
@@ -210,15 +210,15 @@ export function arcade(on: On, options: PluginOptions) {
       for (const game of games.slice(at * PAGE_SIZE, (at + 1) * PAGE_SIZE)) {
         const best = await scores.best(game.name)
         const isYours = 'isYours' in game
-        const icon = ICONS[game.name] ?? ('icon' in game && game.icon ? game.icon : GENERIC_ICON)
+        const icon = GAME_ICONS[game.name] ?? ('icon' in game && game.icon ? tiled(game.icon) : GENERIC_GAME_ICON)
         rows.push(
-          <Box key={game.name} flexDirection="row" alignItems="center" gap={2}>
-            {Svg ? <Svg source={icon} alt={game.title} width={18} height={18} /> : null}
-            <Box flexGrow={1} flexDirection="row" gap={1}>
-              <Text>{game.title}</Text>
-              {isYours ? <Text dimColor>· yours</Text> : null}
+          <Box key={game.name} flexDirection="row" alignItems="center" gap={3}>
+            {Svg ? <Svg source={icon} alt={game.title} width={28} height={28} /> : null}
+            <Box flexGrow={1} flexDirection="row" alignItems="center" gap={2}>
+              <Text bold>{game.title}</Text>
+              {isYours ? <Text dimColor>yours</Text> : null}
             </Box>
-            <Text dimColor>{best > 0 ? best.toLocaleString('en-GB') : ''}</Text>
+            <Text dimColor>{best > 0 ? `Best ${best.toLocaleString('en-GB')}` : ''}</Text>
             <Button key={`play:${game.name}`} label="Play" variant="secondary" dimColor={isLocked} onPress={() => void (isLocked || press($, game))} />
           </Box>,
         )
@@ -227,18 +227,19 @@ export function arcade(on: On, options: PluginOptions) {
       const saved = Object.keys(await readCustoms(store($)))
       const own = await yourDripNames($)
       const drips = [
-        ...BUILTIN_EFFECT_LIST.map(d => ({ name: d.name, title: titleOf(d.name), isYours: false })),
-        ...own.map(d => ({ name: d.name, title: d.title, isYours: true })),
-        ...saved.filter(n => !own.some(d => d.name === n)).map(name => ({ name, title: titleOf(name), isYours: true })),
+        ...BUILTIN_EFFECT_LIST.map(d => ({ name: d.name, title: titleOf(d.name), icon: DRIP_ICONS[d.name] ?? GENERIC_DRIP_ICON, isYours: false })),
+        ...own.map(d => ({ name: d.name, title: d.title, icon: d.icon ? tiled(d.icon) : GENERIC_DRIP_ICON, isYours: true })),
+        ...saved.filter(n => !own.some(d => d.name === n)).map(name => ({ name, title: titleOf(name), icon: GENERIC_DRIP_ICON, isYours: true })),
       ]
       pages = Math.max(1, Math.ceil(drips.length / PAGE_SIZE))
       at = Math.min(await read($, dripPage), pages - 1)
       for (const drip of drips.slice(at * PAGE_SIZE, (at + 1) * PAGE_SIZE)) {
         rows.push(
-          <Box key={drip.name} flexDirection="row" alignItems="center" gap={2}>
-            <Box flexGrow={1} flexDirection="row" gap={1}>
-              <Text>{drip.title}</Text>
-              {drip.isYours ? <Text dimColor>· yours</Text> : null}
+          <Box key={drip.name} flexDirection="row" alignItems="center" gap={3}>
+            {Svg ? <Svg source={drip.icon} alt={drip.title} width={28} height={28} /> : null}
+            <Box flexGrow={1} flexDirection="row" alignItems="center" gap={2}>
+              <Text bold>{drip.title}</Text>
+              {drip.isYours ? <Text dimColor>yours</Text> : null}
             </Box>
             <Button key={`drip:${drip.name}`} label="Play" variant="secondary" dimColor={isLocked} onPress={() => void (isLocked || pressDrip($, drip.name))} />
           </Box>,
@@ -250,7 +251,7 @@ export function arcade(on: On, options: PluginOptions) {
     return (
       <Box flexDirection="column" paddingX={3} paddingY={2} borderStyle="round" borderDimColor>
         <Box flexDirection="row" alignItems="center" gap={3} marginBottom={2}>
-          {Svg ? <Svg source={LOCKUP_SVG} alt={LOGO_ALT} height={16} width={Math.round(16 * LOCKUP_RATIO)} /> : <Text bold>glyphh&gt; drip</Text>}
+          {Svg ? <Svg source={LOCKUP_SVG} alt={LOGO_ALT} height={18} width={Math.round(18 * LOCKUP_RATIO)} /> : <Text bold>glyphh&gt; drip</Text>}
           <Button key="tab:games" label="Games" plain dimColor={shown !== 'games'} onPress={() => void update($, tab, () => 'games' as const)} />
           <Button key="tab:drips" label="Drips" plain dimColor={shown !== 'drips'} onPress={() => void update($, tab, () => 'drips' as const)} />
         </Box>
