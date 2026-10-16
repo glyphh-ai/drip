@@ -11,6 +11,9 @@ import type { EngineInterface, On, PluginOptions, RenderChildren, Timer } from '
 
 import type { HelperInfo } from '../../types'
 import { INITIAL, refusal } from '../unlock/access.ts'
+import { MOD, PRICE, PRODUCT } from '../unlock/config.ts'
+import { buy, type Deps } from '../unlock/flow.ts'
+import { verify } from '../unlock/verify.ts'
 import { BUILTIN_EFFECT_LIST, BUILTIN_EFFECTS, ONE_SHOT_EFFECTS, setYourDrips, yourDrips } from './effects.ts'
 import { loadDrips } from '../content/folders.ts'
 import { createFun } from './fun.ts'
@@ -297,9 +300,23 @@ async function bandPlay($: EngineInterface, recipe: string): Promise<void> {
   await m.manager.execute(() => hostOf($, m), recipe).catch(err => void (err instanceof Unavailable || $.ui.toast(`Drips: ${short(err)}`)))
 }
 
-async function bandOpenPage($: EngineInterface): Promise<void> {
-  if (!(await read($, nodePath))) return $.ui.toast(NODE_MISSING)
-  await showPage(pageDeps($)).catch(err => $.ui.toast(`Drips page ✗ ${short(err)}`))
+/** Unlock from the row: what /drip unlock does (a mod can't run its own
+ *  command, and the engine follows $ only within this file). */
+async function bandCheckout($: EngineInterface): Promise<void> {
+  const d: Deps = {
+    store: { get: key => $.store.get(key), set: (key, value) => $.store.set(key, value), delete: key => $.store.delete(key) },
+    state: { get: () => read($, licence), set: async fn => void (await update($, licence, fn)) },
+    now: () => $.clock.now(),
+    every: (ms, fn) => $.clock.every(ms, () => void fn()),
+    check: async text => (await verify(text, MOD)) !== null,
+    fetch: url => $.http.fetch(url),
+    open: async url => (await $.process.run(['open', url]).catch(() => null))?.exitCode === 0,
+    copy: async text => (await $.ui.copy({ text })).isCopied,
+    toast: (text, ms) => $.ui.toast(text, ms ? { timeoutMs: ms } : undefined),
+    log: text => $.ui.log(text),
+  }
+  await buy(d)
+  if (!(await read($, licence)).licence) $.ui.toast(`Checkout for ${PRODUCT} (${PRICE}, once) is open in your browser. ${PRODUCT} unlocks on its own when you've paid.`)
 }
 
 /** Reads the person's own drips again (~/.glyphh/drips): before each play and listing. */
@@ -431,9 +448,9 @@ export function drips(on: On, options: PluginOptions) {
     const no = await refused($)
     if (no) {
       return (
-        <Box flexDirection="row" gap={1}>
-          <Text dimColor>💧 {no}</Text>
-          <Button key="open" label="Open Drips" variant="primary" onPress={() => bandOpenPage($)} />
+        <Box flexDirection="row" gap={1} alignItems="center">
+          <Text dimColor>{PRODUCT} is {PRICE}, once.</Text>
+          <Button key="unlock" label="Unlock" variant="primary" onPress={() => void bandCheckout($)} />
           {close}
         </Box>
       )
@@ -442,7 +459,6 @@ export function drips(on: On, options: PluginOptions) {
     const isPlaying = modOf($).manager.running().length > 0
     return (
       <Box flexDirection="row" flexWrap="wrap" gap={1}>
-        <Text dimColor>💧</Text>
         {QUICK_EFFECTS.map(effect => (
           <Button key={`play:${effect}`} label={effect} onPress={() => bandPlay($, effect)} />
         ))}

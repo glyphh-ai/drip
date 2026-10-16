@@ -19,7 +19,7 @@ import { verify } from '../unlock/verify.ts'
 import { BUILTIN_EFFECT_LIST, ONE_SHOT_EFFECTS } from '../drips/effects.ts'
 import { loadDrips, loadGames, skippedText, type FolderDeps, type FolderGame } from '../content/folders.ts'
 import { readCustoms } from '../drips/library.ts'
-import { LOCKUP_RATIO, LOCKUP_SVG, LOGO_ALT } from './brand.ts'
+import { DIVIDER_SVG, LOCKUP_RATIO, LOCKUP_SVG, LOGO_ALT } from './brand.ts'
 import { GAMES, gameDoc, gameOf } from './games/index.ts'
 import type { Game } from './games/game.ts'
 import { GENERIC_ICON, ICONS } from './icons.ts'
@@ -211,7 +211,7 @@ export function arcade(on: On, options: PluginOptions) {
         const icon = ICONS[game.name] ?? ('icon' in game && game.icon ? game.icon : GENERIC_ICON)
         rows.push(
           <Box key={game.name} flexDirection="row" alignItems="center" gap={2}>
-            {Svg ? <Svg source={icon} alt="" width={18} height={18} /> : null}
+            {Svg ? <Svg source={icon} alt={game.title} width={18} height={18} /> : null}
             <Box flexGrow={1} flexDirection="row" gap={1}>
               <Text>{game.title}</Text>
               {isYours ? <Text dimColor>· yours</Text> : null}
@@ -252,7 +252,7 @@ export function arcade(on: On, options: PluginOptions) {
           <Button key="tab:games" label="Games" plain dimColor={shown !== 'games'} onPress={() => void update($, tab, () => 'games' as const)} />
           <Button key="tab:drips" label="Drips" plain dimColor={shown !== 'drips'} onPress={() => void update($, tab, () => 'drips' as const)} />
         </Box>
-        {rows}
+        {rows.flatMap((row, i) => (Svg ? [<Svg key={`line:${i}`} source={DIVIDER_SVG} alt=" " height={1} />, row] : [row]))}
         {pages > 1 ? (
           <Box flexDirection="row" justifyContent="flex-end" alignItems="center" gap={1}>
             <Button key="prev" label="‹" plain dimColor={at === 0} onPress={turn(-1)} />
