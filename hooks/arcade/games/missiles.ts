@@ -1,4 +1,4 @@
-// missiles: Missile Command over Claude's window, endless. Missiles streak
+// missiles: a missile-defence game over Claude's window, endless. Missiles streak
 // down from random points along the top towards random points on the ground
 // (some at the turrets). Three pixel turrets stand on the ground: a click
 // sends an interceptor from the nearest ready turret up to the click point,
@@ -223,7 +223,7 @@ function drawHud(){
 function drawIntro(t){
   if(t>INTRO+400)return;var a=t>INTRO?1-(t-INTRO)/400:1;
   c.save();c.globalAlpha=a;
-  pixelText("MISSILE COMMAND",W/2,H*0.36,Math.max(18,S*7),"#ffd60a","center");
+  pixelText("MISSILES",W/2,H*0.36,Math.max(18,S*7),"#ffd60a","center");
   pixelText("CLICK TO FIRE. KEEP THE MISSILES OFF THE GROUND. M MUTES. ESC TO QUIT.",W/2,H*0.36+Math.max(18,S*7)*1.6,Math.max(12,S*4),"#fff","center");
   c.restore();
 }
@@ -287,7 +287,7 @@ requestAnimationFrame(frame);
 
 export const missiles: Game = {
   name: 'missiles',
-  title: 'Missile Command',
+  title: 'Missiles',
   build: dripMissiles,
   safetyMs: MISSILES_SAFETY_MS,
   aliases: ['missile'],

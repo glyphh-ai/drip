@@ -5,8 +5,9 @@
 // Claude's window or the whole screen as the /config row `display` says; the
 // overlay takes the pointer and keys while a game is on. Each game posts its
 // score as it goes, and the top one is kept for the next round to beat.
-// /drip alone draws as the games card: each game with its icon, your best and
-// Play, four to a page; until Games is bought, Play opens checkout instead.
+// /drip alone draws a small card whose Open drip shows the console
+// (../console): every game and drip as covers, launched from there. Missiles
+// and every drip are free; the other games wait for Glyphh Drip to be bought.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On, PluginOptions } from 'claude-code'
 
@@ -21,25 +22,24 @@ import { dripsDir, gamesDir, loadDrips, loadGames, skippedText, type FolderDeps,
 import { get as galleryGet } from '../content/gallery.ts'
 import { share as galleryShare } from '../content/share.ts'
 import { readCustoms } from '../drips/library.ts'
-import { LOCKUP_RATIO, LOCKUP_SVG, LOGO_ALT } from './brand.ts'
+import { consoleHtml, type Item } from '../console/page.ts'
+import { CAT_RATIO, CAT_SVG, LOGO_ALT, MARK_RATIO, MARK_SVG } from './brand.ts'
 import { GAMES, gameDoc, gameOf } from './games/index.ts'
 import type { Game } from './games/game.ts'
-import { DRIP_ICONS, GAME_ICONS, GENERIC_DRIP_ICON, GENERIC_GAME_ICON, tiled } from './icons.ts'
+import { DRIP_ICONS, GAME_ICONS, GENERIC_DRIP_ICON, GENERIC_GAME_ICON } from './icons.ts'
 import { scoresOf, type Store } from './scores.ts'
 import { settingsOf, type Settings } from './settings.ts'
 
 const licence = atom({ plugin: 'glyphh-drip', key: 'licence' } as const, INITIAL)
-/** The card's tab, and its page on each tab, from 0. */
-const tab = atom({ plugin: 'glyphh-drip', key: 'tab' } as const, 'games' as 'games' | 'drips')
-const page = atom({ plugin: 'glyphh-drip', key: 'page' } as const, 0)
-const dripPage = atom({ plugin: 'glyphh-drip', key: 'dripPage' } as const, 0)
-/** A drip the card asked to play: the drips' half (../drips) takes it. */
+/** A drip the console asked to play: the drips' half (../drips) takes it. */
 const queued = atom({ plugin: 'glyphh-drip', key: 'queued' } as const, null as { recipe: string; at: number } | null)
 
-/** Rows the card shows to a page. */
-export const PAGE_SIZE = 4
-/** How many pages the Games tab has. */
-export const PAGES = Math.ceil(GAMES.length / PAGE_SIZE)
+/** The games anyone can play, bought or not (every drip is free too). */
+export const FREE_GAMES: readonly string[] = ['missiles']
+/** The game and the drip each console tab features. */
+export const FEATURED = { game: 'missiles', drip: 'fireworks' } as const
+/** How long the console stays up untouched, in ms. */
+const CONSOLE_MS = 30 * 60_000
 
 /** A drip's name as the card shows it: "matrix" → "Matrix". */
 const titleOf = (name: string) => name.charAt(0).toUpperCase() + name.slice(1)
@@ -163,24 +163,106 @@ async function listing($: EngineInterface): Promise<string> {
   }
   if (yours.skipped) lines.push('', yours.skipped)
   // Not the refusal line: that one draws as the unlock module's card, this as the card.
-  if (refusal(await read($, licence))) lines.push('', `${PRODUCT} is ${PRICE}, once: /drip unlock buys it.`)
+  if (refusal(await read($, licence))) lines.push('', `Missiles is free; the other games are ${PRICE}, once: /drip unlock buys ${PRODUCT}.`)
   return lines.join('\n')
 }
 
-/** Play on the card: the game (nothing until it is bought: Unlock is below). */
-async function press($: EngineInterface, game: Game): Promise<void> {
-  if (refusal(await read($, licence))) return
-  const said = await play($, game).catch(err => `/drip: ${short(err)}`)
+/** Why `game` may not be played now (not bought, and not free), or null. */
+async function gameRefusal($: EngineInterface, game: Game): Promise<string | null> {
+  return FREE_GAMES.includes(game.name) ? null : refusal(await read($, licence))
+}
+
+/** A data: URI for SVG markup. */
+const svgUri = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+
+/** The cover photographed for `key` ("game-blocks"), as a data: URI; null without one. */
+async function coverOf($: EngineInterface, key: string): Promise<string | null> {
+  const path = `${$.plugin.root}/covers/${key}.jpg`
+  if (!(await $.fs.exists(path))) return null
+  const { base64 } = await $.fs.read(path, { as: 'bytes' })
+  return `data:image/jpeg;base64,${base64}`
+}
+
+/** Every game and drip as the console shows them. */
+async function consoleItems($: EngineInterface, isBought: boolean): Promise<{ games: Item[]; drips: Item[] }> {
+  const scores = scoresOf(store($))
+  const games: Item[] = []
+  for (const g of [...GAMES, ...(await folderGames($)).games]) {
+    const best = await scores.best(g.name)
+    const isYours = 'isYours' in g && g.isYours === true
+    const cover = await coverOf($, `game-${g.name}`)
+    games.push({
+      kind: 'game',
+      name: g.name,
+      title: g.title,
+      ...('about' in g && typeof g.about === 'string' ? { about: g.about } : {}),
+      ...(best > 0 ? { best: `Best ${best.toLocaleString('en-GB')}` } : {}),
+      ...(cover ? { cover } : { icon: GAME_ICONS[g.name] ?? ('icon' in g && typeof g.icon === 'string' ? g.icon : GENERIC_GAME_ICON) }),
+      isLocked: !isBought && !FREE_GAMES.includes(g.name),
+      isYours,
+    })
+  }
+  const saved = Object.keys(await readCustoms(store($)))
+  const own = await folderDrips($)
+  const listed = [
+    ...BUILTIN_EFFECT_LIST.map(d => ({ name: d.name, title: titleOf(d.name), icon: DRIP_ICONS[d.name] ?? GENERIC_DRIP_ICON, isYours: false })),
+    ...own.map(d => ({ name: d.name, title: d.title, icon: d.icon ?? GENERIC_DRIP_ICON, isYours: d.isYours })),
+    ...saved.filter(n => !own.some(d => d.name === n)).map(name => ({ name, title: titleOf(name), icon: GENERIC_DRIP_ICON, isYours: true })),
+  ]
+  const drips: Item[] = []
+  for (const d of listed) {
+    const cover = d.isYours ? null : await coverOf($, `drip-${d.name}`)
+    drips.push({ kind: 'drip', name: d.name, title: d.title, ...(cover ? { cover } : { icon: d.icon }), isLocked: false, isYours: d.isYours })
+  }
+  return { games, drips }
+}
+
+/** Shows the console over Claude, on `shown`'s tab. What it asks for is done
+ *  once it has closed: a game (the console comes back when the game ends), a
+ *  drip, or checkout. */
+async function openConsole($: EngineInterface, shown: 'games' | 'drips'): Promise<void> {
+  native ??= prepareOverlay(overlayDeps($))
+  const prepared = await native
+  if (!('binary' in prepared)) return $.ui.toast(prepared.missing)
+  const isBought = refusal(await read($, licence)) === null
+  const { games, drips } = await consoleItems($, isBought)
+  const html = consoleHtml({
+    games,
+    drips,
+    featured: FEATURED,
+    isBought,
+    price: PRICE,
+    logo: { cat: svgUri(CAT_SVG), word: svgUri(MARK_SVG) },
+    tab: shown,
+    quiet: !settings.sounds,
+  })
+  let asked = ''
+  const { show } = overlayHost(overlayDeps($), prepared.binary, placement($, prepared.binary))
+  const up = await show(
+    () => ({ html, closeAfterMs: CONSOLE_MS, interactive: true }),
+    async ev => void (ev.t === 'ask' && (asked = ev.ask)),
+  )
+  void up.closed.then(() => act($, asked), () => undefined)
+}
+
+/** Does what the console asked: `launch game <name>`, `launch drip <name>` or `unlock`. */
+async function act($: EngineInterface, asked: string): Promise<void> {
+  const [verb, kind, name] = asked.split(' ')
+  if (verb === 'unlock') return checkout($)
+  if (verb !== 'launch' || !name) return
+  if (kind === 'drip') {
+    const at = await $.clock.now()
+    await update($, queued, () => ({ recipe: name, at }))
+    return
+  }
+  const game = kind === 'game' ? await findGame($, name) : null
+  if (!game) return
+  const no = await gameRefusal($, game)
+  if (no) return checkout($)
+  const said = await play($, game, () => void openConsole($, 'games').catch(err => $.ui.toast(`drip ✗ ${short(err)}`))).catch(err => `/drip: ${short(err)}`)
   if (!said.startsWith(game.title)) $.ui.toast(said) // the overlay could not run
 }
 
-/** Play on the Drips tab: queued for the drips' half to play (nothing until
- *  it is bought). */
-async function pressDrip($: EngineInterface, name: string): Promise<void> {
-  if (refusal(await read($, licence))) return
-  const at = await $.clock.now()
-  await update($, queued, () => ({ recipe: name, at }))
-}
 
 /** What /drip unlock does, from the card's Play (a mod can't run its own
  *  command, and the engine follows $ only within this file). */
@@ -203,7 +285,7 @@ async function checkout($: EngineInterface): Promise<void> {
 
 /** Starts `game` in the overlay; resolves once it is on screen. The score it
  *  posts is kept when it beats the top one. */
-async function play($: EngineInterface, game: Game): Promise<string> {
+async function play($: EngineInterface, game: Game, ended?: () => void): Promise<string> {
   native ??= prepareOverlay(overlayDeps($))
   const prepared = await native
   if (!('binary' in prepared)) return prepared.missing
@@ -214,7 +296,7 @@ async function play($: EngineInterface, game: Game): Promise<string> {
     s => gameDoc(game, s.w, s.h, best, settings.sounds),
     async ev => void (ev.t === 'score' && (await scores.keep(game.name, ev.score))),
   )
-  void shown.closed.catch(() => undefined)
+  void shown.closed.then(ended, () => undefined)
   return `${game.title}${best > 0 ? `: your best is ${best}` : ''}. Esc quits, M mutes.`
 }
 
@@ -224,96 +306,28 @@ export function arcade(on: On, options: PluginOptions) {
   target = null
   isMissedSaid = false
 
-  // /drip alone (or /drip list): the card, Games and Drips on two tabs.
+  // /drip alone (or /drip list): the small card, the logo and Open drip;
+  // Unlock beside it until Glyphh Drip is bought.
   on('ui.render', { component: 'CommandOutput' }, async ($, e, next) => {
     const args = e.props.args.trim().toLowerCase()
     if (e.props.command !== 'drip' || e.props.isErrored || (args !== '' && args !== 'list')) return next(e)
     const { Box, Text, Button, ...els } = $.ui.resolve(e)
-    // Every surface but the terminal draws SVG: the logo and the icons; the terminal gets words.
+    // Every surface but the terminal draws SVG: the logo; the terminal gets the word.
     const Svg = e.surface !== 'terminal' && 'Svg' in els ? els.Svg : null
-    const shown = await read($, tab)
-    // Not bought: every Play is dimmed and does nothing; Unlock below opens checkout.
     const isLocked = refusal(await read($, licence)) !== null
-    const rows = []
-    let at: number
-    let pages: number
-    if (shown === 'games') {
-      const games: (Game | FolderGame)[] = [...GAMES, ...(await folderGames($)).games]
-      pages = Math.max(1, Math.ceil(games.length / PAGE_SIZE))
-      at = Math.min(await read($, page), pages - 1)
-      const scores = scoresOf(store($))
-      for (const game of games.slice(at * PAGE_SIZE, (at + 1) * PAGE_SIZE)) {
-        const best = await scores.best(game.name)
-        const isYours = 'isYours' in game && game.isYours
-        const icon = GAME_ICONS[game.name] ?? ('icon' in game && game.icon ? tiled(game.icon) : GENERIC_GAME_ICON)
-        rows.push(
-          <Box key={game.name} flexDirection="row" alignItems="center" gap={3}>
-            {Svg ? <Svg source={icon} alt={game.title} width={28} height={28} /> : null}
-            <Box flexGrow={1} flexDirection="row" alignItems="center" gap={2}>
-              <Text bold>{game.title}</Text>
-              {isYours ? <Text dimColor>yours</Text> : null}
-            </Box>
-            <Text dimColor>{best > 0 ? `Best ${best.toLocaleString('en-GB')}` : ''}</Text>
-            <Button key={`play:${game.name}`} label="Play" variant="secondary" dimColor={isLocked} onPress={() => void (isLocked || press($, game))} />
-          </Box>,
-        )
-      }
-    } else {
-      const saved = Object.keys(await readCustoms(store($)))
-      const own = await folderDrips($)
-      const drips = [
-        ...BUILTIN_EFFECT_LIST.map(d => ({ name: d.name, title: titleOf(d.name), icon: DRIP_ICONS[d.name] ?? GENERIC_DRIP_ICON, isYours: false })),
-        ...own.map(d => ({ name: d.name, title: d.title, icon: d.icon ? tiled(d.icon) : GENERIC_DRIP_ICON, isYours: d.isYours })),
-        ...saved.filter(n => !own.some(d => d.name === n)).map(name => ({ name, title: titleOf(name), icon: GENERIC_DRIP_ICON, isYours: true })),
-      ]
-      pages = Math.max(1, Math.ceil(drips.length / PAGE_SIZE))
-      at = Math.min(await read($, dripPage), pages - 1)
-      for (const drip of drips.slice(at * PAGE_SIZE, (at + 1) * PAGE_SIZE)) {
-        rows.push(
-          <Box key={drip.name} flexDirection="row" alignItems="center" gap={3}>
-            {Svg ? <Svg source={drip.icon} alt={drip.title} width={28} height={28} /> : null}
-            <Box flexGrow={1} flexDirection="row" alignItems="center" gap={2}>
-              <Text bold>{drip.title}</Text>
-              {drip.isYours ? <Text dimColor>yours</Text> : null}
-            </Box>
-            <Button key={`drip:${drip.name}`} label="Play" variant="secondary" dimColor={isLocked} onPress={() => void (isLocked || pressDrip($, drip.name))} />
-          </Box>,
-        )
-      }
-    }
-    const step = (p: number, by: number) => Math.max(0, Math.min(pages - 1, Math.min(p, pages - 1) + by))
-    const turn = (by: number) => () => void (shown === 'games' ? update($, page, p => step(p, by)) : update($, dripPage, p => step(p, by)))
     return (
-      <Box flexDirection="column" paddingX={3} paddingY={2} borderStyle="round" borderDimColor>
-        <Box flexDirection="row" alignItems="center" gap={3} marginBottom={2}>
-          {Svg ? <Svg source={LOCKUP_SVG} alt={LOGO_ALT} height={18} width={Math.round(18 * LOCKUP_RATIO)} /> : <Text bold>glyphh&gt; drip</Text>}
-          <Button key="tab:games" label="Games" plain dimColor={shown !== 'games'} onPress={() => void update($, tab, () => 'games' as const)} />
-          <Button key="tab:drips" label="Drips" plain dimColor={shown !== 'drips'} onPress={() => void update($, tab, () => 'drips' as const)} />
-        </Box>
-        <Box flexDirection="column" gap={2}>
-          {rows}
-        </Box>
-        {isLocked || pages > 1 ? (
-          <Box flexDirection="row" justifyContent="space-between" alignItems="center" gap={1} marginTop={3}>
-            {isLocked ? (
-              <Box flexDirection="row" alignItems="center" gap={2}>
-                <Button key="unlock" label={`Unlock ${PRODUCT}`} variant="primary" onPress={() => void checkout($)} />
-                <Text dimColor>{PRICE} once</Text>
-              </Box>
-            ) : (
-              <Box />
-            )}
-            {pages > 1 ? (
-              <Box flexDirection="row" alignItems="center" gap={1}>
-                <Button key="prev" label="‹" plain dimColor={at === 0} onPress={turn(-1)} />
-                <Text dimColor>
-                  {at + 1} of {pages}
-                </Text>
-                <Button key="next" label="›" plain dimColor={at === pages - 1} onPress={turn(1)} />
-              </Box>
-            ) : null}
+      <Box flexDirection="row" alignItems="center" gap={3} paddingX={3} paddingY={2} borderStyle="round" borderDimColor>
+        {Svg ? (
+          <Box flexDirection="row" alignItems="center" gap={2}>
+            <Svg source={CAT_SVG} alt={LOGO_ALT} height={30} width={Math.round(30 * CAT_RATIO)} />
+            <Svg source={MARK_SVG} alt="drip" height={22} width={Math.round(22 * MARK_RATIO)} />
           </Box>
-        ) : null}
+        ) : (
+          <Text bold>drip</Text>
+        )}
+        <Box flexGrow={1} />
+        {isLocked ? <Button key="unlock" label={`Unlock · ${PRICE}`} variant="secondary" onPress={() => void checkout($)} /> : null}
+        <Button key="open" label="Open drip" variant="primary" onPress={() => void openConsole($, 'games')} />
       </Box>
     )
   })
@@ -331,7 +345,7 @@ export function arcade(on: On, options: PluginOptions) {
     }
     const game = await findGame($, name)
     if (!game) return next(e)
-    const no = refusal(await read($, licence))
+    const no = await gameRefusal($, game)
     if (no) return { text: no }
     try {
       return { text: await play($, game) }

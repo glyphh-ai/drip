@@ -1,7 +1,7 @@
 # Glyphh Drip
 
 Glyphh Drip plays games and drips over Claude, with sound. Five arcade games
-(Missile Command, Chickn, Blocks, Rocks, Dash), endless and harder as they go,
+(Missiles, Chickn, Blocks, Rocks, Dash), endless and harder as they go,
 your best score to beat; and twenty drips, visual effects like confetti,
 fireworks, hearts and a matrix rain. Ask Claude and it makes you new ones.
 

@@ -4,7 +4,7 @@
 // It gets harder as it goes and runs until it is lost.
 export type Game = {
   name: string
-  /** As people read it: "Missile Command", "Blocks". */
+  /** As people read it: "Missiles", "Blocks". */
   title: string
   build: (w: number, h: number, best: number) => string
   /** The backstop, in ms. */

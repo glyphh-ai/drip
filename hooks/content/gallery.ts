@@ -1,10 +1,10 @@
-// The gallery: glyphh-ai/drips, every game and drip there is. `/drip get
+// The gallery: glyphh-ai/drip, every game and drip there is. `/drip get
 // <name>` fetches one into the person's own folder (~/.glyphh), checked
 // against the rules first (./rules.js), so it plays like one they made.
 import { NAME, checkDrip, checkGame } from './rules.js'
 
 /** Where the gallery's files are read from, raw. */
-export const GALLERY = 'https://raw.githubusercontent.com/glyphh-ai/drips/main'
+export const GALLERY = 'https://raw.githubusercontent.com/glyphh-ai/drip/main'
 
 export type GalleryDeps = {
   fetch: (url: string) => Promise<{ ok: boolean; status: number; text: string }>

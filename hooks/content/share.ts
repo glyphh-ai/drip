@@ -1,12 +1,12 @@
 // /drip share <name>: one of the person's own games or drips, sent to the
-// gallery (glyphh-ai/drips) as a pull request, all from the plugin. It runs
+// gallery (glyphh-ai/drip) as a pull request, all from the plugin. It runs
 // the GitHub command-line tool, signed in as the person: their fork of the
 // gallery, synced; a branch; the folder's files; the pull request. We review
 // and merge it there; from then on anyone can /drip get it.
 import { checkDrip, checkGame } from './rules.js'
 
 /** The gallery's repository on GitHub. */
-export const REPO = 'glyphh-ai/drips'
+export const REPO = 'glyphh-ai/drip'
 
 export type Run = (argv: string[], opts?: { stdin?: string; timeoutMs?: number }) => Promise<{ exitCode: number; stdout: string; stderr: string } | null>
 
@@ -53,7 +53,7 @@ export async function share(d: ShareDeps, home: string, name: string): Promise<s
   if (!user) return `GitHub didn't say who you are: ${say(who)}`
 
   // Their fork, created if new and brought up to date with the gallery.
-  const fork = `${user}/drips`
+  const fork = `${user}/drip`
   await d.run([gh, 'repo', 'fork', REPO, '--clone=false'], { timeoutMs: 60_000 })
   const synced = await d.run([gh, 'repo', 'sync', fork, '--source', REPO, '--branch', 'main'], { timeoutMs: 60_000 })
   if (synced?.exitCode !== 0) return `Couldn't bring your fork ${fork} up to date: ${say(synced)}`

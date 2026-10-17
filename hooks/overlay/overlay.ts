@@ -55,6 +55,8 @@ export type OverlayEvent =
   | { t: 'closed'; why: CloseReason }
   | { t: 'error'; message: string }
   | { t: 'score'; score: number }
+  /** A page's ask, as it posted it ({__drip_ask__: text}): the console's "launch game blocks", "unlock". */
+  | { t: 'ask'; ask: string }
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
 
@@ -119,6 +121,7 @@ export function parseEvent(line: string): OverlayEvent | null {
     if (m.t === 'closed' && REASONS.includes(m.why as CloseReason)) return { t: 'closed', why: m.why as CloseReason }
     if (m.t === 'error' && typeof m.message === 'string') return { t: 'error', message: m.message }
     if (m.t === 'score' && isNum(m.score) && Number.isInteger(m.score) && m.score >= 0) return { t: 'score', score: m.score }
+    if (m.t === 'ask' && typeof m.ask === 'string' && m.ask.length > 0 && m.ask.length <= 200) return { t: 'ask', ask: m.ask }
     return null
   } catch {
     return null

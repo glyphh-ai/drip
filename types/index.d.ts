@@ -31,11 +31,6 @@ declare module 'claude-code' {
       node: string | null
       /** The quick-play row above the prompt is open (the drip button pressed). */
       bandOpen: boolean
-      /** The card's tab. */
-      tab: 'games' | 'drips'
-      /** The card's page on each tab, from 0. */
-      page: number
-      dripPage: number
       /** A drip the card asked to play, for the drips' half to take (the engine
        *  follows $ only within the file whose hook received it). */
       queued: { recipe: string; at: number } | null

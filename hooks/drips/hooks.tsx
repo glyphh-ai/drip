@@ -10,10 +10,6 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On, PluginOptions, RenderChildren, Timer } from 'claude-code'
 
 import type { HelperInfo } from '../../types'
-import { INITIAL, refusal } from '../unlock/access.ts'
-import { MOD, PRICE, PRODUCT } from '../unlock/config.ts'
-import { buy, type Deps } from '../unlock/flow.ts'
-import { verify } from '../unlock/verify.ts'
 import { BUILTIN_EFFECT_LIST, BUILTIN_EFFECTS, ONE_SHOT_EFFECTS, setYourDrips, yourDrips } from './effects.ts'
 import { dripsDir, loadDrips } from '../content/folders.ts'
 import { createFun } from './fun.ts'
@@ -27,7 +23,6 @@ import { findNode, NODE_MISSING } from './node.ts'
 import { settingsOf, type Settings } from './settings.ts'
 import { showPage, shownText, type PageDeps } from './window.ts'
 
-const licence = atom({ plugin: 'glyphh-drip', key: 'licence' } as const, INITIAL)
 const helperInfo = atom({ plugin: 'glyphh-drip', key: 'helper' } as const, null as HelperInfo | null)
 const pageTab = atom({ plugin: 'glyphh-drip', key: 'pageTab' } as const, null as string | null)
 const nodePath = atom({ plugin: 'glyphh-drip', key: 'node' } as const, null as string | null)
@@ -165,8 +160,6 @@ async function hostOf($: EngineInterface, m: Mod, quiet = false): Promise<Host> 
   throw new Unavailable(prepared.missing)
 }
 
-/** Why effects may not play now (not bought on this machine), or null.
- *  Bought, everything is open: no limits. */
 /** The engine's own line with the Drips button after it; pressed, it opens or closes the row above the prompt. */
 async function withButton($: EngineInterface, e: Parameters<EngineInterface['ui']['resolve']>[0], line: RenderChildren) {
   const { Box, Button } = $.ui.resolve(e)
@@ -179,8 +172,9 @@ async function withButton($: EngineInterface, e: Parameters<EngineInterface['ui'
   )
 }
 
-async function refused($: EngineInterface): Promise<string | null> {
-  return refusal(await read($, licence))
+/** Why drips may not play now, or null: never, as every drip is free. */
+async function refused(_$: EngineInterface): Promise<string | null> {
+  return null
 }
 
 // ── The Drips page's helper ─────────────────────────────────────────────────
@@ -300,24 +294,6 @@ async function bandPlay($: EngineInterface, recipe: string): Promise<void> {
   await m.manager.execute(() => hostOf($, m), recipe).catch(err => void (err instanceof Unavailable || $.ui.toast(`Drips: ${short(err)}`)))
 }
 
-/** Unlock from the row: what /drip unlock does (a mod can't run its own
- *  command, and the engine follows $ only within this file). */
-async function bandCheckout($: EngineInterface): Promise<void> {
-  const d: Deps = {
-    store: { get: key => $.store.get(key), set: (key, value) => $.store.set(key, value), delete: key => $.store.delete(key) },
-    state: { get: () => read($, licence), set: async fn => void (await update($, licence, fn)) },
-    now: () => $.clock.now(),
-    every: (ms, fn) => $.clock.every(ms, () => void fn()),
-    check: async text => (await verify(text, MOD)) !== null,
-    fetch: url => $.http.fetch(url),
-    open: async url => (await $.process.run(['open', url]).catch(() => null))?.exitCode === 0,
-    copy: async text => (await $.ui.copy({ text })).isCopied,
-    toast: (text, ms) => $.ui.toast(text, ms ? { timeoutMs: ms } : undefined),
-    log: text => $.ui.log(text),
-  }
-  await buy(d)
-  if (!(await read($, licence)).licence) $.ui.toast(`Checkout for ${PRODUCT} (${PRICE}, once) is open in your browser. ${PRODUCT} unlocks on its own when you've paid.`)
-}
 
 /** Reads the folder drips again (the plugin's shipped ones, then ~/.glyphh/drips): before each play and listing. */
 async function readYours($: EngineInterface): Promise<void> {
@@ -342,7 +318,7 @@ async function takeQueued($: EngineInterface): Promise<void> {
 async function registerAll($: EngineInterface): Promise<void> {
   await $.command.register({
     name: 'drip',
-    description: 'Glyphh Drip: /drip opens the card of games and drips; /drip blocks starts a game; /drip confetti, /drip 3 hearts stars, /drip -1 aurora play drips; get <name> fetches a game or drip from the gallery, share <name> sends one of yours there; stop, save <name> <recipe>, delete <name>; page opens your saved drips and the editor; unlock buys it ($5, once); key <licence> unlocks it with a licence from another machine',
+    description: 'Glyphh Drip: /drip opens Drip, the console of games and drips; /drip blocks starts a game; /drip confetti, /drip 3 hearts stars, /drip -1 aurora play drips; get <name> fetches a game or drip from the gallery, share <name> sends one of yours there; stop, save <name> <recipe>, delete <name>; page opens your saved drips and the editor; unlock buys the games (Missiles and every drip are free); key <licence> unlocks it with a licence from another machine',
     argumentHint: '<game> | <recipe> | get <name> | share <name> | stop | save <name> <recipe> | delete <name> | page | unlock | key <licence>',
     immediate: true,
   })
@@ -441,18 +417,8 @@ export function drips(on: On, options: PluginOptions) {
   // something persistent plays, ✕; once the trial is over, Unlock.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (!settings.button || e.props.hasSurvey || !(await read($, bandOpen))) return next(e)
-    const { Box, Button, Text } = $.ui.resolve(e)
+    const { Box, Button } = $.ui.resolve(e)
     const close = <Button key="close" label="✕" plain role="dismiss" onPress={() => update($, bandOpen, () => false)} />
-    const no = await refused($)
-    if (no) {
-      return (
-        <Box flexDirection="row" gap={1} alignItems="center">
-          <Text dimColor>{PRODUCT} is {PRICE}, once.</Text>
-          <Button key="unlock" label="Unlock" variant="primary" onPress={() => void bandCheckout($)} />
-          {close}
-        </Box>
-      )
-    }
     const saved = await listCustoms(store($))
     const isPlaying = modOf($).manager.running().length > 0
     return (
