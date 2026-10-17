@@ -23,14 +23,14 @@ var keys={},mouseX=null,paused=false,parts=[],endAt=0,closed=false,wallAt=-1e9,b
 var now0=0,last=0;
 function rnd(a,b){return a+Math.random()*(b-a)}
 function close(){if(closed)return;closed=true;c.clearRect(0,0,W,H);glyphh.end()}
-function baseSpeed(){return 300+(wall-1)*28}
+function baseSpeed(){return 430+(wall-1)*45}
 function buildWall(){
-  bricks=[];var rows=Math.min(9,5+Math.floor((wall-1)/2));left=0;
+  bricks=[];var rows=Math.min(9,6+(wall-1));left=0;
   for(var r=0;r<rows;r++)for(var i=0;i<COLS;i++){
-    // Later walls have hard bricks that take two hits.
-    var hard=wall>2&&r<2&&Math.random()<Math.min(0.6,(wall-2)*0.15);
+    // Hard bricks take two hits: some from the first wall, more each wall.
+    var hard=r<2+Math.floor(wall/2)&&Math.random()<Math.min(0.75,0.25+(wall-1)*0.15);
     bricks.push({r:r,i:i,x:i*BRW,y:TOP+r*(BRH+4),hp:hard?2:1,col:ROWCOL[r%ROWCOL.length],alive:true,hit:-1e9});left++}
-  pad.w=Math.max(70,110-(wall-1)*5);
+  pad.w=Math.max(55,85-(wall-1)*8);
 }
 function serve(){ball.held=true;ball.x=pad.x;ball.y=pad.y-pad.h/2-ball.r-1;ball.vx=0;ball.vy=0;hits=0}
 function launch(){if(!ball.held)return;ball.held=false;var a=rnd(-0.5,0.5)-Math.PI/2,v=baseSpeed();ball.vx=Math.cos(a)*v;ball.vy=Math.sin(a)*v;glyphh.sfx.tone(520,0.08,"square",0.08,780)}
@@ -72,7 +72,7 @@ function physics(dt){
     // The paddle: where it lands sets the angle; every few hits it quickens.
     if(ball.vy>0&&ball.y+ball.r>=pad.y-pad.h/2&&ball.y-ball.r<=pad.y+pad.h/2&&Math.abs(ball.x-pad.x)<=pad.w/2+ball.r){
       var u=(ball.x-pad.x)/(pad.w/2),a=u*1.1-Math.PI/2;hits++;
-      var v=Math.min(baseSpeed()*1.9,Math.hypot(ball.vx,ball.vy)*(hits%4===0?1.06:1));
+      var v=Math.min(baseSpeed()*1.9,Math.hypot(ball.vx,ball.vy)*(hits%3===0?1.08:1));
       ball.vx=Math.cos(a)*v;ball.vy=Math.sin(a)*v;ball.y=pad.y-pad.h/2-ball.r;
       glyphh.sfx.tone(300,0.06,"triangle",0.1,180);
     }

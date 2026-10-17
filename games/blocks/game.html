@@ -7,8 +7,8 @@ canvas{position:absolute;left:0;top:0}
 <script>var __c=document.getElementById("c");__c.width=glyphh.width;__c.height=glyphh.height</script>
 <script>
 (function(){
-var W=glyphh.width,H=glyphh.height,BEST=glyphh.best,COLS=12,ROWS=20,ENDMS=2600,LOCK=450;
-var SLIDE0=170,SLIDE=50,SOFT=40,SHAKE=0.22,FALL0=800,SPEEDUP=0.82;
+var W=glyphh.width,H=glyphh.height,BEST=glyphh.best,COLS=12,ROWS=20,ENDMS=2600,LOCK=300;
+var SLIDE0=170,SLIDE=50,SOFT=40,SHAKE=0.22,FALL0=480,SPEEDUP=0.72;
 var PIECES={"I":[[0,1],[1,1],[2,1],[3,1]],"O":[[1,0],[2,0],[1,1],[2,1]],"T":[[1,0],[0,1],[1,1],[2,1]],"S":[[1,0],[2,0],[0,1],[1,1]],"Z":[[0,0],[1,0],[1,1],[2,1]],"J":[[0,0],[0,1],[1,1],[2,1]],"L":[[2,0],[0,1],[1,1],[2,1]]},COLOURS={"I":"#25c75e","O":"#f5c542","T":"#9b6dff","S":"#10a37f","Z":"#ff6b6b","J":"#48dbfb","L":"#ff9f43"};
 var c=document.getElementById("c").getContext("2d");
 
@@ -30,7 +30,7 @@ function drawParts(dt){for(var i=parts.length-1;i>=0;i--){var p=parts[i];p.life-
   p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.rot+=p.vr*dt;
   c.save();c.globalAlpha=Math.max(0,Math.min(1,p.life/p.max*1.5));c.translate(p.x,p.y);c.rotate(p.rot);c.fillStyle=p.col;c.fillRect(-p.size/2,-p.size/2,p.size,p.size);c.restore()}}
 var bag=[],queue=[],held=null,canHold=true,cur=null,fallAt=0,restAt=0,slide={dir:0,next:0},soft=false;
-function fallMs(){return Math.max(45,Math.round(FALL0*Math.pow(SPEEDUP,stats.lines/10)))}
+function fallMs(){return Math.max(30,Math.round(FALL0*Math.pow(SPEEDUP,stats.lines/8)))}
 function lineScore(n){return [0,100,300,500,800][n]*(1+Math.floor(stats.lines/10))}
 function close(){if(closed)return;closed=true;c.clearRect(0,0,W,H);glyphh.end()}
 // Seven pieces to a bag, shuffled: never a long wait for the one you need.
