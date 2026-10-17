@@ -489,7 +489,7 @@ export function arcade(on: On, options: PluginOptions) {
           </Text>
           <Box key="act" flexDirection="row" alignItems="center" gap={1}>
             {item.isLocked ? (
-              <Button key="unlock" label={`Unlock · ${PRICE}`} variant="primary" onPress={() => void checkout($)} />
+              <Button key="unlock" label={`Unlock all games - ${PRICE}`} variant="primary" onPress={() => void checkout($)} />
             ) : (
               <Button key={`${item.isGallery ? 'get' : 'play'}:${key}`} label={item.isGallery ? 'Get' : 'Play'} variant="primary" onPress={() => void press($, item)} />
             )}
@@ -512,7 +512,7 @@ export function arcade(on: On, options: PluginOptions) {
         {isBought ? null : (
           <Box flexDirection="row" alignItems="center" gap={2}>
             <Text dimColor>Unlock all games for a one time payment of {PRICE}.</Text>
-            <Button key="unlock" label={`Unlock · ${PRICE}`} variant="primary" onPress={() => void checkout($)} />
+            <Button key="unlock" label={`Unlock all games - ${PRICE}`} variant="primary" onPress={() => void checkout($)} />
           </Box>
         )}
         {Input ? (
