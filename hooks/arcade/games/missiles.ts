@@ -18,7 +18,7 @@
 // screen, at once on Esc, and at the overlay's cap (MISSILES_SAFETY_MS).
 
 import type { Game } from './game.ts'
-import { CLOSE_SIGNAL as CLOSE, GAME_SCORE, GAME_SOUND } from './shared.ts'
+import { CLOSE_SIGNAL as CLOSE, GAME_SCORE, GAME_SOUND, gameFrame } from './shared.ts'
 
 /** How a game ramps up: difficulty is 1 - e^(-seconds / this), 0 at the start
  *  and approaching 1 (near impossible) without ever settling. */
@@ -90,7 +90,7 @@ export function dripMissiles(w: number, h: number, best = 0): string {
   const scale = Math.max(0.6, Math.min(1.6, h / 800))
   return `<html><head><style>
 *{margin:0;padding:0}
-html,body{width:${w}px;height:${h}px;overflow:hidden;background:rgba(6,8,22,0.38);cursor:crosshair;user-select:none;-webkit-user-select:none}
+html,body{width:${w}px;height:${h}px;overflow:hidden;background:transparent;cursor:crosshair;user-select:none;-webkit-user-select:none}
 canvas{position:absolute;left:0;top:0;image-rendering:pixelated;cursor:crosshair}
 </style></head><body>
 <canvas id="c" width="${w}" height="${h}"></canvas>
@@ -100,6 +100,7 @@ var W=${w},H=${h},S=${s},SCALE=${scale},BEST=${top},RAMP=${MISSILES_RAMP_S * 100
 var BLASTMS=${MISSILES_BLAST_MS},SPMIN=${MISSILES_SPEED_RANGE[0]},SPMAX=${MISSILES_SPEED_RANGE[1]},B0=${MISSILES_BLAST_START};
 var E0=${JSON.stringify(missilesTuning(0))},E1=${JSON.stringify(missilesTuning(1))};
 var c=document.getElementById("c").getContext("2d");
+${gameFrame(w, h)}
 ${GAME_SOUND}
 ${GAME_SCORE}
 // The difficulty now, from 0 towards 1, and how it plays (missilesTuning).

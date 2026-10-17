@@ -63,7 +63,10 @@ The kit already handles **Esc** (quits) and **M** (mutes): don't use those keys.
 The game must:
 
 - Draw on a transparent background filling the page (a full-window
-  `<canvas>`), so Claude shows through around it.
+  `<canvas>`): Glyphh Drip adds the dimmed, slightly see-through backdrop
+  itself, and scales the page to fit Claude's window as it is resized. Lay
+  out once at `glyphh.width` × `glyphh.height` and read the pointer from
+  `clientX`/`clientY` (they stay in the game's pixels).
 - Be endless and get harder as it goes, with a score to beat.
 - Call `glyphh.end()` when it's over.
 - Use the keyboard and mouse only.

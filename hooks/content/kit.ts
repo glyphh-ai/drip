@@ -2,7 +2,7 @@
 // in front of its page as `window.glyphh`, with a policy that blocks the
 // network. It is the built-in games' own plumbing (../arcade/games/shared.ts):
 // the close signal the overlay hears, the sound kit and the score post.
-import { CLOSE_SIGNAL, GAME_SCORE, GAME_SOUND } from '../arcade/games/shared.ts'
+import { CLOSE_SIGNAL, GAME_SCORE, GAME_SOUND, gameFrame } from '../arcade/games/shared.ts'
 
 /** What a page may load: only what it carries inline. */
 export const POLICY =
@@ -20,12 +20,13 @@ export type KitOptions = {
   quiet: boolean
 }
 
-/** The kit's script: `window.glyphh`, and for a game Esc (quits) and M (mutes). */
+/** The kit's script: `window.glyphh`, and for a game Esc (quits), M (mutes),
+ *  the backdrop and the fit to Claude's window as it is resized. */
 export function kitScript(o: KitOptions): string {
   const n = (v: number) => (Number.isFinite(v) ? v : 0)
   const keys =
     o.kind === 'game'
-      ? `document.addEventListener("keydown",function(e){if(e.key==="Escape"){e.preventDefault();glyphh.end()}else if(e.key==="m"||e.key==="M"){sfx.toggle()}},true);`
+      ? `document.addEventListener("keydown",function(e){if(e.key==="Escape"){e.preventDefault();glyphh.end()}else if(e.key==="m"||e.key==="M"){sfx.toggle()}},true);` + gameFrame(o.width, o.height)
       : ''
   return (
     `<script>window.__dripsQuiet=${o.quiet ? 'true' : 'false'};${GAME_SOUND}${GAME_SCORE}` +

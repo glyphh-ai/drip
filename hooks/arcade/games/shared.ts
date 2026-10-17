@@ -33,3 +33,26 @@ return{tone:tone,noise:noise,notes:notes,toggle:toggle,muted:function(){return m
  *  mod keeps the top one (../scores.ts) and draws the next round with it. A
  *  host that frames the page hears it as a message and passes it over. */
 export const GAME_SCORE = `function postScore(n){if(!(n>postScore.sent))return;postScore.sent=n;try{window.postMessage({__drip_score__:n},"*")}catch(e){}}postScore.sent=0;`
+
+/** The backdrop every game plays on: Claude dimmed, still a little visible. */
+export const GAME_BACKDROP = 'rgba(8,8,18,0.82)'
+
+/** A game laid out at `w`×`h` kept fitted to its window: the overlay follows
+ *  Claude's window as it is resized, so the page is scaled to the new size
+ *  (centred, its shape kept) and the pointer's coordinates mapped back, so a
+ *  game reads clientX and clientY as if nothing changed. The page itself sits
+ *  on the backdrop, whatever background it sets. Run in the body. */
+export function gameFrame(w: number, h: number): string {
+  const n = (v: number) => (Number.isFinite(v) && v > 0 ? v : 1)
+  return (
+    `(function(){var W=${n(w)},H=${n(h)},s=1,ox=0,oy=0,b=document.body,st=document.createElement("style");` +
+    `st.textContent="html{background:${GAME_BACKDROP}!important}body{background:transparent!important;position:fixed!important;left:0!important;top:0!important;width:"+W+"px!important;height:"+H+"px!important;overflow:hidden!important;transform-origin:0 0}";` +
+    `(document.head||document.documentElement).appendChild(st);` +
+    `function fit(){var iw=window.innerWidth,ih=window.innerHeight;if(!(iw>0&&ih>0))return;s=Math.min(iw/W,ih/H);ox=(iw-W*s)/2;oy=(ih-H*s)/2;` +
+    `b.style.transform=s===1&&!ox&&!oy?"":"translate("+ox+"px,"+oy+"px) scale("+s+")"}` +
+    `function map(e){if(s===1&&!ox&&!oy)return;var x=(e.clientX-ox)/s,y=(e.clientY-oy)/s;` +
+    `try{Object.defineProperties(e,{clientX:{value:x},clientY:{value:y},pageX:{value:x},pageY:{value:y},x:{value:x},y:{value:y}})}catch(_){}}` +
+    `["mousedown","mouseup","mousemove","click","dblclick","contextmenu","wheel","pointerdown","pointerup","pointermove"].forEach(function(t){window.addEventListener(t,map,true)});` +
+    `window.addEventListener("resize",fit);fit()})();`
+  )
+}
