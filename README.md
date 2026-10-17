@@ -23,7 +23,7 @@ share it with everyone.
 
 ```
 games/snake/
-  game.json     { "title": "Snake", "author": "octocat", "about": "Eat, grow, don't bite your tail" }
+  game.json     { "title": "Snake", "author": "octocat", "emoji": "🐍", "about": "Eat, grow, don't bite your tail" }
   game.html     the game: one self-contained page
   cover.jpg     its picture (or cover.png)
   icon.svg      optional: a 24×24 outline icon
@@ -65,6 +65,10 @@ drips/snow/
 within 15 seconds regardless) or `loop` (keeps playing until stopped, drawn at
 `glyphh.opacity`). A drip never takes the pointer: clicks go through to
 Claude. The kit is the same as a game's, without `best` and `score`.
+
+`emoji` (optional) is one emoji: its icon in the Drip pane and the tray
+(a game without one shows 🎮, a drip ✨). `about` is one line, at most 60
+characters: drips may have one too.
 
 ## Who made it
 

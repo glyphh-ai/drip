@@ -6,6 +6,7 @@
       "title": "Blocks",
       "author": "glyphh",
       "about": "Stack the falling blocks; clear lines before the top",
+      "emoji": "🟦",
       "files": [
         "game.json",
         "game.html",
@@ -18,6 +19,7 @@
       "title": "Bricks",
       "author": "glyphh",
       "about": "Bounce the ball, break the wall, three balls",
+      "emoji": "🧱",
       "files": [
         "game.json",
         "game.html",
@@ -30,6 +32,7 @@
       "title": "Chickn",
       "author": "glyphh",
       "about": "Hop the chicken across roads, rivers and rails",
+      "emoji": "🐔",
       "files": [
         "game.json",
         "game.html",
@@ -42,6 +45,7 @@
       "title": "Chomp",
       "author": "glyphh",
       "about": "Eat every dot in the maze and dodge the spooks",
+      "emoji": "👻",
       "files": [
         "game.json",
         "game.html",
@@ -54,6 +58,7 @@
       "title": "Dash",
       "author": "glyphh",
       "about": "Jump the spikes as the run gets faster",
+      "emoji": "🔺",
       "files": [
         "game.json",
         "game.html",
@@ -66,6 +71,7 @@
       "title": "Five",
       "author": "glyphh",
       "about": "Guess the five-letter word in six tries; keep the streak",
+      "emoji": "🔤",
       "files": [
         "game.json",
         "game.html",
@@ -78,6 +84,7 @@
       "title": "Flap",
       "author": "glyphh",
       "about": "Flap through the gaps; they only get narrower",
+      "emoji": "🐦",
       "files": [
         "game.json",
         "game.html",
@@ -90,6 +97,7 @@
       "title": "Lander",
       "author": "glyphh",
       "about": "Thrust and tilt to set down gently on the pad",
+      "emoji": "🌙",
       "files": [
         "game.json",
         "game.html",
@@ -102,6 +110,7 @@
       "title": "Merge",
       "author": "glyphh",
       "about": "Slide the tiles; equal ones merge and double",
+      "emoji": "🔢",
       "files": [
         "game.json",
         "game.html",
@@ -114,6 +123,7 @@
       "title": "Mines",
       "author": "glyphh",
       "about": "Open the safe cells, flag the mines; boards grow",
+      "emoji": "💣",
       "files": [
         "game.json",
         "game.html",
@@ -126,6 +136,7 @@
       "title": "Paddle",
       "author": "glyphh",
       "about": "Two paddles, one ball; beat the computer or a friend",
+      "emoji": "🏓",
       "files": [
         "game.json",
         "game.html",
@@ -138,6 +149,7 @@
       "title": "Rocks",
       "author": "glyphh",
       "about": "Steer, thrust and shoot the rocks to dust",
+      "emoji": "☄️",
       "files": [
         "game.json",
         "game.html",
@@ -150,6 +162,7 @@
       "title": "Snake",
       "author": "glyphh",
       "about": "Eat apples, grow long, don't bite your tail",
+      "emoji": "🐍",
       "files": [
         "game.json",
         "game.html",
@@ -162,6 +175,7 @@
       "title": "Solitaire",
       "author": "glyphh",
       "about": "Klondike, drawing one; a won deal deals the next",
+      "emoji": "🃏",
       "files": [
         "game.json",
         "game.html",
@@ -174,6 +188,7 @@
       "title": "Sudoku",
       "author": "glyphh",
       "about": "A 9×9 with one solution; each solved puzzle is harder",
+      "emoji": "🧩",
       "files": [
         "game.json",
         "game.html",
@@ -186,6 +201,7 @@
       "title": "Swarm",
       "author": "glyphh",
       "about": "Shoot the diving swarm before it lands on you",
+      "emoji": "👾",
       "files": [
         "game.json",
         "game.html",

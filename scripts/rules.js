@@ -15,7 +15,7 @@ export const COVER_MIN_W = 480
 export const COVER_MAX_W = 1920
 /** A GitHub login: letters, digits and single hyphens, at most 39. */
 export const AUTHOR = /^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/
-/** The author Glyphh's own carry, which the console shows as "Glyphh built". */
+/** The author Glyphh's own carry, which the pane shows as "Glyphh built". */
 export const GLYPHH = 'glyphh'
 /** The cover files a folder may have, in the order they are looked for. */
 export const COVER_FILES = ['cover.jpg', 'cover.png']
@@ -38,8 +38,8 @@ const NETWORK = [
  *   cover.jpg or cover.png as read: its name and its bytes, standard base64.
  * @typedef {{ name: string, manifest: string | null, page: string | null, icon: string | null, cover: Cover | null }} Read
  *   A folder as read: its name, game.json or drip.json, game.html or drip.html, icon.svg and its cover (null when absent).
- * @typedef {{ title: string, author: string, about?: string }} GameManifest
- * @typedef {{ title: string, author: string, kind: 'one-shot' | 'loop' }} DripManifest
+ * @typedef {{ title: string, author: string, about?: string, emoji?: string }} GameManifest
+ * @typedef {{ title: string, author: string, kind: 'one-shot' | 'loop', about?: string, emoji?: string }} DripManifest
  */
 
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
@@ -91,7 +91,7 @@ export function imageSize(b) {
 
 /** Why a cover won't do, or null. @param {Cover | null} c @returns {string | null} */
 function coverWhy(c) {
-  if (c === null) return 'it has no cover.jpg or cover.png (its card in the console)'
+  if (c === null) return 'it has no cover.jpg or cover.png (its picture)'
   const b = bytesOf(c.base64)
   if (b === null) return `${c.file} could not be read`
   if (b.length > COVER_MAX) return `${c.file} is over 300 KB`
@@ -100,6 +100,22 @@ function coverWhy(c) {
   if (size.w < COVER_MIN_W || size.w > COVER_MAX_W) return `${c.file} is ${size.w}×${size.h}: it must be 480 to 1920 wide (960×600 is right)`
   if (Math.abs(size.w / size.h - 1.6) > 0.02) return `${c.file} is ${size.w}×${size.h}: it must be 16:10 (960×600 is right)`
   return null
+}
+
+/** An emoji: one short run of non-ASCII characters (an emoji with its joiners and selectors). */
+export const EMOJI = /^[^\x00-\x7F]{1,12}$/
+
+/** Why the optional about and emoji won't do, or null; else what they add to the manifest.
+ * @param {Record<string, unknown>} m @param {string} file @returns {{ why: string } | { extra: { about?: string, emoji?: string } }} */
+function extras(m, file) {
+  if (m.about !== undefined && (typeof m.about !== 'string' || m.about.length > ABOUT_MAX)) return { why: `${file}.json's about must be text of at most ${ABOUT_MAX} characters` }
+  if (m.emoji !== undefined && (typeof m.emoji !== 'string' || !EMOJI.test(m.emoji.trim()))) return { why: `${file}.json's emoji must be one emoji` }
+  return {
+    extra: {
+      ...(typeof m.about === 'string' && m.about.trim() ? { about: m.about.trim() } : {}),
+      ...(typeof m.emoji === 'string' ? { emoji: m.emoji.trim() } : {}),
+    },
+  }
 }
 
 /** Why an author won't do, or null. @param {Record<string, unknown>} m @param {string} file @returns {string | null} */
@@ -149,10 +165,9 @@ export function checkGame(r) {
   if (!m) return { ok: false, why: 'game.json is not a JSON object' }
   const t = titled(m, 'game') ?? authorWhy(m, 'game')
   if (t) return { ok: false, why: t }
-  if (m.about !== undefined && (typeof m.about !== 'string' || m.about.length > ABOUT_MAX)) {
-    return { ok: false, why: `game.json's about must be text of at most ${ABOUT_MAX} characters` }
-  }
-  const manifest = { title: String(m.title).trim(), author: String(m.author).trim(), ...(typeof m.about === 'string' && m.about.trim() ? { about: m.about.trim() } : {}) }
+  const x = extras(m, 'game')
+  if ('why' in x) return { ok: false, why: x.why }
+  const manifest = { title: String(m.title).trim(), author: String(m.author).trim(), ...x.extra }
   return { ok: true, manifest, page: r.page, icon: r.icon, cover: /** @type {Cover} */ (r.cover) }
 }
 
@@ -165,5 +180,7 @@ export function checkDrip(r) {
   const t = titled(m, 'drip') ?? authorWhy(m, 'drip')
   if (t) return { ok: false, why: t }
   if (m.kind !== 'one-shot' && m.kind !== 'loop') return { ok: false, why: 'drip.json\'s kind must be "one-shot" or "loop"' }
-  return { ok: true, manifest: { title: String(m.title).trim(), author: String(m.author).trim(), kind: m.kind }, page: /** @type {string} */ (r.page), icon: r.icon, cover: /** @type {Cover} */ (r.cover) }
+  const x = extras(m, 'drip')
+  if ('why' in x) return { ok: false, why: x.why }
+  return { ok: true, manifest: { title: String(m.title).trim(), author: String(m.author).trim(), kind: m.kind, ...x.extra }, page: /** @type {string} */ (r.page), icon: r.icon, cover: /** @type {Cover} */ (r.cover) }
 }
