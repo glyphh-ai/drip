@@ -502,7 +502,7 @@ export function arcade(on: On, options: PluginOptions) {
       return (
         <Box flexDirection="column" gap={1} paddingX={1}>
           <Box key="top" flexDirection="row">
-            <Button key="back" label={`← ${TYPES[item.kind]}s`} plain onPress={() => void update($, detail, () => null)} />
+            <Button key="back" label={`←  ${TYPES[item.kind]}s`} onPress={() => void update($, detail, () => null)} />
           </Box>
           {shot === 'loading' ? (
             <Text key="shot" dimColor>
@@ -573,16 +573,15 @@ export function arcade(on: On, options: PluginOptions) {
             />
           ))}
         </Box>
-        <Box flexDirection="column">
+        <Box flexDirection="column" gap={1}>
           {rows.length === 0 ? <Text dimColor>Nothing matches “{q}”.</Text> : null}
           {rows.slice(at * PAGE_ROWS, (at + 1) * PAGE_ROWS).map(r => {
             const key = favKey(r.kind, r.name)
             const isStar = stars.includes(key)
             return (
               <Box key={key} flexDirection="row" alignItems="center" gap={2}>
-                <Text>{r.emoji}</Text>
-                <Box width="34%" flexDirection="row" gap={1}>
-                  <Button key={`open:${key}`} label={r.title} onPress={() => void update($, detail, () => key)} />
+                <Box width="38%" flexDirection="row" alignItems="center" gap={1}>
+                  <Button key={`open:${key}`} label={`${r.emoji}  ${r.title}`} onPress={() => void update($, detail, () => key)} />
                   {r.isYours ? <Text dimColor>yours</Text> : null}
                 </Box>
                 <Box flexGrow={1} flexShrink={1}>
