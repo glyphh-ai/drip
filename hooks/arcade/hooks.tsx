@@ -26,7 +26,7 @@ import { share as galleryShare } from '../content/share.ts'
 import { readCustoms } from '../drips/library.ts'
 import { GAMES, gameDoc, gameOf } from './games/index.ts'
 import type { Game } from './games/game.ts'
-import { CAT_PURPLE_SVG, CAT_RATIO, LOGO_ALT, MARK_PURPLE_SVG, MARK_RATIO } from './brand.ts'
+import { CAT_RATIO, CAT_SVG, LOGO_ALT, MARK_RATIO, MARK_SVG } from './brand.ts'
 import { BUILT_IN, TYPES, emojiOf, type Kind } from './catalog.ts'
 import { FAVOURITES_KEY } from './favourites.ts'
 import { scoresOf, type Store } from './scores.ts'
@@ -419,8 +419,8 @@ export function arcade(on: On, options: PluginOptions) {
         <Box key="logo" flexDirection="row" alignItems="center" gap={1}>
           {Svg ? (
             [
-              <Svg key="cat" source={CAT_PURPLE_SVG} alt={LOGO_ALT} height={28} width={Math.round(28 * CAT_RATIO)} />,
-              <Svg key="word" source={MARK_PURPLE_SVG} alt="drip" height={20} width={Math.round(20 * MARK_RATIO)} />,
+              <Svg key="cat" source={CAT_SVG} alt={LOGO_ALT} height={28} width={Math.round(28 * CAT_RATIO)} />,
+              <Svg key="word" source={MARK_SVG} alt="drip" height={20} width={Math.round(20 * MARK_RATIO)} />,
             ]
           ) : (
             <Text bold>drip</Text>

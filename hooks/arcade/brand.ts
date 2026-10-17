@@ -12,12 +12,3 @@ export const MARK_RATIO = 243 / 136
 /** The Mohawk cat alone, white, 181×216: the card's logo beside "drip". */
 export const CAT_SVG = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"-8 -8 181 216\"><path d=\"M40 62 L99 10 L111 34 L135 13 L123 57 C140 70 144 104 128 121 L112 133 L112 150 C126 152 136 151 145 149 C137 158 130 164 124 169 L128 179 L35 180 L44 131 C18 118 20 80 40 62 Z\" fill=\"#ffffff\" stroke=\"#ffffff\" stroke-width=\"16\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M28 15 L62 42 L39 54 Z\" fill=\"#ffffff\" stroke=\"#ffffff\" stroke-width=\"16\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M40 62 L99 10 L111 34 L135 13 L123 57 C140 70 144 104 128 121 L112 133 L112 150 C126 152 136 151 145 149 C137 158 130 164 124 169 L128 179 L35 180 L44 131 C18 118 20 80 40 62 Z\" fill=\"#0b0a0f\" stroke=\"#0b0a0f\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M28 15 L62 42 L39 54 Z\" fill=\"#0b0a0f\" stroke=\"#0b0a0f\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M61 138 L99 150 L100 172 L51 171 Z\" fill=\"#ffffff\" stroke=\"none\" stroke-width=\"0\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M45 104 C43 89 70 66 96 64 C116 62 124 80 121 97 C118 116 100 126 86 122 C70 118 47 112 45 104 Z\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M80 94 a12 12 0 1 0 24 0 a12 12 0 1 0 -24 0 Z\" fill=\"#ffffff\" stroke=\"none\" stroke-width=\"0\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M92.60000000000001 89.8 a3.6 3.6 0 1 0 7.2 0 a3.6 3.6 0 1 0 -7.2 0 Z\" fill=\"#0b0a0f\" stroke=\"none\" stroke-width=\"0\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>"
 export const CAT_RATIO = 181 / 216
-/** The brand purple: the pane's logo in it reads on a light theme and a dark one. */
-export const LOGO_PURPLE = '#8b5cf6'
-/** The cat, purple: white strokes and fills made the brand purple (its eyes stay dark). */
-export const CAT_PURPLE_SVG = CAT_SVG.replace(/#ffffff/gi, LOGO_PURPLE)
-/** "drip" with its drop, purple: the white mark recoloured by a filter. */
-export const MARK_PURPLE_SVG = MARK_SVG.replace(
-  /<image /,
-  `<defs><filter id="p"><feFlood flood-color="${LOGO_PURPLE}"/><feComposite in2="SourceAlpha" operator="in"/></filter></defs><image filter="url(#p)" `,
-)
