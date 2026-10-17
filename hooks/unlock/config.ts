@@ -4,8 +4,8 @@
 export const MOD = 'glyphh-drip'
 /** The command the unlock answers on: /drips unlock, /drips key <licence>. */
 export const COMMAND = 'drip'
-/** Stripe test Payment Link in the sandbox (Drips' $8 link until Glyphh Drip's $4.99 one exists). */
-export const PAYMENT_LINK = 'https://buy.stripe.com/test_dRmcMYg0Z3Uj3zfgVObfO00'
+/** Stripe test Payment Link in the sandbox: Glyphh Drip, $4.99, metadata mod=glyphh-drip. */
+export const PAYMENT_LINK = 'https://buy.stripe.com/test_3cI6oA6qp0I73zfeNGbfO02'
 
 /** The mod's name as people read it, and its price: once, per machine. */
 export const PRODUCT = 'Glyphh Drip'
