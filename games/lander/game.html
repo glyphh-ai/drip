@@ -1,0 +1,142 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:rgba(4,6,18,0.6);user-select:none;-webkit-user-select:none}
+canvas{position:absolute;left:0;top:0}
+</style></head><body>
+<canvas id="c"></canvas>
+<script>
+// Lander: bring the craft down gently on a pad. ↑ (or W, space) thrusts,
+// ← → (or A D) rotate, P pauses. Fuel is short; a soft, level touchdown on
+// a pad scores, more on a narrow one; every landing brings rougher ground,
+// smaller pads, stronger gravity and, in time, a crosswind. Three landers.
+(function(){
+var W=glyphh.width,H=glyphh.height,BEST=glyphh.best||0,ENDMS=2300,LANDERS=3,FUEL=100;
+var c=document.getElementById("c");c.width=W;c.height=H;var g=c.getContext("2d");
+var K=Math.max(0.55,Math.min(1.6,Math.min(W,H)/800)),R=15*K;
+var state="title",paused=false,closed=false,endAt=0,beat=false,beatAt=-1e9,now0=0,shake=0,msgAt=-1e9,msg="",msgCol="#fff";
+var stats={score:0,level:0,landers:LANDERS,landings:0},ship,terrain=[],pads=[],parts=[],keys={},stars=[],thrustSound=0,lowFuelSaid=false,landedAt=0,crashedAt=0;
+var P={};
+function rnd(a,b){return a+Math.random()*(b-a)}
+function fmt(n){return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,",")}
+function close(){if(closed)return;closed=true;g.clearRect(0,0,W,H);glyphh.end()}
+function tune(n){return{rough:Math.min(1,0.25+0.12*n),pads:n<=2?2:1,padW:Math.max(34,88-7*n)*K,gravity:(22+1.6*n)*K,wind:n>=4?Math.min(22,5+3*(n-4))*K*(Math.random()<0.5?1:-1):0,
+  safeVy:Math.max(28,46-2*n)*K,safeVx:Math.max(16,26-1.2*n)*K,safeAng:Math.max(0.14,0.3-0.015*n),refuel:Math.max(35,70-4*n)}}
+for(var i=0;i<90;i++)stars.push({x:Math.random()*W,y:Math.random()*H*0.8,s:rnd(0.6,2)*K,a:rnd(0.3,1)});
+// The ground: a jagged line across the width, rougher each level, with the pads cut flat into it.
+function makeTerrain(){P=tune(stats.level);terrain=[];pads=[];var n=Math.round(W/(22*K)),base=H*0.78,amp=H*(0.08+0.22*P.rough),y=base+rnd(-amp*0.3,amp*0.3);
+  for(var i=0;i<=n;i++){var x=i/n*W;terrain.push({x:x,y:y});y+=rnd(-1,1)*amp*0.45+(base-y)*0.12;y=Math.max(H*0.4,Math.min(H-24*K,y))}
+  var slots=[];for(var p=0;p<P.pads;p++){var tries=0,ok=false;while(tries++<40&&!ok){var i0=Math.floor(rnd(2,n-2)),x0=terrain[i0].x,w=P.padW*(p===0?1.35:0.85),x1=x0+w;
+    if(x1>W-10*K||slots.some(function(s){return x0<s[1]+40*K&&x1>s[0]-40*K}))continue;ok=true;slots.push([x0,x1]);
+    var py=Math.min(H-26*K,Math.max(terrain[i0].y,terrain[Math.min(n,i0+Math.ceil(w/(W/n)))].y));
+    for(var j=i0;j<=n&&terrain[j].x<=x1+1;j++)terrain[j].y=py;
+    terrain.splice(i0,0,{x:x0,y:py});var k=i0+1;while(k<terrain.length&&terrain[k].x<=x1)k++;terrain.splice(k,0,{x:x1,y:py});
+    var mult=p===0?1:3;if(stats.level>=5&&p===0)mult=2;pads.push({x0:x0,x1:x1,y:py,mult:mult})}}
+  terrain.sort(function(a,b){return a.x-b.x})}
+function groundAt(x){x=((x%W)+W)%W;for(var i=1;i<terrain.length;i++){var a=terrain[i-1],b=terrain[i];if(x<=b.x){var k=b.x===a.x?0:(x-a.x)/(b.x-a.x);return a.y+(b.y-a.y)*k}}return terrain[terrain.length-1].y}
+function newShip(fuel){ship={x:W*0.12,y:H*0.1,vx:rnd(40,70)*K,vy:0,a:0,fuel:fuel,alive:true,down:false,thrust:false};lowFuelSaid=false}
+function say(s,col){msg=s;msgCol=col||"#fff";msgAt=now0}
+function burst(x,y,n,cols,speed,life,gr){for(var i=0;i<n;i++){var a=rnd(0,Math.PI*2),v=rnd(0.2,1)*speed*K;parts.push({x:x,y:y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-speed*K*0.3,life:rnd(0.5,1)*life,max:life,size:rnd(1.5,3.5)*K,col:cols[i%cols.length],g:gr||0})}}
+function addScore(n){stats.score+=Math.round(n);glyphh.score(stats.score);
+  if(BEST>0&&!beat&&stats.score>BEST){beat=true;beatAt=now0;glyphh.sfx.notes([[784,0.08,0],[988,0.08,0.08],[1319,0.24,0.16]],"triangle",0.1)}}
+function startLevel(fuel){stats.level++;makeTerrain();newShip(Math.min(FUEL,fuel+P.refuel));
+  if(stats.level>1)say("LEVEL "+stats.level+(P.wind?"   WIND "+(P.wind>0?"→":"←"):""),"#7dd3fc")}
+function begin(){state="play";stats.score=0;stats.level=0;stats.landers=LANDERS;stats.landings=0;parts.length=0;startLevel(FUEL);glyphh.sfx.notes([[262,0.1,0],[330,0.1,0.1],[392,0.1,0.2],[523,0.25,0.3]],"triangle",0.09);say("LAND ON A PAD","#7dd3fc")}
+function gameOver(){state="end";endAt=now0;if(beat)glyphh.sfx.notes([[523,0.12,0.5],[659,0.12,0.62],[784,0.12,0.74],[1047,0.35,0.86]]);else glyphh.sfx.notes([[392,0.2,0.5],[330,0.2,0.7],[262,0.45,0.9]],"triangle",0.14)}
+function land(pad){ship.alive=false;ship.down=true;landedAt=now0;stats.landings++;
+  var soft=Math.abs(ship.vy)<P.safeVy*0.5,pts=100*pad.mult+Math.round(ship.fuel)*2+(soft?100:0);addScore(pts);
+  say((soft?"SOFT LANDING! +":"LANDED! +")+fmt(pts)+(pad.mult>1?"  x"+pad.mult:""),"#4ade80");
+  glyphh.sfx.notes([[392,0.1,0],[523,0.1,0.12],[659,0.1,0.24],[784,0.3,0.36]],"triangle",0.1);burst(ship.x,ship.y+R,14,["#9ca3af","#d1d5db"],60,0.8,30)}
+function crash(why){ship.alive=false;crashedAt=now0;stats.landers--;shake=12*K;say(why,"#f87171");
+  burst(ship.x,ship.y,46,["#fff","#fbbf24","#f87171","#9ca3af"],260,1.4,80);glyphh.sfx.noise(1.1,0.55,1200,50);glyphh.sfx.tone(240,0.9,"sawtooth",0.12,40)}
+var KEYS={ArrowLeft:"left",a:"left",A:"left",ArrowRight:"right",d:"right",D:"right",ArrowUp:"thrust",w:"thrust",W:"thrust"," ":"thrust",p:"pause",P:"pause"};
+document.addEventListener("keydown",function(ev){
+  if(ev.key==="Escape"||ev.key==="m"||ev.key==="M")return;
+  if(state==="title"){ev.preventDefault();begin();return}
+  var k=KEYS[ev.key];if(!k)return;ev.preventDefault();keys[k]=true;
+  if(!ev.repeat&&k==="pause"&&state==="play"){paused=!paused;glyphh.sfx.tone(paused?440:660,0.08,"triangle",0.06)}});
+document.addEventListener("keyup",function(ev){var k=KEYS[ev.key];if(k)keys[k]=false});
+document.addEventListener("mousedown",function(ev){ev.preventDefault();if(state==="title")begin();else keys.thrust=true});
+document.addEventListener("mouseup",function(){keys.thrust=false});
+window.__lander={stats:stats,ship:function(){return ship},pads:function(){return pads},state:function(){return state},tune:function(){return P}};
+function step(dt){
+  if(ship.down){if(now0-landedAt>1800)startLevel(ship.fuel);return}
+  if(!ship.alive){if(now0-crashedAt>1600){if(stats.landers<=0)gameOver();else{newShip(Math.min(FUEL,ship.fuel+P.refuel*0.5));say("AGAIN","#7dd3fc")}}return}
+  if(keys.left)ship.a-=2.6*dt;if(keys.right)ship.a+=2.6*dt;
+  ship.thrust=!!keys.thrust&&ship.fuel>0;
+  if(ship.thrust){var th=74*K;ship.vx+=Math.sin(ship.a)*th*dt;ship.vy-=Math.cos(ship.a)*th*dt;ship.fuel=Math.max(0,ship.fuel-8*dt);
+    if(now0>=thrustSound){thrustSound=now0+90;glyphh.sfx.noise(0.12,0.09,400,200)}
+    parts.push({x:ship.x-Math.sin(ship.a)*R*1.1,y:ship.y+Math.cos(ship.a)*R*1.1,vx:-Math.sin(ship.a)*rnd(80,140)*K+rnd(-20,20)*K,vy:Math.cos(ship.a)*rnd(80,140)*K+rnd(-20,20)*K,life:0.35,max:0.35,size:rnd(2,4)*K,col:Math.random()<0.5?"#fbbf24":"#fb923c",g:0})}
+  if(ship.fuel<=15&&!lowFuelSaid){lowFuelSaid=true;say("LOW FUEL","#fbbf24");glyphh.sfx.notes([[880,0.08,0],[880,0.08,0.16],[880,0.08,0.32]],"square",0.06)}
+  ship.vy+=P.gravity*dt;ship.vx+=P.wind*dt;ship.x+=ship.vx*dt;ship.y+=ship.vy*dt;
+  if(ship.x<0)ship.x+=W;if(ship.x>W)ship.x-=W;if(ship.y<-H)ship.y=-H;
+  // Touchdown: the feet meet the ground. On a pad, slow, level and upright, it's a landing.
+  var fy=ship.y+R*1.05,lx=ship.x-R*0.8,rx=ship.x+R*0.8,gl=groundAt(lx),gr=groundAt(rx),gc=groundAt(ship.x);
+  if(fy>=Math.min(gl,gr,gc)){var pad=null;for(var i=0;i<pads.length;i++)if(lx>=pads[i].x0-2&&rx<=pads[i].x1+2)pad=pads[i];
+    if(pad&&Math.abs(ship.vy)<=P.safeVy&&Math.abs(ship.vx)<=P.safeVx&&Math.abs(ship.a)<=P.safeAng){ship.y=pad.y-R*1.05;ship.vx=0;ship.vy=0;ship.a=0;land(pad)}
+    else crash(!pad?"MISSED THE PAD":Math.abs(ship.a)>P.safeAng?"TIPPED OVER":Math.abs(ship.vy)>P.safeVy?"TOO FAST":"DRIFTED")}}
+function text(str,x,y,size,col,align){g.font="900 "+Math.round(size)+"px Menlo, Monaco, 'Courier New', monospace";g.textAlign=align||"left";g.textBaseline="top";
+  g.fillStyle="rgba(0,0,0,0.8)";g.fillText(str,x+Math.max(2,size/9),y+Math.max(2,size/9));g.fillStyle=col;g.fillText(str,x,y)}
+function drawTerrain(){g.beginPath();g.moveTo(0,H);for(var i=0;i<terrain.length;i++)g.lineTo(terrain[i].x,terrain[i].y);g.lineTo(W,H);g.closePath();
+  g.fillStyle="#1f2430";g.fill();g.strokeStyle="#8b93a7";g.lineWidth=Math.max(1.5,2*K);g.beginPath();for(var j=0;j<terrain.length;j++)g.lineTo(terrain[j].x,terrain[j].y);g.stroke();
+  for(var p=0;p<pads.length;p++){var pd=pads[p];g.shadowColor="#22d3ee";g.shadowBlur=10*K;g.strokeStyle="#22d3ee";g.lineWidth=Math.max(3,4*K);g.beginPath();g.moveTo(pd.x0,pd.y);g.lineTo(pd.x1,pd.y);g.stroke();g.shadowBlur=0;
+    if(Math.floor(now0/400)%2===0){g.fillStyle="#22d3ee";g.fillRect(pd.x0-1.5*K,pd.y-6*K,3*K,6*K);g.fillRect(pd.x1-1.5*K,pd.y-6*K,3*K,6*K)}
+    text("x"+pd.mult,(pd.x0+pd.x1)/2,pd.y+5*K,Math.max(10,12*K),"#67e8f9","center")}}
+function drawShip(x,y,a,flame,s){g.save();g.translate(x,y);g.rotate(a);g.scale(s,s);
+  if(flame){g.fillStyle=Math.random()<0.5?"#fbbf24":"#fb923c";g.beginPath();g.moveTo(-R*0.35,R*0.95);g.lineTo(0,R*(1.6+Math.random()*0.8));g.lineTo(R*0.35,R*0.95);g.closePath();g.fill()}
+  g.strokeStyle="#e5e7eb";g.lineWidth=Math.max(1.5,2*K);g.fillStyle="#374151";
+  g.beginPath();g.moveTo(-R*0.5,-R*0.9);g.lineTo(R*0.5,-R*0.9);g.lineTo(R*0.9,-R*0.2);g.lineTo(R*0.9,R*0.3);g.lineTo(R*0.5,R*0.7);g.lineTo(-R*0.5,R*0.7);g.lineTo(-R*0.9,R*0.3);g.lineTo(-R*0.9,-R*0.2);g.closePath();g.fill();g.stroke();
+  g.fillStyle="#67e8f9";g.beginPath();g.arc(0,-R*0.25,R*0.3,0,Math.PI*2);g.fill();
+  g.fillStyle="#6b7280";g.fillRect(-R*0.35,R*0.7,R*0.7,R*0.3);
+  g.beginPath();g.moveTo(-R*0.7,R*0.5);g.lineTo(-R*1.05,R*1.05);g.moveTo(R*0.7,R*0.5);g.lineTo(R*1.05,R*1.05);g.stroke();
+  g.fillStyle="#e5e7eb";g.fillRect(-R*1.3,R*1.0,R*0.5,R*0.12);g.fillRect(R*0.8,R*1.0,R*0.5,R*0.12);g.restore()}
+function drawHud(){var size=Math.max(14,22*K),pad=16*K;
+  text(fmt(stats.score),pad,pad,size*1.4,"#fff","left");
+  for(var i=0;i<Math.min(stats.landers,8);i++)drawShip(pad+12*K+i*30*K,pad+size*2.6,0,false,0.55);
+  text("BEST "+fmt(Math.max(BEST,stats.score)),W-pad,pad,size*0.8,"#fbbf24","right");
+  text("LEVEL "+stats.level,W-pad,pad+size*1.1,size*0.6,"#7dd3fc","right");
+  text((glyphh.muted()?"M SOUND ON":"M MUTES")+"   P PAUSE   ESC QUIT",W-pad,pad+size*1.9,size*0.5,"rgba(255,255,255,0.6)","right");
+  // The readouts: altitude, speeds (green when safe to land) and fuel.
+  var x=W/2,y=pad,s=size*0.62,alt=Math.max(0,Math.round((groundAt(ship.x)-ship.y-R)/K)),vyOk=Math.abs(ship.vy)<=P.safeVy,vxOk=Math.abs(ship.vx)<=P.safeVx,aOk=Math.abs(ship.a)<=P.safeAng;
+  text("ALT "+alt,x-size*5.5,y,s,"#e5e7eb","left");
+  text("DOWN "+Math.round(ship.vy/K),x-size*2,y,s,vyOk?"#4ade80":"#f87171","left");
+  text("SIDE "+Math.round(ship.vx/K),x+size*1.5,y,s,vxOk?"#4ade80":"#f87171","left");
+  text("TILT "+Math.round(ship.a*57),x+size*5,y,s,aOk?"#4ade80":"#f87171","left");
+  var bw=size*8,bh=size*0.5,bx=x-bw/2,by=y+s*1.5;g.fillStyle="rgba(255,255,255,0.15)";g.fillRect(bx,by,bw,bh);g.fillStyle=ship.fuel>15?"#fbbf24":(Math.floor(now0/200)%2?"#f87171":"#fbbf24");g.fillRect(bx,by,bw*ship.fuel/FUEL,bh);
+  text("FUEL",bx-size*0.3,by-s*0.1,s*0.8,"#e5e7eb","right");
+  if(P.wind)text("WIND "+(P.wind>0?"→":"←"),bx+bw+size*0.3,by-s*0.1,s*0.8,"#7dd3fc","left")}
+function drawTitle(t){var big=Math.max(26,56*K),y=H*0.24;
+  g.fillStyle="rgba(4,6,18,0.5)";g.fillRect(0,0,W,H);
+  text("LANDER",W/2,y,big,"#22d3ee","center");
+  text("↑ THRUST   ← → ROTATE   P PAUSES",W/2,y+big*1.5,Math.max(12,big*0.3),"#fff","center");
+  text("BEST "+fmt(BEST),W/2,y+big*2.3,Math.max(14,big*0.42),"#fbbf24","center");
+  if(Math.floor(t/500)%2===0)text("PRESS ANY KEY",W/2,y+big*3.3,Math.max(12,big*0.3),"rgba(255,255,255,0.85)","center");
+  drawShip(W/2+big*3,y+big*0.6+Math.sin(t/600)*8*K,Math.sin(t/900)*0.3,Math.floor(t/300)%3!==0,big/44)}
+function drawEnd(){var k=Math.min(1,(now0-endAt)/250),bw=Math.min(W*0.8,560*K),bh=Math.max(140,200*K),bx=W/2-bw/2,by=H*0.42-bh/2;
+  g.save();g.globalAlpha=k;g.fillStyle="rgba(6,8,24,0.93)";g.fillRect(bx,by,bw,bh);g.strokeStyle="#22d3ee";g.lineWidth=Math.max(3,4*K);g.strokeRect(bx,by,bw,bh);
+  var big=Math.max(18,Math.min(40*K,bw/13));
+  text("OUT OF LANDERS",W/2,by+bh*0.12,big,"#f87171","center");
+  text("SCORE "+fmt(stats.score),W/2,by+bh*0.12+big*1.5,big,"#fbbf24","center");
+  text(beat?"NEW BEST!":BEST>0?"BEST "+fmt(BEST):stats.landings+" LANDINGS",W/2,by+bh*0.12+big*2.9,Math.max(12,big*0.5),beat?"#fbbf24":"#fff","center");g.restore()}
+stats.level=0;makeTerrain();newShip(FUEL);
+var last=performance.now();
+function frame(now){if(closed)return;var dt=Math.min(0.05,(now-last)/1000);last=now;now0=now;
+  if(state==="play"&&!paused)step(dt);
+  g.clearRect(0,0,W,H);
+  g.save();if(shake>0){g.translate((Math.random()-0.5)*shake,(Math.random()-0.5)*shake);shake=Math.max(0,shake-dt*40*K)}
+  for(var i=0;i<stars.length;i++){var st=stars[i];g.globalAlpha=st.a*(0.7+0.3*Math.sin(now/700+i));g.fillStyle="#fff";g.fillRect(st.x,st.y,st.s,st.s)}g.globalAlpha=1;
+  drawTerrain();
+  if(state!=="title"&&(ship.alive||ship.down))drawShip(ship.x,ship.y,ship.a,ship.thrust&&ship.alive&&!paused,1);
+  for(var pi=parts.length-1;pi>=0;pi--){var p=parts[pi];if(!paused){p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=(p.g||0)*K*dt}if(p.life<=0){parts.splice(pi,1);continue}
+    g.globalAlpha=Math.max(0,p.life/p.max);g.fillStyle=p.col;g.fillRect(p.x,p.y,p.size,p.size);g.globalAlpha=1}
+  g.restore();
+  if(state==="title")drawTitle(now);else{drawHud();
+    if(now-msgAt<2200){g.save();g.globalAlpha=Math.min(1,(2200-(now-msgAt))/400);text(msg,W/2,H*0.36,Math.max(16,30*K),msgCol,"center");g.restore()}
+    if(now-beatAt<1400){g.save();g.globalAlpha=Math.min(1,(1400-(now-beatAt))/300);text("NEW BEST!",W/2,H*0.25,Math.max(20,40*K),"#fbbf24","center");g.restore()}
+    if(paused)text("PAUSED",W/2,H*0.45,Math.max(20,40*K),"#fff","center")}
+  if(state==="end"){drawEnd();if(now-endAt>=ENDMS){close();return}}
+  requestAnimationFrame(frame)}
+requestAnimationFrame(frame);
+})();
+</script>
+</body></html>

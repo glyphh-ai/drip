@@ -1,0 +1,174 @@
+<html><head><style>
+*{margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:rgba(0,0,0,0);user-select:none;-webkit-user-select:none}
+canvas{position:absolute;left:0;top:0}
+</style></head><body>
+<canvas id="c"></canvas>
+<script>var __c=document.getElementById("c");__c.width=glyphh.width;__c.height=glyphh.height</script>
+<script>
+(function(){
+// Paddle: two paddles and a ball. One player against the computer (W/S, ↑↓
+// or the mouse), or two on one keyboard (W/S and ↑↓). The ball speeds up
+// each rally; first to 7 wins a round, and each round the computer is
+// sharper. P pauses.
+var W=glyphh.width,H=glyphh.height,BEST=glyphh.best,ENDMS=2600,TO=7;
+var c=document.getElementById("c").getContext("2d");
+var PAD=Math.max(12,Math.min(W,H)*0.03),FW=800,FH=500;
+var S=Math.min((W-PAD*2)/FW,(H-PAD*2-40)/FH);if(S<0.3)S=0.3;
+var CW=FW*S,CH=FH*S,CX=Math.floor((W-CW)/2),CY=Math.floor((H-CH)/2+16);
+var PW=12,PH=80,BR=7,PSPEED=420;
+var state="title",two=false,round=1,score=0,pts=[0,0],rally=0,longest=0;
+var L={y:FH/2,vy:0},R={y:FH/2,vy:0},ball={x:FW/2,y:FH/2,vx:0,vy:0},serveAt=0,serveDir=1;
+var keys={},mouseY=null,paused=false,parts=[],endAt=0,closed=false,roundAt=-1e9,roundMsg="",pointAt=-1e9,pointSide=0,beat=false,beatAt=-1e9,why="",aiErr=0,aiAt=0;
+var now0=0,last=0;
+function rnd(a,b){return a+Math.random()*(b-a)}
+function close(){if(closed)return;closed=true;c.clearRect(0,0,W,H);glyphh.end()}
+function fmt(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,",")}
+function baseSpeed(){return 390+(round-1)*30}
+function addScore(n){score+=n;glyphh.score(score);if(BEST>0&&!beat&&score>BEST){beat=true;beatAt=now0;glyphh.sfx.notes([[784,0.08,0.05],[988,0.08,0.13],[1319,0.24,0.21]],"triangle",0.11)}}
+function serve(dir){ball.x=FW/2;ball.y=FH/2;ball.vx=0;ball.vy=0;serveDir=dir;serveAt=now0+800;rally=0}
+function doServe(){var a=rnd(-0.45,0.45),v=baseSpeed();ball.vx=Math.cos(a)*v*serveDir;ball.vy=Math.sin(a)*v;aiErr=rnd(-1,1)*aiSlop();glyphh.sfx.tone(440,0.08,"square",0.07,660)}
+function begin(mode){state="play";two=mode;round=1;score=0;pts=[0,0];longest=0;beat=false;parts=[];L.y=R.y=FH/2;serve(Math.random()<0.5?1:-1);
+  glyphh.sfx.notes([[523,0.07,0],[659,0.07,0.08],[784,0.07,0.16],[1047,0.18,0.24]],"square",0.1)}
+function burst(x,y,n,col,sp){for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,v=sp*(0.3+Math.random());
+  parts.push({x:x,y:y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:450,max:450,size:3+Math.random()*4,col:col})}}
+// The computer: follows the ball with a top speed and an aim error that both
+// tighten each round, so it misses now and then early and rarely later.
+function aiSpeed(){return Math.min(PSPEED*1.1,210+(round-1)*45)}
+function aiSlop(){return Math.max(6,PH*0.9-(round-1)*12)}
+function point(side){
+  pts[side]++;pointAt=now0;pointSide=side;burst(side?-BR:FW+BR,ball.y,16,side?"#67e8f9":"#f0abfc",5);
+  if(side===0&&!two)addScore(10+Math.min(20,rally));
+  glyphh.sfx.noise(0.25,0.3,900,120);glyphh.sfx.tone(side===0||two?330:180,0.3,"triangle",0.1,side===0||two?500:90);
+  if(pts[side]>=TO){
+    if(two||side===0){// a round won: on to the next, harder one
+      roundMsg=two?(side===0?"LEFT WINS THE ROUND":"RIGHT WINS THE ROUND"):"ROUND "+round+" WON!";
+      roundAt=now0;if(!two)addScore(50*round);round++;pts=[0,0];
+      glyphh.sfx.notes([[523,0.1,0.1],[659,0.1,0.2],[784,0.1,0.3],[1047,0.3,0.4]],"square",0.1);
+    }else{why="THE COMPUTER WINS "+pts[1]+"–"+pts[0];state="end";endAt=now0;glyphh.sfx.notes([[392,0.18,0.4],[330,0.18,0.6],[262,0.4,0.8]],"triangle",0.12);return}
+  }
+  serve(side===0?1:-1);// toward whoever lost the point
+}
+function hitPaddle(p,side){
+  var u=(ball.y-p.y)/(PH/2),a=Math.max(-1,Math.min(1,u))*0.95;rally++;
+  if(rally>longest){longest=rally;if(two)addScore(1)}
+  var v=Math.min(baseSpeed()*2.2,Math.hypot(ball.vx,ball.vy)*1.045);
+  ball.vx=Math.cos(a)*v*(side===0?1:-1);ball.vy=Math.sin(a)*v+p.vy*0.15;
+  ball.x=side===0?PW*2+BR:FW-PW*2-BR;
+  aiErr=rnd(-1,1)*aiSlop();
+  glyphh.sfx.tone(side===0?520:620,0.06,"square",0.09,side===0?400:480);
+  if(rally>0&&rally%10===0&&!two)addScore(5);
+}
+function physics(dt){
+  var lv=0,rv=0;
+  if(keys.w||keys.W)lv-=1;if(keys.s||keys.S)lv+=1;
+  if(two){if(keys.ArrowUp)rv-=1;if(keys.ArrowDown)rv+=1}
+  else{if(keys.ArrowUp)lv-=1;if(keys.ArrowDown)lv+=1}
+  var ly=L.y;
+  if(lv)L.y+=lv*PSPEED*dt;else if(!two&&mouseY!==null)L.y+=(mouseY-L.y)*Math.min(1,dt*25);
+  L.vy=(L.y-ly)/Math.max(dt,0.001);
+  if(two){var ry=R.y;R.y+=rv*PSPEED*dt;R.vy=(R.y-ry)/Math.max(dt,0.001)}
+  else{// the computer tracks the ball while it comes, and drifts home while it goes
+    var want=ball.vx>0?ball.y+aiErr:FH/2,ry2=R.y,d=want-R.y,sp=aiSpeed()*(ball.vx>0?1:0.45);
+    R.y+=Math.max(-sp*dt,Math.min(sp*dt,d));R.vy=(R.y-ry2)/Math.max(dt,0.001)}
+  L.y=Math.max(PH/2,Math.min(FH-PH/2,L.y));R.y=Math.max(PH/2,Math.min(FH-PH/2,R.y));
+  if(ball.vx===0&&ball.vy===0){if(now0>=serveAt)doServe();return}
+  var spd=Math.hypot(ball.vx,ball.vy),n=Math.max(1,Math.ceil(spd*dt/BR)),h=dt/n;
+  for(var k=0;k<n;k++){
+    ball.x+=ball.vx*h;ball.y+=ball.vy*h;
+    if(ball.y<BR){ball.y=BR;ball.vy=Math.abs(ball.vy);glyphh.sfx.tone(880,0.03,"square",0.04)}
+    if(ball.y>FH-BR){ball.y=FH-BR;ball.vy=-Math.abs(ball.vy);glyphh.sfx.tone(880,0.03,"square",0.04)}
+    if(ball.vx<0&&ball.x-BR<=PW*2&&ball.x-BR>=PW*2-spd*h-2&&Math.abs(ball.y-L.y)<=PH/2+BR){hitPaddle(L,0);return}
+    if(ball.vx>0&&ball.x+BR>=FW-PW*2&&ball.x+BR<=FW-PW*2+spd*h+2&&Math.abs(ball.y-R.y)<=PH/2+BR){hitPaddle(R,1);return}
+    if(ball.x<-BR*3){point(1);return}
+    if(ball.x>FW+BR*3){point(0);return}
+  }
+}
+document.addEventListener("keydown",function(ev){
+  var k=ev.key;
+  if(k==="Escape"||k==="m"||k==="M")return;// the kit's
+  if(state==="title"){ev.preventDefault();begin(k==="2");return}
+  if(state!=="play")return;
+  if(k==="p"||k==="P"){paused=!paused;ev.preventDefault();return}
+  keys[k]=true;if(k.indexOf("Arrow")===0||k===" ")ev.preventDefault();
+});
+document.addEventListener("keyup",function(ev){keys[ev.key]=false});
+document.addEventListener("mousemove",function(ev){mouseY=(ev.clientY-CY)/S});
+document.addEventListener("mousedown",function(ev){ev.preventDefault();if(state==="title")begin(false)});
+window.__paddle={pts:function(){return pts},ball:ball,L:L,R:R,state:function(){return state},round:function(){return round},rally:function(){return rally}};
+function text(str,x,y,size,col,align,weight){
+  c.font=(weight||"800")+" "+Math.round(size)+"px Menlo, Monaco, 'Courier New', monospace";c.textAlign=align||"left";c.textBaseline="top";
+  c.fillStyle="rgba(0,0,0,0.6)";c.fillText(str,x+Math.max(1.5,size/10),y+Math.max(1.5,size/10));c.fillStyle=col;c.fillText(str,x,y);
+}
+function rrect(x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+function drawCourt(){
+  c.fillStyle="rgba(5,12,28,0.93)";rrect(CX-6,CY-6,CW+12,CH+12,8*S);c.fill();
+  c.strokeStyle="rgba(103,232,249,0.55)";c.lineWidth=Math.max(2,3*S);c.stroke();
+  c.save();c.translate(CX,CY);c.scale(S,S);
+  c.fillStyle="rgba(255,255,255,0.18)";for(var y=8;y<FH;y+=28)c.fillRect(FW/2-2,y,4,16);
+  c.restore();
+}
+function drawGame(){
+  c.save();c.translate(CX,CY);c.scale(S,S);c.beginPath();c.rect(0,0,FW,FH);c.clip();
+  // The score, big and faint behind the play.
+  c.globalAlpha=0.75;text(String(pts[0]),FW/2-60,24,72,"#67e8f9","right","900");text(String(pts[1]),FW/2+60,24,72,"#f0abfc","left","900");c.globalAlpha=1;
+  c.fillStyle="#67e8f9";rrect(PW,L.y-PH/2,PW,PH,4);c.fill();
+  c.fillStyle="#f0abfc";rrect(FW-PW*2,R.y-PH/2,PW,PH,4);c.fill();
+  if(ball.vx||ball.vy){c.fillStyle="rgba(255,255,255,0.25)";c.fillRect(ball.x-ball.vx*0.03-BR,ball.y-ball.vy*0.03-BR,BR*2,BR*2)}
+  c.fillStyle="#fff";c.fillRect(ball.x-BR,ball.y-BR,BR*2,BR*2);
+  for(var p=parts.length-1;p>=0;p--){var pt=parts[p];pt.x+=pt.vx;pt.y+=pt.vy;c.globalAlpha=Math.max(0,pt.life/pt.max);c.fillStyle=pt.col;c.fillRect(pt.x,pt.y,pt.size,pt.size);c.globalAlpha=1}
+  if(!(ball.vx||ball.vy)&&state==="play"&&!paused){var n=Math.ceil((serveAt-now0)/1000);if(n>0)text(String(n),FW/2,FH/2-60,40,"rgba(255,255,255,0.6)","center","900")}
+  text(two?"W/S":"W/S · ↑↓ · MOUSE",PW*3,FH-22,12,"rgba(103,232,249,0.7)","left");
+  text(two?"↑↓":"COMPUTER",FW-PW*3,FH-22,12,"rgba(240,171,252,0.7)","right");
+  c.restore();
+}
+function drawHud(){
+  var size=Math.max(13,Math.min(22,18*S)),y=CY-size-12;
+  text(fmt(score),CX,y,size*1.15,"#fff","left");
+  text("ROUND "+round+"   FIRST TO "+TO+(rally>2?"   RALLY "+rally:""),CX+CW/2,y+size*0.2,size*0.8,"#67e8f9","center");
+  text("BEST "+fmt(Math.max(BEST,score)),CX+CW,y+size*0.2,size*0.8,"#fbbf24","right");
+}
+function drawTitle(){
+  var big=Math.max(26,Math.min(72,64*S)),cx=W/2,cy=CY+CH*0.2;
+  c.save();c.translate(CX,CY);c.scale(S,S);
+  c.fillStyle="#67e8f9";rrect(PW,FH/2-PH/2,PW,PH,4);c.fill();c.fillStyle="#f0abfc";rrect(FW-PW*2,FH/2-PH/2+40,PW,PH,4);c.fill();
+  c.fillStyle="#fff";c.fillRect(FW*0.3-BR,FH*0.9-BR,BR*2,BR*2);
+  c.restore();
+  text("PADDLE",cx,cy,big,"#67e8f9","center","900");
+  text("W/S, ↑↓ OR THE MOUSE  ·  BALL SPEEDS UP EACH RALLY  ·  FIRST TO 7  ·  P PAUSES",cx,cy+big*1.35,Math.max(11,Math.min(17,big*0.24)),"#fff","center");
+  text("BEST "+fmt(BEST),cx,cy+big*2.1,Math.max(14,big*0.45),"#fbbf24","center");
+  var s2=Math.max(12,big*0.3);
+  if(Math.floor(now0/500)%2===0)text("ANY KEY OR CLICK: YOU VS THE COMPUTER",cx,cy+big*3.1,s2,"rgba(255,255,255,0.9)","center");
+  text("PRESS 2: TWO PLAYERS, W/S AND ↑↓",cx,cy+big*3.1+s2*1.6,s2,"#f0abfc","center");
+}
+function drawEnd(){
+  var k=Math.min(1,(now0-endAt)/250),bw=Math.min(CW*0.9,560*S),bh=Math.max(120,160*S),bx=W/2-bw/2,by=CY+CH*0.5-bh/2;
+  c.save();c.globalAlpha=k;c.fillStyle="rgba(5,12,28,0.95)";rrect(bx,by,bw,bh,10*S);c.fill();c.strokeStyle="#67e8f9";c.lineWidth=Math.max(3,4*S);c.stroke();
+  var big=Math.max(16,Math.min(32*S,bw/16));
+  text(why,W/2,by+bh*0.14,big,"#f87171","center");
+  text("GAME OVER: "+fmt(score),W/2,by+bh*0.14+big*1.5,big,"#fff","center");
+  text(beat?"NEW BEST!":BEST>0?"BEST "+fmt(BEST):"ROUND "+round,W/2,by+bh*0.14+big*3,Math.max(12,big*0.6),beat?"#fbbf24":"#67e8f9","center");
+  c.restore();
+}
+function frame(now){
+  if(closed)return;
+  var dt=Math.min(40,now-(last||now))/1000;last=now;now0=now;
+  if(state==="play"&&!paused)physics(dt);
+  for(var p=parts.length-1;p>=0;p--){parts[p].life-=dt*1000;if(parts[p].life<=0)parts.splice(p,1)}
+  c.clearRect(0,0,W,H);
+  drawCourt();
+  if(state==="title")drawTitle();
+  else{
+    drawGame();drawHud();
+    if(now0-pointAt<700&&state==="play"){c.save();c.globalAlpha=Math.min(1,(700-(now0-pointAt))/250);text(pointSide===0?"POINT LEFT":"POINT RIGHT",W/2,CY+CH*0.64,Math.max(18,34*S),pointSide===0?"#67e8f9":"#f0abfc","center","900");c.restore()}
+    if(now0-roundAt<1500&&state==="play"){c.save();c.globalAlpha=Math.min(1,(1500-(now0-roundAt))/300);text(roundMsg,W/2,CY+CH*0.3,Math.max(20,40*S),"#fbbf24","center","900");text("ROUND "+round+": FASTER",W/2,CY+CH*0.3+48*S,Math.max(12,18*S),"#fff","center");c.restore()}
+    if(now0-beatAt<1400){c.save();c.globalAlpha=Math.min(1,(1400-(now0-beatAt))/300);text("NEW BEST!",W/2,CY+CH*0.2,Math.max(20,44*S),"#fbbf24","center","900");c.restore()}
+    if(paused){c.fillStyle="rgba(0,0,0,0.5)";c.fillRect(CX,CY,CW,CH);text("PAUSED",W/2,CY+CH*0.42,Math.max(24,56*S),"#fff","center","900");text("P TO CONTINUE",W/2,CY+CH*0.42+64*S,Math.max(12,18*S),"rgba(255,255,255,0.8)","center")}
+    if(state==="end"){drawEnd();if(now0-endAt>=ENDMS){close();return}}
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body></html>

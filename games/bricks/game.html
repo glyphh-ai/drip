@@ -1,0 +1,188 @@
+<html><head><style>
+*{margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:rgba(0,0,0,0);user-select:none;-webkit-user-select:none}
+canvas{position:absolute;left:0;top:0}
+</style></head><body>
+<canvas id="c"></canvas>
+<script>var __c=document.getElementById("c");__c.width=glyphh.width;__c.height=glyphh.height</script>
+<script>
+(function(){
+// Bricks: a paddle (← → or the mouse) bounces a ball into rows of bricks.
+// Clear the wall for the next, faster one; three balls. P pauses.
+var W=glyphh.width,H=glyphh.height,BEST=glyphh.best,ENDMS=2400;
+var c=document.getElementById("c").getContext("2d");
+// The court: a fixed 4:3 field scaled to fit the window.
+var PAD=Math.max(12,Math.min(W,H)*0.03),FW=800,FH=600;
+var S=Math.min((W-PAD*2)/FW,(H-PAD*2-40)/FH);if(S<0.3)S=0.3;
+var CW=FW*S,CH=FH*S,CX=Math.floor((W-CW)/2),CY=Math.floor((H-CH)/2+16);
+var COLS=12,BRW=FW/COLS,BRH=24,TOP=70;
+var ROWCOL=["#f43f5e","#f97316","#facc15","#4ade80","#38bdf8","#a78bfa","#f472b6","#fb923c","#fde047"];
+var state="title",balls=3,score=0,wall=1,bricks=[],left=0,hits=0;
+var pad={x:FW/2,w:110,h:14,y:FH-40,vx:0},ball={x:0,y:0,vx:0,vy:0,r:7,held:true};
+var keys={},mouseX=null,paused=false,parts=[],endAt=0,closed=false,wallAt=-1e9,beat=false,beatAt=-1e9,lostAt=-1e9,shake=0,why="";
+var now0=0,last=0;
+function rnd(a,b){return a+Math.random()*(b-a)}
+function close(){if(closed)return;closed=true;c.clearRect(0,0,W,H);glyphh.end()}
+function baseSpeed(){return 300+(wall-1)*28}
+function buildWall(){
+  bricks=[];var rows=Math.min(9,5+Math.floor((wall-1)/2));left=0;
+  for(var r=0;r<rows;r++)for(var i=0;i<COLS;i++){
+    // Later walls have hard bricks that take two hits.
+    var hard=wall>2&&r<2&&Math.random()<Math.min(0.6,(wall-2)*0.15);
+    bricks.push({r:r,i:i,x:i*BRW,y:TOP+r*(BRH+4),hp:hard?2:1,col:ROWCOL[r%ROWCOL.length],alive:true,hit:-1e9});left++}
+  pad.w=Math.max(70,110-(wall-1)*5);
+}
+function serve(){ball.held=true;ball.x=pad.x;ball.y=pad.y-pad.h/2-ball.r-1;ball.vx=0;ball.vy=0;hits=0}
+function launch(){if(!ball.held)return;ball.held=false;var a=rnd(-0.5,0.5)-Math.PI/2,v=baseSpeed();ball.vx=Math.cos(a)*v;ball.vy=Math.sin(a)*v;glyphh.sfx.tone(520,0.08,"square",0.08,780)}
+function begin(){state="play";balls=3;score=0;wall=1;beat=false;parts=[];buildWall();pad.x=FW/2;serve();glyphh.sfx.notes([[523,0.07,0],[659,0.07,0.08],[784,0.07,0.16],[1047,0.18,0.24]],"square",0.1)}
+function burst(x,y,n,col,sp){for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,v=sp*(0.3+Math.random());
+  parts.push({x:x,y:y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-sp*0.3,life:500,max:500,size:S*(3+Math.random()*4),col:col})}}
+function addScore(n){score+=n;glyphh.score(score);if(BEST>0&&!beat&&score>BEST){beat=true;beatAt=now0;glyphh.sfx.notes([[784,0.08,0.05],[988,0.08,0.13],[1319,0.24,0.21]],"triangle",0.11)}}
+function loseBall(){
+  balls--;lostAt=now0;shake=10;glyphh.sfx.noise(0.35,0.35,1200,150);glyphh.sfx.tone(240,0.5,"sawtooth",0.12,60);
+  if(balls<=0){why="OUT OF BALLS";state="end";endAt=now0;glyphh.sfx.notes([[392,0.18,0.4],[330,0.18,0.6],[262,0.4,0.8]],"triangle",0.12)}
+  else serve();
+}
+function clearWall(){
+  wall++;wallAt=now0;addScore(100*(wall-1));buildWall();serve();
+  glyphh.sfx.notes([[523,0.1,0],[659,0.1,0.1],[784,0.1,0.2],[1047,0.1,0.3],[1319,0.3,0.4]],"square",0.1);
+}
+function hitBrick(b,dir){
+  b.hp--;b.hit=now0;
+  if(b.hp<=0){b.alive=false;left--;addScore(10*(9-b.r)+(hits>8?5:0));burst(b.x+BRW/2,b.y+BRH/2,8,b.col,4);
+    glyphh.sfx.tone(380+(8-b.r)*70,0.07,"square",0.08,(380+(8-b.r)*70)*1.3)}
+  else{addScore(5);glyphh.sfx.tone(220,0.06,"square",0.07);glyphh.sfx.noise(0.05,0.12,3000,800)}
+  if(dir==="x")ball.vx=-ball.vx;else ball.vy=-ball.vy;
+  if(left<=0)clearWall();
+}
+function physics(dt){
+  // The paddle: keys, or the mouse where it is.
+  var pv=0;if(keys.ArrowLeft||keys.a||keys.A)pv-=1;if(keys.ArrowRight||keys.d||keys.D)pv+=1;
+  if(pv)pad.x+=pv*560*dt;else if(mouseX!==null)pad.x+=(mouseX-pad.x)*Math.min(1,dt*25);
+  pad.x=Math.max(pad.w/2,Math.min(FW-pad.w/2,pad.x));
+  if(ball.held){ball.x=pad.x;ball.y=pad.y-pad.h/2-ball.r-1;return}
+  // Sub-steps keep a fast ball from skipping through bricks.
+  var sp=Math.hypot(ball.vx,ball.vy),n=Math.max(1,Math.ceil(sp*dt/(ball.r))),h=dt/n;
+  for(var k=0;k<n;k++){
+    ball.x+=ball.vx*h;ball.y+=ball.vy*h;
+    if(ball.x<ball.r){ball.x=ball.r;ball.vx=Math.abs(ball.vx);glyphh.sfx.tone(900,0.03,"square",0.04)}
+    if(ball.x>FW-ball.r){ball.x=FW-ball.r;ball.vx=-Math.abs(ball.vx);glyphh.sfx.tone(900,0.03,"square",0.04)}
+    if(ball.y<ball.r){ball.y=ball.r;ball.vy=Math.abs(ball.vy);glyphh.sfx.tone(900,0.03,"square",0.04)}
+    if(ball.y>FH+ball.r*3){loseBall();return}
+    // The paddle: where it lands sets the angle; every few hits it quickens.
+    if(ball.vy>0&&ball.y+ball.r>=pad.y-pad.h/2&&ball.y-ball.r<=pad.y+pad.h/2&&Math.abs(ball.x-pad.x)<=pad.w/2+ball.r){
+      var u=(ball.x-pad.x)/(pad.w/2),a=u*1.1-Math.PI/2;hits++;
+      var v=Math.min(baseSpeed()*1.9,Math.hypot(ball.vx,ball.vy)*(hits%4===0?1.06:1));
+      ball.vx=Math.cos(a)*v;ball.vy=Math.sin(a)*v;ball.y=pad.y-pad.h/2-ball.r;
+      glyphh.sfx.tone(300,0.06,"triangle",0.1,180);
+    }
+    // Bricks: the one the ball's centre is nearest, bounced off its nearer side.
+    for(var i=0;i<bricks.length;i++){var b=bricks[i];if(!b.alive)continue;
+      if(ball.x+ball.r>b.x&&ball.x-ball.r<b.x+BRW&&ball.y+ball.r>b.y&&ball.y-ball.r<b.y+BRH){
+        var ox=Math.min(ball.x+ball.r-b.x,b.x+BRW-(ball.x-ball.r)),oy=Math.min(ball.y+ball.r-b.y,b.y+BRH-(ball.y-ball.r));
+        hitBrick(b,ox<oy?"x":"y");
+        if(ox<oy)ball.x+=ball.vx>0?ox:-ox;else ball.y+=ball.vy>0?oy:-oy;
+        return}
+    }
+  }
+}
+document.addEventListener("keydown",function(ev){
+  var k=ev.key;
+  if(k==="Escape"||k==="m"||k==="M")return;// the kit's
+  if(state==="title"){ev.preventDefault();begin();return}
+  if(state!=="play")return;
+  if(k==="p"||k==="P"){paused=!paused;ev.preventDefault();return}
+  keys[k]=true;
+  if(k.indexOf("Arrow")===0||k===" ")ev.preventDefault();
+  if((k===" "||k==="ArrowUp")&&!paused)launch();
+});
+document.addEventListener("keyup",function(ev){keys[ev.key]=false});
+document.addEventListener("mousemove",function(ev){mouseX=(ev.clientX-CX)/S});
+document.addEventListener("mousedown",function(ev){ev.preventDefault();if(state==="title"){begin();return}if(state==="play"&&!paused)launch()});
+function text(str,x,y,size,col,align,weight){
+  c.font=(weight||"800")+" "+Math.round(size)+"px Menlo, Monaco, 'Courier New', monospace";c.textAlign=align||"left";c.textBaseline="top";
+  c.fillStyle="rgba(0,0,0,0.6)";c.fillText(str,x+Math.max(1.5,size/10),y+Math.max(1.5,size/10));c.fillStyle=col;c.fillText(str,x,y);
+}
+function rrect(x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+function fmt(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,",")}
+function drawCourt(){
+  c.fillStyle="rgba(12,10,32,0.93)";rrect(CX-6,CY-6,CW+12,CH+12,10*S);c.fill();
+  c.strokeStyle="rgba(167,139,250,0.6)";c.lineWidth=Math.max(2,3*S);c.stroke();
+}
+function drawGame(){
+  c.save();c.translate(CX,CY);c.scale(S,S);
+  if(shake>0){c.translate(rnd(-shake,shake),rnd(-shake,shake))}
+  c.beginPath();c.rect(0,0,FW,FH);c.clip();
+  for(var i=0;i<bricks.length;i++){var b=bricks[i];if(!b.alive)continue;
+    var flash=now0-b.hit<120;
+    c.fillStyle=flash?"#fff":b.col;rrect(b.x+2,b.y,BRW-4,BRH,4);c.fill();
+    c.fillStyle="rgba(255,255,255,0.3)";c.fillRect(b.x+4,b.y+2,BRW-8,3);
+    c.fillStyle="rgba(0,0,0,0.3)";c.fillRect(b.x+4,b.y+BRH-4,BRW-8,3);
+    if(b.hp>1){c.strokeStyle="rgba(0,0,0,0.45)";c.lineWidth=2;c.beginPath();c.moveTo(b.x+BRW*0.3,b.y+4);c.lineTo(b.x+BRW*0.5,b.y+BRH-4);c.lineTo(b.x+BRW*0.7,b.y+4);c.stroke()}
+  }
+  // The paddle.
+  var g=c.createLinearGradient(0,pad.y-pad.h/2,0,pad.y+pad.h/2);g.addColorStop(0,"#e9d5ff");g.addColorStop(1,"#a78bfa");
+  c.fillStyle=g;rrect(pad.x-pad.w/2,pad.y-pad.h/2,pad.w,pad.h,pad.h/2);c.fill();
+  c.fillStyle="#f0abfc";c.fillRect(pad.x-pad.w/2+6,pad.y-pad.h/2+3,8,pad.h-6);c.fillRect(pad.x+pad.w/2-14,pad.y-pad.h/2+3,8,pad.h-6);
+  // The ball, with a short tail.
+  if(!ball.held){c.fillStyle="rgba(255,255,255,0.25)";c.beginPath();c.arc(ball.x-ball.vx*0.02,ball.y-ball.vy*0.02,ball.r*0.8,0,Math.PI*2);c.fill()}
+  c.fillStyle="#fff";c.beginPath();c.arc(ball.x,ball.y,ball.r,0,Math.PI*2);c.fill();
+  for(var p=parts.length-1;p>=0;p--){var pt=parts[p];pt.x+=pt.vx;pt.y+=pt.vy;pt.vy+=0.25;c.globalAlpha=Math.max(0,pt.life/pt.max);c.fillStyle=pt.col;c.fillRect(pt.x,pt.y,pt.size/S,pt.size/S);c.globalAlpha=1}
+  if(ball.held&&state==="play"&&!paused&&Math.floor(now0/500)%2===0)text("SPACE OR CLICK TO LAUNCH",FW/2,FH*0.62,16,"rgba(255,255,255,0.8)","center");
+  c.restore();
+}
+function drawHud(){
+  var size=Math.max(13,Math.min(22,18*S)),y=CY-size-12;
+  text(fmt(score),CX,y,size*1.15,"#fff","left");
+  text("WALL "+wall,CX+CW/2,y+size*0.2,size*0.8,"#a78bfa","center");
+  text("BEST "+fmt(Math.max(BEST,score)),CX+CW,y+size*0.2,size*0.8,"#fbbf24","right");
+  // Balls left, drawn as balls.
+  for(var i=0;i<balls-1;i++){c.fillStyle="#fff";c.beginPath();c.arc(CX+CW/2-60*S+i*14*S+140*S,y+size*0.6,5*S,0,Math.PI*2);c.fill()}
+}
+function drawTitle(){
+  var big=Math.max(26,Math.min(72,64*S)),cx=W/2,cy=CY+CH*0.28;
+  c.save();c.translate(CX,CY);c.scale(S,S);
+  for(var r=0;r<5;r++)for(var i=0;i<COLS;i++){c.globalAlpha=0.35;c.fillStyle=ROWCOL[r];rrect(i*BRW+2,TOP-30+r*(BRH+4),BRW-4,BRH,4);c.fill()}
+  c.restore();
+  text("BRICKS",cx,cy,big,"#f0abfc","center","900");
+  text("← → OR MOUSE MOVES  ·  SPACE LAUNCHES  ·  THREE BALLS  ·  P PAUSES",cx,cy+big*1.35,Math.max(11,Math.min(18,big*0.26)),"#fff","center");
+  text("BEST "+fmt(BEST),cx,cy+big*2.1,Math.max(14,big*0.45),"#fbbf24","center");
+  if(Math.floor(now0/500)%2===0)text("PRESS ANY KEY OR CLICK TO PLAY",cx,cy+big*3.1,Math.max(12,big*0.3),"rgba(255,255,255,0.85)","center");
+  c.save();c.translate(CX,CY);c.scale(S,S);
+  var g=c.createLinearGradient(0,pad.y-pad.h/2,0,pad.y+pad.h/2);g.addColorStop(0,"#e9d5ff");g.addColorStop(1,"#a78bfa");
+  c.fillStyle=g;rrect(FW/2-55,pad.y-pad.h/2,110,pad.h,pad.h/2);c.fill();
+  c.fillStyle="#fff";c.beginPath();c.arc(FW/2,pad.y-pad.h/2-8,7,0,Math.PI*2);c.fill();
+  c.restore();
+}
+function drawEnd(){
+  var k=Math.min(1,(now0-endAt)/250),bw=Math.min(CW*0.9,520*S),bh=Math.max(120,160*S),bx=W/2-bw/2,by=CY+CH*0.45-bh/2;
+  c.save();c.globalAlpha=k;c.fillStyle="rgba(12,10,32,0.95)";rrect(bx,by,bw,bh,12*S);c.fill();c.strokeStyle="#a78bfa";c.lineWidth=Math.max(3,4*S);c.stroke();
+  var big=Math.max(16,Math.min(34*S,bw/14));
+  text(why,W/2,by+bh*0.14,big,"#f87171","center");
+  text("GAME OVER: "+fmt(score),W/2,by+bh*0.14+big*1.5,big,"#fff","center");
+  text(beat?"NEW BEST!":BEST>0?"BEST "+fmt(BEST):"WALL "+wall,W/2,by+bh*0.14+big*3,Math.max(12,big*0.6),beat?"#fbbf24":"#a78bfa","center");
+  c.restore();
+}
+function frame(now){
+  if(closed)return;
+  var dt=Math.min(40,now-(last||now))/1000;last=now;now0=now;
+  if(state==="play"&&!paused)physics(dt);
+  if(shake>0)shake=Math.max(0,shake-dt*40);
+  for(var p=parts.length-1;p>=0;p--){parts[p].life-=dt*1000;if(parts[p].life<=0)parts.splice(p,1)}
+  c.clearRect(0,0,W,H);
+  drawCourt();
+  if(state==="title")drawTitle();
+  else{
+    drawGame();drawHud();
+    if(now0-wallAt<1300&&state==="play"){c.save();c.globalAlpha=Math.min(1,(1300-(now0-wallAt))/300);text("WALL "+wall+"!",W/2,CY+CH*0.4,Math.max(20,48*S),"#f0abfc","center","900");c.restore()}
+    if(now0-lostAt<900&&state==="play"){c.save();c.globalAlpha=Math.min(1,(900-(now0-lostAt))/300);text(balls+(balls===1?" BALL LEFT":" BALLS LEFT"),W/2,CY+CH*0.4,Math.max(18,36*S),"#f87171","center","900");c.restore()}
+    if(now0-beatAt<1400){c.save();c.globalAlpha=Math.min(1,(1400-(now0-beatAt))/300);text("NEW BEST!",W/2,CY+CH*0.25,Math.max(20,44*S),"#fbbf24","center","900");c.restore()}
+    if(paused){c.fillStyle="rgba(0,0,0,0.5)";c.fillRect(CX,CY,CW,CH);text("PAUSED",W/2,CY+CH*0.42,Math.max(24,56*S),"#fff","center","900");text("P TO CONTINUE",W/2,CY+CH*0.42+64*S,Math.max(12,18*S),"rgba(255,255,255,0.8)","center")}
+    if(state==="end"){drawEnd();if(now0-endAt>=ENDMS){close();return}}
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body></html>

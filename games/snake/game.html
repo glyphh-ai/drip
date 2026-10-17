@@ -1,0 +1,181 @@
+<html><head><style>
+*{margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:rgba(0,0,0,0);user-select:none;-webkit-user-select:none}
+canvas{position:absolute;left:0;top:0}
+</style></head><body>
+<canvas id="c"></canvas>
+<script>var __c=document.getElementById("c");__c.width=glyphh.width;__c.height=glyphh.height</script>
+<script>
+(function(){
+// Snake: arrows (or WASD) steer a snake that grows with each apple. Walls and
+// its own tail end it. It speeds up every five apples. P pauses.
+var W=glyphh.width,H=glyphh.height,BEST=glyphh.best,ENDMS=2400;
+var c=document.getElementById("c").getContext("2d");
+// The board: a fixed grid scaled to fit, so the game is the same at any size.
+var COLS=30,ROWS=20,PAD=Math.max(12,Math.min(W,H)*0.03);
+var T=Math.floor(Math.min((W-PAD*2)/COLS,(H-PAD*2-56)/ROWS));if(T<8)T=8;
+var BW=COLS*T,BH=ROWS*T,BX=Math.floor((W-BW)/2),BY=Math.floor((H-BH)/2+22);
+var state="title",snake=[],dir={x:1,y:0},queue=[],apple=null,apples=0,score=0,level=1;
+var acc=0,endAt=0,closed=false,paused=false,parts=[],flash=0,beat=false,beatAt=-1e9,lvlAt=-1e9,eatAt=-1e9,eatPos=null,why="";
+var now0=0,last=0,start=performance.now();
+function rnd(a,b){return a+Math.random()*(b-a)}
+function speed(){return Math.min(22,6+(level-1)*1.6)}// cells per second
+function close(){if(closed)return;closed=true;c.clearRect(0,0,W,H);glyphh.end()}
+function reset(){
+  snake=[];var cx=Math.floor(COLS/3),cy=Math.floor(ROWS/2);
+  for(var i=0;i<4;i++)snake.push({x:cx-i,y:cy});
+  dir={x:1,y:0};queue=[];apples=0;score=0;level=1;acc=0;parts=[];beat=false;why="";placeApple();
+}
+function placeApple(){
+  var free=[];for(var y=0;y<ROWS;y++)for(var x=0;x<COLS;x++){var hit=false;
+    for(var i=0;i<snake.length;i++)if(snake[i].x===x&&snake[i].y===y){hit=true;break}
+    if(!hit)free.push({x:x,y:y})}
+  if(!free.length){apple=null;return}
+  apple=free[Math.floor(Math.random()*free.length)];apple.born=now0;
+}
+function burst(x,y,n,cols,sp){for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,v=sp*(0.4+Math.random());
+  parts.push({x:x,y:y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:600,max:600,size:T*0.18*(0.6+Math.random()),col:cols[i%cols.length]})}}
+function begin(){state="play";start=performance.now();reset();glyphh.sfx.notes([[440,0.07,0],[554,0.07,0.08],[659,0.07,0.16],[880,0.18,0.24]],"square",0.1)}
+function turn(dx,dy){
+  if(state!=="play"||paused)return;
+  var lastD=queue.length?queue[queue.length-1]:dir;
+  if(dx===-lastD.x&&dy===-lastD.y)return;// no reversing into itself
+  if(dx===lastD.x&&dy===lastD.y)return;
+  if(queue.length<3)queue.push({x:dx,y:dy});
+}
+function die(reason){
+  why=reason;state="end";endAt=now0;flash=1;
+  var h=snake[0];burst(BX+h.x*T+T/2,BY+h.y*T+T/2,28,["#fff","#a3e635","#4ade80","#f87171"],T*0.12);
+  glyphh.sfx.noise(0.4,0.4,1400,160);glyphh.sfx.tone(300,0.45,"sawtooth",0.12,70);
+  glyphh.sfx.notes([[392,0.18,0.3],[330,0.18,0.5],[262,0.4,0.7]],"triangle",0.12);
+}
+function step(){
+  if(queue.length)dir=queue.shift();
+  var h=snake[0],nx=h.x+dir.x,ny=h.y+dir.y;
+  if(nx<0||ny<0||nx>=COLS||ny>=ROWS){die("INTO THE WALL");return}
+  var grow=apple&&nx===apple.x&&ny===apple.y;
+  // The tail moves out of the way unless the snake grows this step.
+  var tailEnd=grow?snake.length:snake.length-1;
+  for(var i=0;i<tailEnd;i++)if(snake[i].x===nx&&snake[i].y===ny){die("BIT YOUR TAIL");return}
+  snake.unshift({x:nx,y:ny});
+  if(grow){
+    apples++;score+=10*level;glyphh.score(score);eatAt=now0;eatPos={x:nx,y:ny};
+    burst(BX+nx*T+T/2,BY+ny*T+T/2,10,["#f87171","#fca5a5","#fbbf24"],T*0.08);
+    var n=Math.min(12,apples);glyphh.sfx.tone(520+n*30,0.08,"square",0.09,900+n*40);
+    if(BEST>0&&!beat&&score>BEST){beat=true;beatAt=now0;glyphh.sfx.notes([[784,0.08,0.1],[988,0.08,0.18],[1319,0.24,0.26]],"triangle",0.11)}
+    if(apples%5===0){level++;lvlAt=now0;glyphh.sfx.notes([[659,0.07,0.12],[784,0.07,0.2],[1047,0.16,0.28]],"square",0.09)}
+    placeApple();
+  }else snake.pop();
+}
+document.addEventListener("keydown",function(ev){
+  var k=ev.key;
+  if(k==="Escape"||k==="m"||k==="M")return;// the kit's
+  if(state==="title"){ev.preventDefault();begin();return}
+  if(state!=="play")return;
+  if(k==="p"||k==="P"){paused=!paused;ev.preventDefault();return}
+  if(ev.repeat&&!(k.indexOf("Arrow")===0))return;
+  if(k==="ArrowUp"||k==="w"||k==="W"){ev.preventDefault();turn(0,-1)}
+  else if(k==="ArrowDown"||k==="s"||k==="S"){ev.preventDefault();turn(0,1)}
+  else if(k==="ArrowLeft"||k==="a"||k==="A"){ev.preventDefault();turn(-1,0)}
+  else if(k==="ArrowRight"||k==="d"||k==="D"){ev.preventDefault();turn(1,0)}
+  else if(k===" ")ev.preventDefault();
+});
+// A click steers toward the pointer, along whichever axis is farther off.
+document.addEventListener("mousedown",function(ev){
+  ev.preventDefault();
+  if(state==="title"){begin();return}
+  if(state!=="play"||paused)return;
+  var h=snake[0],dx=ev.clientX-(BX+h.x*T+T/2),dy=ev.clientY-(BY+h.y*T+T/2);
+  if(Math.abs(dx)>Math.abs(dy))turn(dx>0?1:-1,0);else turn(0,dy>0?1:-1);
+});
+function text(str,x,y,size,col,align,weight){
+  c.font=(weight||"800")+" "+Math.round(size)+"px Menlo, Monaco, 'Courier New', monospace";c.textAlign=align||"left";c.textBaseline="top";
+  c.fillStyle="rgba(0,0,0,0.6)";c.fillText(str,x+Math.max(1.5,size/10),y+Math.max(1.5,size/10));c.fillStyle=col;c.fillText(str,x,y);
+}
+function rrect(x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+function fmt(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,",")}
+function drawBoard(){
+  c.fillStyle="rgba(8,30,20,0.92)";rrect(BX-6,BY-6,BW+12,BH+12,Math.max(6,T*0.4));c.fill();
+  c.strokeStyle="rgba(163,230,53,0.55)";c.lineWidth=Math.max(2,T*0.12);c.stroke();
+  for(var y=0;y<ROWS;y++)for(var x=0;x<COLS;x++)if((x+y)%2===0){c.fillStyle="rgba(255,255,255,0.025)";c.fillRect(BX+x*T,BY+y*T,T,T)}
+}
+function drawApple(){
+  if(!apple)return;var ax=BX+apple.x*T+T/2,ay=BY+apple.y*T+T/2,age=now0-(apple.born||0),k=Math.min(1,age/200),r=T*0.36*(0.6+0.4*k)*(1+0.05*Math.sin(now0/160));
+  c.fillStyle="#ef4444";c.beginPath();c.arc(ax,ay+T*0.04,r,0,Math.PI*2);c.fill();
+  c.fillStyle="rgba(255,255,255,0.35)";c.beginPath();c.arc(ax-r*0.35,ay-r*0.3,r*0.28,0,Math.PI*2);c.fill();
+  c.strokeStyle="#5b3a1a";c.lineWidth=Math.max(1.5,T*0.08);c.beginPath();c.moveTo(ax,ay-r*0.8);c.lineTo(ax+T*0.06,ay-r*1.25);c.stroke();
+  c.fillStyle="#4ade80";c.beginPath();c.ellipse(ax+T*0.16,ay-r*1.1,T*0.14,T*0.07,-0.6,0,Math.PI*2);c.fill();
+}
+function drawSnake(frac){
+  var n=snake.length;
+  // Each segment eases toward the next cell, so the snake glides rather than ticks.
+  for(var i=n-1;i>=0;i--){var s=snake[i],ahead=i>0?snake[i-1]:{x:s.x+dir.x,y:s.y+dir.y};
+    var fx=s.x+(ahead.x-s.x)*frac,fy=s.y+(ahead.y-s.y)*frac;
+    var t=i/Math.max(1,n-1),hue=95+t*60;
+    var inset=T*(0.1+0.1*t),size=T-inset*2;
+    c.fillStyle="hsl("+hue+",70%,"+(55-t*15)+"%)";
+    var px=BX+fx*T+inset,py=BY+fy*T+inset;
+    if(i>0){// a link to the segment ahead, so the body reads as one
+      var afx=ahead.x+((i>1?snake[i-2]:{x:ahead.x+dir.x,y:ahead.y+dir.y}).x-ahead.x)*frac,afy=ahead.y+((i>1?snake[i-2]:{x:ahead.x+dir.x,y:ahead.y+dir.y}).y-ahead.y)*frac;
+      var lx=Math.min(fx,afx),ly=Math.min(fy,afy),lw=Math.abs(fx-afx),lh=Math.abs(fy-afy);
+      rrect(BX+lx*T+inset,BY+ly*T+inset,lw*T+size,lh*T+size,size*0.35);c.fill()}
+    rrect(px,py,size,size,size*0.35);c.fill();
+    if(eatPos&&now0-eatAt<700&&s.x===eatPos.x&&s.y===eatPos.y&&i>0){c.fillStyle="rgba(255,255,255,0.35)";rrect(px-T*0.08,py-T*0.08,size+T*0.16,size+T*0.16,size*0.4);c.fill()}
+    if(i===0){// eyes and a tongue
+      var ex=px+size/2,ey=py+size/2,dx=dir.x,dy=dir.y,ox=-dy,oy=dx,e=size*0.2;
+      c.fillStyle="#fff";c.beginPath();c.arc(ex+dx*e*0.6+ox*e,ey+dy*e*0.6+oy*e,size*0.14,0,Math.PI*2);c.arc(ex+dx*e*0.6-ox*e,ey+dy*e*0.6-oy*e,size*0.14,0,Math.PI*2);c.fill();
+      c.fillStyle="#0f172a";c.beginPath();c.arc(ex+dx*e*0.9+ox*e,ey+dy*e*0.9+oy*e,size*0.07,0,Math.PI*2);c.arc(ex+dx*e*0.9-ox*e,ey+dy*e*0.9-oy*e,size*0.07,0,Math.PI*2);c.fill();
+      if(Math.floor(now0/400)%3===0){c.strokeStyle="#f43f5e";c.lineWidth=Math.max(1.5,T*0.08);c.beginPath();c.moveTo(ex+dx*size*0.5,ey+dy*size*0.5);c.lineTo(ex+dx*size*0.85,ey+dy*size*0.85);c.stroke()}
+    }
+  }
+}
+function drawHud(){
+  var size=Math.max(13,Math.min(22,T*0.9)),y=BY-size-12;
+  text(fmt(score),BX,y,size*1.15,"#fff","left");
+  text("APPLES "+apples+"   SPEED "+level,BX+BW/2,y+size*0.2,size*0.8,"#a3e635","center");
+  text("BEST "+fmt(Math.max(BEST,score)),BX+BW,y+size*0.2,size*0.8,"#fbbf24","right");
+}
+function drawTitle(){
+  var big=Math.max(26,Math.min(72,T*3)),cx=W/2,cy=BY+BH*0.3;
+  c.fillStyle="rgba(8,30,20,0.72)";c.fillRect(BX,BY,BW,BH);
+  text("SNAKE",cx,cy,big,"#a3e635","center","900");
+  text("ARROWS OR WASD STEER  ·  EAT APPLES, DON'T BITE YOUR TAIL  ·  P PAUSES",cx,cy+big*1.35,Math.max(11,Math.min(18,big*0.26)),"#fff","center");
+  text("BEST "+fmt(BEST),cx,cy+big*2.1,Math.max(14,big*0.45),"#fbbf24","center");
+  if(Math.floor(now0/500)%2===0)text("PRESS ANY KEY OR CLICK TO PLAY",cx,cy+big*3.1,Math.max(12,big*0.3),"rgba(255,255,255,0.85)","center");
+  // A little snake and apple as decoration.
+  var sy=cy+big*4.2,ss=Math.max(10,T*0.8);if(sy+ss<BY+BH){for(var i=0;i<7;i++){c.fillStyle="hsl("+(95+i*9)+",70%,"+(55-i*2)+"%)";rrect(cx-ss*4.5+i*ss,sy,ss*0.9,ss*0.9,ss*0.3);c.fill()}
+    c.fillStyle="#ef4444";c.beginPath();c.arc(cx+ss*3.5,sy+ss*0.45,ss*0.38,0,Math.PI*2);c.fill()}
+}
+function drawEnd(){
+  var k=Math.min(1,(now0-endAt)/250),bw=Math.min(BW*0.9,T*18),bh=Math.max(120,T*5),bx=W/2-bw/2,by=BY+BH*0.5-bh/2;
+  c.save();c.globalAlpha=k;c.fillStyle="rgba(8,30,20,0.94)";rrect(bx,by,bw,bh,T*0.4);c.fill();c.strokeStyle="#a3e635";c.lineWidth=Math.max(3,T*0.12);c.stroke();
+  var big=Math.max(16,Math.min(T*1.1,bw/14));
+  text(why,W/2,by+bh*0.14,big,"#f87171","center");
+  text("GAME OVER: "+fmt(score),W/2,by+bh*0.14+big*1.5,big,"#fff","center");
+  text(beat?"NEW BEST!":BEST>0?"BEST "+fmt(BEST):apples+(apples===1?" APPLE":" APPLES"),W/2,by+bh*0.14+big*3,Math.max(12,big*0.6),beat?"#fbbf24":"#a3e635","center");
+  c.restore();
+}
+function frame(now){
+  if(closed)return;
+  var dt=Math.min(40,now-(last||now))/1000;last=now;now0=now;
+  if(state==="play"&&!paused){acc+=dt*speed();var guard=0;while(acc>=1&&state==="play"&&guard++<4){acc-=1;step()}}
+  c.clearRect(0,0,W,H);
+  if(flash>0){c.fillStyle="rgba(248,113,113,"+(flash*0.35)+")";c.fillRect(0,0,W,H);flash=Math.max(0,flash-dt*3)}
+  drawBoard();
+  if(state==="title"){drawTitle()}
+  else{
+    drawApple();drawSnake(state==="play"&&!paused?Math.min(1,acc):0);
+    for(var p=parts.length-1;p>=0;p--){var pt=parts[p];pt.life-=dt*1000;if(pt.life<=0){parts.splice(p,1);continue}
+      pt.x+=pt.vx*dt*60;pt.y+=pt.vy*dt*60;pt.vx*=0.94;pt.vy*=0.94;c.globalAlpha=pt.life/pt.max;c.fillStyle=pt.col;c.fillRect(pt.x,pt.y,pt.size,pt.size);c.globalAlpha=1}
+    drawHud();
+    if(now0-lvlAt<1100&&state==="play"){c.save();c.globalAlpha=Math.min(1,(1100-(now0-lvlAt))/300);text("SPEED "+level+"!",W/2,BY+BH*0.42,Math.max(20,T*1.6),"#a3e635","center","900");c.restore()}
+    if(now0-beatAt<1400){c.save();c.globalAlpha=Math.min(1,(1400-(now0-beatAt))/300);text("NEW BEST!",W/2,BY+BH*0.2,Math.max(20,T*1.4),"#fbbf24","center","900");c.restore()}
+    if(paused){c.fillStyle="rgba(0,0,0,0.5)";c.fillRect(BX,BY,BW,BH);text("PAUSED",W/2,BY+BH*0.42,Math.max(24,T*2),"#fff","center","900");text("P TO CONTINUE",W/2,BY+BH*0.42+T*2.4,Math.max(12,T*0.7),"rgba(255,255,255,0.8)","center")}
+    if(state==="end"){drawEnd();if(now0-endAt>=ENDMS){close();return}}
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body></html>
