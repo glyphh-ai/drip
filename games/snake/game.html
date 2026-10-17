@@ -106,17 +106,20 @@ function drawApple(){
   c.strokeStyle="#5b3a1a";c.lineWidth=Math.max(1.5,T*0.08);c.beginPath();c.moveTo(ax,ay-r*0.8);c.lineTo(ax+T*0.06,ay-r*1.25);c.stroke();
   c.fillStyle="#4ade80";c.beginPath();c.ellipse(ax+T*0.16,ay-r*1.1,T*0.14,T*0.07,-0.6,0,Math.PI*2);c.fill();
 }
+// Where the head glides to: the next cell, or nowhere when that is the wall (it never shows past it).
+function headNext(){var h=snake[0],d=queue.length?queue[0]:dir,nx=h.x+d.x,ny=h.y+d.y;
+  return nx<0||ny<0||nx>=COLS||ny>=ROWS?{x:h.x,y:h.y}:{x:nx,y:ny}}
 function drawSnake(frac){
-  var n=snake.length;
+  var n=snake.length,next=headNext();
   // Each segment eases toward the next cell, so the snake glides rather than ticks.
-  for(var i=n-1;i>=0;i--){var s=snake[i],ahead=i>0?snake[i-1]:{x:s.x+dir.x,y:s.y+dir.y};
+  for(var i=n-1;i>=0;i--){var s=snake[i],ahead=i>0?snake[i-1]:next;
     var fx=s.x+(ahead.x-s.x)*frac,fy=s.y+(ahead.y-s.y)*frac;
     var t=i/Math.max(1,n-1),hue=95+t*60;
     var inset=T*(0.1+0.1*t),size=T-inset*2;
     c.fillStyle="hsl("+hue+",70%,"+(55-t*15)+"%)";
     var px=BX+fx*T+inset,py=BY+fy*T+inset;
     if(i>0){// a link to the segment ahead, so the body reads as one
-      var afx=ahead.x+((i>1?snake[i-2]:{x:ahead.x+dir.x,y:ahead.y+dir.y}).x-ahead.x)*frac,afy=ahead.y+((i>1?snake[i-2]:{x:ahead.x+dir.x,y:ahead.y+dir.y}).y-ahead.y)*frac;
+      var aa=i>1?snake[i-2]:next,afx=ahead.x+(aa.x-ahead.x)*frac,afy=ahead.y+(aa.y-ahead.y)*frac;
       var lx=Math.min(fx,afx),ly=Math.min(fy,afy),lw=Math.abs(fx-afx),lh=Math.abs(fy-afy);
       rrect(BX+lx*T+inset,BY+ly*T+inset,lw*T+size,lh*T+size,size*0.35);c.fill()}
     rrect(px,py,size,size,size*0.35);c.fill();
