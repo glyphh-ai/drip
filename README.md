@@ -2,7 +2,7 @@
 
 Every game and drip for [Glyphh Drip](https://github.com/glyphh-ai/glyphh), the
 plugin that plays games and visual effects over Claude. The plugin ships with
-all of them, and `/drip get <name>` fetches any one added since. Make your own
+all of them, and `/drip get <name>` fetches any one added since, and `/drip share <name>` sends one of yours here as a pull request. Make your own
 by asking Claude ("make me a Snake game"), then open a pull request here to
 share it with everyone.
 
@@ -71,12 +71,21 @@ Claude. The kit is the same as a game's, without `best` and `score`.
 
 ## Contributing
 
+**From Glyphh Drip:** `/drip share <name>` checks your game or drip, forks
+this repository under your GitHub account, adds it and opens the pull
+request. It needs the GitHub command-line tool, signed in (`brew install gh`,
+then `gh auth login`).
+
+**By hand:**
+
 1. Make the game or drip (ask Claude, or start from `templates/`).
 2. Put it in `games/<name>/` or `drips/<name>/` and run
    `node scripts/check.js games/<name>` until it passes.
-3. Open a pull request. CI runs the check; we play it; it's merged, and
-   `index.json` is updated. From then on `/drip get <name>` fetches it, and
-   the next plugin release ships it.
+3. Open a pull request.
+
+Either way, CI runs the check; we play it; it's merged, and `index.json` is
+updated. From then on `/drip get <name>` fetches it, and the next plugin
+release ships it.
 
 By contributing you license your work under this repository's MIT licence.
 A game or drip is code that runs on players' Macs: keep it to what it says
