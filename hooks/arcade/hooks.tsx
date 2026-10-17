@@ -5,8 +5,7 @@
 // Claude's window or the whole screen as the /config row `display` says; the
 // overlay takes the pointer and keys while a game is on. Each game posts its
 // score as it goes, and the top one is kept for the next round to beat.
-// /drip alone draws a small card: the logo, and Unlock until it's bought.
-// /drip list opens the Drip pane: every game and drip, here or in the
+// /drip (or /drip list) opens the Drip pane: every game and drip, here or in the
 // gallery, each with who made it and Play (Get for the gallery's, fetched
 // then played). Missiles and every drip are free; the other games wait for
 // Glyphh Drip to be bought.
@@ -25,7 +24,6 @@ import { get as galleryGet, listing as galleryListing } from '../content/gallery
 import { GLYPHH, NAME } from '../content/rules.js'
 import { share as galleryShare } from '../content/share.ts'
 import { readCustoms } from '../drips/library.ts'
-import { CAT_RATIO, CAT_SVG, LOGO_ALT, MARK_RATIO, MARK_SVG } from './brand.ts'
 import { GAMES, gameDoc, gameOf } from './games/index.ts'
 import type { Game } from './games/game.ts'
 import { DRIP_ICONS, GAME_ICONS, GENERIC_DRIP_ICON, GENERIC_GAME_ICON, tiled } from './icons.ts'
@@ -36,8 +34,10 @@ const licence = atom({ plugin: 'glyphh-drip', key: 'licence' } as const, INITIAL
 /** A drip the pane asked to play: the drips' half (../drips) takes it. */
 const queued = atom({ plugin: 'glyphh-drip', key: 'queued' } as const, null as { recipe: string; at: number } | null)
 
-/** The Drip pane: /drip list opens it. */
+/** The Drip pane: /drip (or /drip list) opens it. */
 export const PANE = 'glyphh-drip'
+/** What /drip says in the conversation once the pane is open. */
+export const OPENED = 'Drip is open in the side panel.'
 /** How long what the gallery has is kept before it's asked again, in ms. */
 const GALLERY_MS = 5 * 60_000
 /** The gallery's listing as last read, for the pane's draws. */
@@ -331,31 +331,7 @@ export function arcade(on: On, options: PluginOptions) {
   isMissedSaid = false
   galleryKept = null
 
-  // /drip alone: the small card, the logo, and Unlock until Glyphh Drip is bought.
-  on('ui.render', { component: 'CommandOutput' }, async ($, e, next) => {
-    const args = e.props.args.trim().toLowerCase()
-    if (e.props.command !== 'drip' || e.props.isErrored || args !== '') return next(e)
-    const { Box, Text, Button, ...els } = $.ui.resolve(e)
-    // Every surface but the terminal draws SVG: the logo; the terminal gets the word.
-    const Svg = e.surface !== 'terminal' && 'Svg' in els ? els.Svg : null
-    const isLocked = refusal(await read($, licence)) !== null
-    return (
-      <Box flexDirection="row" alignItems="center" gap={3} paddingX={3} paddingY={2} borderStyle="round" borderDimColor>
-        {Svg ? (
-          <Box flexDirection="row" alignItems="center" gap={2}>
-            <Svg source={CAT_SVG} alt={LOGO_ALT} height={30} width={Math.round(30 * CAT_RATIO)} />
-            <Svg source={MARK_SVG} alt="drip" height={22} width={Math.round(22 * MARK_RATIO)} />
-          </Box>
-        ) : (
-          <Text bold>drip</Text>
-        )}
-        <Box flexGrow={1} />
-        {isLocked ? <Button key="unlock" label={`Unlock · ${PRICE}`} variant="primary" onPress={() => void checkout($)} /> : null}
-      </Box>
-    )
-  })
-
-  // The Drip pane (/drip list): every game, then every drip, each row its
+  // The Drip pane (/drip, /drip list): every game, then every drip, each row its
   // icon, name, maker, your best and Play (Get for the gallery's); Unlock
   // above them until it's bought.
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
@@ -399,8 +375,9 @@ export function arcade(on: On, options: PluginOptions) {
     if (verb?.toLowerCase() === 'get') return { text: rest.length === 1 ? await getFromGallery($, rest[0]!) : 'Usage: /drip get <name>' }
     if (verb?.toLowerCase() === 'share') return { text: rest.length === 1 ? await shareToGallery($, rest[0]!) : 'Usage: /drip share <name>' }
     if (!name || name.toLowerCase() === 'list') {
-      // /drip list opens the pane; both answer with the list in words too.
-      if (name) await $.ui.open({ id: PANE, title: 'Drip' })
+      // The pane; where no surface places one (a bare terminal), the list in words.
+      const { isPlaced } = await $.ui.open({ id: PANE, title: 'Drip' })
+      if (isPlaced) return { text: OPENED }
       const drips = await next({ ...e, args: 'list' })
       return { text: `${await listing($)}\n\n${drips.text ?? ''}`.trim() }
     }

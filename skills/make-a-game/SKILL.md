@@ -7,7 +7,7 @@ user-invocable: false
 # Make a game for Glyphh Drip
 
 A Glyphh Drip game is one folder in `~/.glyphh/games/<name>/`. Once it's there,
-it shows in the Drip pane (`/drip list`) and plays with `/drip <name>`, over
+it shows in the Drip pane (`/drip`) and plays with `/drip <name>`, over
 Claude's window, beside the built-in games.
 
 ## The folder

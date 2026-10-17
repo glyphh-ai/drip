@@ -49,7 +49,7 @@ page for you.
 
 | Command | What it does |
 |---|---|
-| `/drip` | The card: your games and drips, on two tabs, with Play |
+| `/drip` | Opens the Drip pane: every game and drip, Play or Get |
 | `/drip <game>` | Starts a game: `/drip blocks`, `/drip missiles` |
 | `/drip <recipe>` | Plays a drip, or one of your saved drips by name |
 | `/drip list` | Lists the games and the drips |
@@ -62,12 +62,9 @@ page for you.
 
 `/drip` runs straight away, even while Claude is working.
 
-## The card and the pane
+## The Drip pane
 
-`/drip` draws a small card in the conversation: the logo, and **Unlock** until
-Glyphh Drip is bought.
-
-`/drip list` opens the **Drip** pane: every game, then every drip, each with
+`/drip` (or `/drip list`) opens the **Drip** pane in the side panel: every game, then every drip, each with
 its icon, who made it (*Glyphh built* or *@login*), your best and **Play**.
 Yours are marked *yours*. What the gallery has that isn't on your Mac yet
 follows, with **Get**: it's fetched, then played. Until Glyphh Drip is bought,

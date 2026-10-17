@@ -7,7 +7,7 @@ user-invocable: false
 # Make a drip for Glyphh Drip
 
 A Glyphh Drip drip is one folder in `~/.glyphh/drips/<name>/`. Once it's there,
-it shows in the Drip pane (`/drip list`), plays with `/drip <name>`, and Claude can
+it shows in the Drip pane (`/drip`), plays with `/drip <name>`, and Claude can
 play it with the `play_drip` tool.
 
 ## The folder
