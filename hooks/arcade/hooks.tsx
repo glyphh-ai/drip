@@ -17,7 +17,9 @@ import { MOD, PRICE, PRODUCT } from '../unlock/config.ts'
 import { buy, type Deps } from '../unlock/flow.ts'
 import { verify } from '../unlock/verify.ts'
 import { BUILTIN_EFFECT_LIST, ONE_SHOT_EFFECTS } from '../drips/effects.ts'
-import { loadDrips, loadGames, skippedText, type FolderDeps, type FolderGame } from '../content/folders.ts'
+import { dripsDir, gamesDir, loadDrips, loadGames, skippedText, type FolderDeps, type FolderGame } from '../content/folders.ts'
+import { get as galleryGet } from '../content/gallery.ts'
+import { share as galleryShare } from '../content/share.ts'
 import { readCustoms } from '../drips/library.ts'
 import { LOCKUP_RATIO, LOCKUP_SVG, LOGO_ALT } from './brand.ts'
 import { GAMES, gameDoc, gameOf } from './games/index.ts'
@@ -62,24 +64,57 @@ function folderDeps($: EngineInterface): FolderDeps {
   return { list: p => $.fs.list(p), read: async p => String(await $.fs.read(p)), exists: p => $.fs.exists(p) }
 }
 
-/** The person's own games (~/.glyphh/games), read again each time they are asked for. */
-async function yourGames($: EngineInterface): Promise<{ games: FolderGame[]; skipped: string }> {
+/** Every game from a folder: the plugin's own (shipped, a snapshot of the
+ *  gallery), then the person's (~/.glyphh/games); read again each time. */
+async function folderGames($: EngineInterface): Promise<{ games: FolderGame[]; skipped: string }> {
+  const d = folderDeps($)
+  const shipped = await loadGames(d, `${$.plugin.root}/games`, TAKEN, () => !settings.sounds, false)
   const home = await $.env.get('HOME')
-  if (!home) return { games: [], skipped: '' }
-  const { games, skipped } = await loadGames(folderDeps($), home, TAKEN, () => !settings.sounds)
-  return { games, skipped: skippedText('game', skipped) }
+  if (!home) return { games: shipped.games, skipped: '' }
+  const yours = await loadGames(d, gamesDir(home), new Set([...TAKEN, ...shipped.games.map(g => g.name)]), () => !settings.sounds, true)
+  return { games: [...shipped.games, ...yours.games], skipped: skippedText('~/.glyphh/games', yours.skipped) }
 }
 
-/** The person's own drips' names and titles (~/.glyphh/drips), for the card. */
-async function yourDripNames($: EngineInterface): Promise<{ name: string; title: string; icon: string | null }[]> {
+/** Every drip from a folder, for the card: the plugin's own, then the person's. */
+async function folderDrips($: EngineInterface): Promise<{ name: string; title: string; icon: string | null; isYours: boolean }[]> {
+  const d = folderDeps($)
+  const builtIn = new Set(Object.keys(ONE_SHOT_EFFECTS))
+  const shipped = (await loadDrips(d, `${$.plugin.root}/drips`, builtIn, false)).drips
   const home = await $.env.get('HOME')
-  if (!home) return []
-  return (await loadDrips(folderDeps($), home, new Set(Object.keys(ONE_SHOT_EFFECTS)))).drips.map(d => ({ name: d.name, title: d.title, icon: d.icon }))
+  const yours = home ? (await loadDrips(d, dripsDir(home), new Set([...builtIn, ...shipped.map(x => x.name)]), true)).drips : []
+  return [...shipped, ...yours].map(x => ({ name: x.name, title: x.title, icon: x.icon, isYours: x.isYours }))
+}
+
+/** /drip share <name>: one of the person's own, to the gallery as a pull request. */
+async function shareToGallery($: EngineInterface, name: string): Promise<string> {
+  const home = await $.env.get('HOME')
+  if (!home) return 'No home folder to share from.'
+  return galleryShare(
+    {
+      run: async (argv, opts) => {
+        const r = await $.process.run(argv, opts).catch(() => null)
+        return r ? { exitCode: r.exitCode, stdout: String(r.stdout ?? ''), stderr: String(r.stderr ?? '') } : null
+      },
+      exists: p => $.fs.exists(p),
+      read: async p => String(await $.fs.read(p)),
+      now: () => $.clock.now(),
+    },
+    home,
+    name,
+  )
+}
+
+/** /drip get <name>: the gallery's game or drip, into the person's folder. */
+async function getFromGallery($: EngineInterface, name: string): Promise<string> {
+  const home = await $.env.get('HOME')
+  if (!home) return 'No home folder to keep it in.'
+  const have = new Set([...TAKEN, ...Object.keys(ONE_SHOT_EFFECTS), ...(await folderGames($)).games.filter(g => !g.isYours).map(g => g.name)])
+  return galleryGet({ fetch: url => $.http.fetch(url), write: (path, text) => $.fs.write(path, text) }, home, name, have)
 }
 
 /** A game by any of its names: built in, else the person's own. */
 async function findGame($: EngineInterface, name: string): Promise<Game | null> {
-  return gameOf(name) ?? (await yourGames($)).games.find(g => g.name === name.trim().toLowerCase()) ?? null
+  return gameOf(name) ?? (await folderGames($)).games.find(g => g.name === name.trim().toLowerCase()) ?? null
 }
 
 function overlayDeps($: EngineInterface): OverlayDeps {
@@ -120,10 +155,10 @@ function placement($: EngineInterface, binary: string): Placement {
 async function listing($: EngineInterface): Promise<string> {
   const scores = scoresOf(store($))
   const lines = ['Games. /drip <game> starts one:']
-  const yours = await yourGames($)
+  const yours = await folderGames($)
   for (const g of [...GAMES, ...yours.games]) {
     const best = await scores.best(g.name)
-    const mine = 'isYours' in g ? '  ·  yours' : ''
+    const mine = 'isYours' in g && g.isYours ? '  ·  yours' : ''
     lines.push(`  ${g.name.padEnd(9)} ${g.title}${best > 0 ? `  ·  best ${best}` : ''}${mine}`)
   }
   if (yours.skipped) lines.push('', yours.skipped)
@@ -203,13 +238,13 @@ export function arcade(on: On, options: PluginOptions) {
     let at: number
     let pages: number
     if (shown === 'games') {
-      const games: (Game | FolderGame)[] = [...GAMES, ...(await yourGames($)).games]
+      const games: (Game | FolderGame)[] = [...GAMES, ...(await folderGames($)).games]
       pages = Math.max(1, Math.ceil(games.length / PAGE_SIZE))
       at = Math.min(await read($, page), pages - 1)
       const scores = scoresOf(store($))
       for (const game of games.slice(at * PAGE_SIZE, (at + 1) * PAGE_SIZE)) {
         const best = await scores.best(game.name)
-        const isYours = 'isYours' in game
+        const isYours = 'isYours' in game && game.isYours
         const icon = GAME_ICONS[game.name] ?? ('icon' in game && game.icon ? tiled(game.icon) : GENERIC_GAME_ICON)
         rows.push(
           <Box key={game.name} flexDirection="row" alignItems="center" gap={3}>
@@ -225,10 +260,10 @@ export function arcade(on: On, options: PluginOptions) {
       }
     } else {
       const saved = Object.keys(await readCustoms(store($)))
-      const own = await yourDripNames($)
+      const own = await folderDrips($)
       const drips = [
         ...BUILTIN_EFFECT_LIST.map(d => ({ name: d.name, title: titleOf(d.name), icon: DRIP_ICONS[d.name] ?? GENERIC_DRIP_ICON, isYours: false })),
-        ...own.map(d => ({ name: d.name, title: d.title, icon: d.icon ? tiled(d.icon) : GENERIC_DRIP_ICON, isYours: true })),
+        ...own.map(d => ({ name: d.name, title: d.title, icon: d.icon ? tiled(d.icon) : GENERIC_DRIP_ICON, isYours: d.isYours })),
         ...saved.filter(n => !own.some(d => d.name === n)).map(name => ({ name, title: titleOf(name), icon: GENERIC_DRIP_ICON, isYours: true })),
       ]
       pages = Math.max(1, Math.ceil(drips.length / PAGE_SIZE))
@@ -287,6 +322,9 @@ export function arcade(on: On, options: PluginOptions) {
   // (the drips' half, ../drips); anything else is the drips' to play.
   on('command.run', { command: 'drip' }, async ($, e, next) => {
     const name = e.args.trim()
+    const [verb, ...rest] = name.split(/\s+/)
+    if (verb?.toLowerCase() === 'get') return { text: rest.length === 1 ? await getFromGallery($, rest[0]!) : 'Usage: /drip get <name>' }
+    if (verb?.toLowerCase() === 'share') return { text: rest.length === 1 ? await shareToGallery($, rest[0]!) : 'Usage: /drip share <name>' }
     if (!name || name.toLowerCase() === 'list') {
       const drips = await next({ ...e, args: 'list' })
       return { text: `${await listing($)}\n\n${drips.text ?? ''}`.trim() }

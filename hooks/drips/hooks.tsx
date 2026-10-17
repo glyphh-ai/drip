@@ -15,7 +15,7 @@ import { MOD, PRICE, PRODUCT } from '../unlock/config.ts'
 import { buy, type Deps } from '../unlock/flow.ts'
 import { verify } from '../unlock/verify.ts'
 import { BUILTIN_EFFECT_LIST, BUILTIN_EFFECTS, ONE_SHOT_EFFECTS, setYourDrips, yourDrips } from './effects.ts'
-import { loadDrips } from '../content/folders.ts'
+import { dripsDir, loadDrips } from '../content/folders.ts'
 import { createFun } from './fun.ts'
 import { deleteCustom, dripId, listCustoms, readCustoms, saveCustom, type Store } from './library.ts'
 import { HELPER_FILES, linkTo, versionOf, type Link, type PageMessage } from './link.ts'
@@ -319,16 +319,14 @@ async function bandCheckout($: EngineInterface): Promise<void> {
   if (!(await read($, licence)).licence) $.ui.toast(`Checkout for ${PRODUCT} (${PRICE}, once) is open in your browser. ${PRODUCT} unlocks on its own when you've paid.`)
 }
 
-/** Reads the person's own drips again (~/.glyphh/drips): before each play and listing. */
+/** Reads the folder drips again (the plugin's shipped ones, then ~/.glyphh/drips): before each play and listing. */
 async function readYours($: EngineInterface): Promise<void> {
+  const d = { list: (p: string) => $.fs.list(p), read: async (p: string) => String(await $.fs.read(p)), exists: (p: string) => $.fs.exists(p) }
+  const builtIn = new Set(Object.keys(ONE_SHOT_EFFECTS))
+  const shipped = (await loadDrips(d, `${$.plugin.root}/drips`, builtIn, false)).drips
   const home = await $.env.get('HOME')
-  if (!home) return setYourDrips([], !settings.sounds)
-  const { drips } = await loadDrips(
-    { list: p => $.fs.list(p), read: async p => String(await $.fs.read(p)), exists: p => $.fs.exists(p) },
-    home,
-    new Set(Object.keys(ONE_SHOT_EFFECTS)),
-  )
-  setYourDrips(drips, !settings.sounds)
+  const yours = home ? (await loadDrips(d, dripsDir(home), new Set([...builtIn, ...shipped.map(x => x.name)]), true)).drips : []
+  setYourDrips([...shipped, ...yours], !settings.sounds)
 }
 
 /** Plays the drip the card queued, if any: the same path as a quick play. */
@@ -344,8 +342,8 @@ async function takeQueued($: EngineInterface): Promise<void> {
 async function registerAll($: EngineInterface): Promise<void> {
   await $.command.register({
     name: 'drip',
-    description: 'Glyphh Drip: /drip opens the card of games and drips; /drip blocks starts a game; /drip confetti, /drip 3 hearts stars, /drip -1 aurora play drips; stop, save <name> <recipe>, delete <name>; page opens your saved drips and the editor; unlock buys it ($5, once); key <licence> unlocks it with a licence from another machine',
-    argumentHint: '<game> | <recipe> | stop | save <name> <recipe> | delete <name> | page | unlock | key <licence>',
+    description: 'Glyphh Drip: /drip opens the card of games and drips; /drip blocks starts a game; /drip confetti, /drip 3 hearts stars, /drip -1 aurora play drips; get <name> fetches a game or drip from the gallery, share <name> sends one of yours there; stop, save <name> <recipe>, delete <name>; page opens your saved drips and the editor; unlock buys it ($5, once); key <licence> unlocks it with a licence from another machine',
+    argumentHint: '<game> | <recipe> | get <name> | share <name> | stop | save <name> <recipe> | delete <name> | page | unlock | key <licence>',
     immediate: true,
   })
   await $.tool.register({

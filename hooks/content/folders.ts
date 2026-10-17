@@ -1,8 +1,9 @@
-// The person's own games and drips: one folder each under ~/.glyphh/games and
-// ~/.glyphh/drips (docs/glyphh-drip.md), read every time they are asked for,
-// checked against ./rules, and made into the same shapes the built-in ones
-// have. A folder that fails, or is named like a built-in one, is left out
-// with the reason.
+// Games and drips from folders (docs/glyphh-drip.md): the ones the plugin
+// ships (its games/ and drips/, a snapshot of glyphh-ai/drip) and the
+// person's own (~/.glyphh/games, ~/.glyphh/drips), read every time they are
+// asked for, checked against ./rules, and made into the same shapes the
+// built-in ones have. A folder that fails, or is named like one already
+// there, is left out with the reason.
 import type { Game } from '../arcade/games/game.ts'
 import { checkDrip, checkGame, type Read } from './rules.js'
 import { withKit } from './kit.ts'
@@ -18,7 +19,7 @@ export type FolderDeps = {
 export type Skipped = { name: string; why: string }
 
 /** A game from a folder: a built-in game's shape, plus what the card shows. */
-export type FolderGame = Game & { isYours: true; about?: string; icon: string | null }
+export type FolderGame = Game & { isYours: boolean; about?: string; icon: string | null }
 
 /** A drip from a folder. */
 export type FolderDrip = {
@@ -26,6 +27,7 @@ export type FolderDrip = {
   title: string
   kind: 'one-shot' | 'loop'
   icon: string | null
+  isYours: boolean
   /** The page with the kit, for this size; `quiet` mutes it. */
   build: (w: number, h: number, opacity: number, quiet: boolean) => string
 }
@@ -50,13 +52,13 @@ async function readFolders(d: FolderDeps, dir: string, file: 'game' | 'drip'): P
   return out
 }
 
-/** The person's games, beside `taken` (the built-in names and their other names). */
-export async function loadGames(d: FolderDeps, home: string, taken: ReadonlySet<string>, quiet: () => boolean): Promise<{ games: FolderGame[]; skipped: Skipped[] }> {
+/** The games in `dir`, beside `taken` (names already in use); `isYours` marks the person's own. */
+export async function loadGames(d: FolderDeps, dir: string, taken: ReadonlySet<string>, quiet: () => boolean, isYours: boolean): Promise<{ games: FolderGame[]; skipped: Skipped[] }> {
   const games: FolderGame[] = []
   const skipped: Skipped[] = []
-  for (const r of await readFolders(d, gamesDir(home), 'game')) {
+  for (const r of await readFolders(d, dir, 'game')) {
     if (taken.has(r.name)) {
-      skipped.push({ name: r.name, why: 'a built-in game has that name' })
+      skipped.push({ name: r.name, why: 'a game already has that name' })
       continue
     }
     const c = checkGame(r)
@@ -70,7 +72,7 @@ export async function loadGames(d: FolderDeps, home: string, taken: ReadonlySet<
       title: c.manifest.title,
       ...(c.manifest.about ? { about: c.manifest.about } : {}),
       icon: c.icon,
-      isYours: true,
+      isYours,
       safetyMs: GAME_SAFETY_MS,
       build: (w, h, best) => withKit(page, { kind: 'game', width: w, height: h, best, quiet: quiet() }),
     })
@@ -78,13 +80,13 @@ export async function loadGames(d: FolderDeps, home: string, taken: ReadonlySet<
   return { games, skipped }
 }
 
-/** The person's drips, beside `taken` (the built-in drips' names). */
-export async function loadDrips(d: FolderDeps, home: string, taken: ReadonlySet<string>): Promise<{ drips: FolderDrip[]; skipped: Skipped[] }> {
+/** The drips in `dir`, beside `taken` (names already in use); `isYours` marks the person's own. */
+export async function loadDrips(d: FolderDeps, dir: string, taken: ReadonlySet<string>, isYours: boolean): Promise<{ drips: FolderDrip[]; skipped: Skipped[] }> {
   const drips: FolderDrip[] = []
   const skipped: Skipped[] = []
-  for (const r of await readFolders(d, dripsDir(home), 'drip')) {
+  for (const r of await readFolders(d, dir, 'drip')) {
     if (taken.has(r.name)) {
-      skipped.push({ name: r.name, why: 'a built-in drip has that name' })
+      skipped.push({ name: r.name, why: 'a drip already has that name' })
       continue
     }
     const c = checkDrip(r)
@@ -99,13 +101,14 @@ export async function loadDrips(d: FolderDeps, home: string, taken: ReadonlySet<
       title: c.manifest.title,
       kind,
       icon: c.icon,
+      isYours,
       build: (w, h, opacity, quiet) => withKit(page, { kind: 'drip', width: w, height: h, opacity, quiet }),
     })
   }
   return { drips, skipped }
 }
 
-/** What the listing says of the folders left out. */
-export function skippedText(kind: 'game' | 'drip', skipped: Skipped[]): string {
-  return skipped.map(s => `Left out ~/.glyphh/${kind}s/${s.name}: ${s.why}.`).join('\n')
+/** What the listing says of the folders left out of `where` (~/.glyphh/games, say). */
+export function skippedText(where: string, skipped: Skipped[]): string {
+  return skipped.map(s => `Left out ${where}/${s.name}: ${s.why}.`).join('\n')
 }
