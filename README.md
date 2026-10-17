@@ -49,7 +49,7 @@ page for you.
 
 | Command | What it does |
 |---|---|
-| `/drip` | Opens the Drip pane: every game and drip, Play or Get |
+| `/drip` | Opens the Drip pane: every game and drip, Play |
 | `/drip <game>` | Starts a game: `/drip blocks`, `/drip missiles` |
 | `/drip <recipe>` | Plays a drip, or one of your saved drips by name |
 | `/drip list` | Lists the games and the drips |
@@ -67,7 +67,7 @@ page for you.
 `/drip` (or `/drip list`) opens the **Drip** pane in the side panel: a search,
 a filter by type and a table, fifteen rows a page. Each row is an emoji, the name,
 one line, the type, **☆** and **Play**; what the gallery has that isn't on your
-Mac yet has **Get** (fetched, then played). The ☆ puts it in the tray above the
+Mac yet plays too: it's fetched on the first Play. The ☆ puts it in the tray above the
 prompt, opened by the drip button. Until Glyphh Drip is bought, **Unlock** sits
 above the table, and a game other than Missiles opens the payment link.
 

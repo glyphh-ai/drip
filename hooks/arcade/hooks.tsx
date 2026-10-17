@@ -555,7 +555,7 @@ export function arcade(on: On, options: PluginOptions) {
             {item.isLocked ? (
               <Button key="unlock" label={`Unlock all games - ${PRICE}`} variant="primary" onPress={() => void checkout($)} />
             ) : (
-              <Button key={`${item.isGallery ? 'get' : 'play'}:${key}`} label={item.isGallery ? 'Get' : 'Play'} variant="primary" onPress={() => void press($, item)} />
+              <Button key={`${item.isGallery ? 'get' : 'play'}:${key}`} label="Play" variant="primary" onPress={() => void press($, item)} />
             )}
             <Button key={`fav:${key}`} label={isStar ? '★' : '☆'} plain dimColor={!isStar} onPress={() => void toggleFavourite($, key)} />
           </Box>
@@ -621,7 +621,7 @@ export function arcade(on: On, options: PluginOptions) {
                 <Button key={`fav:${key}`} label={isStar ? '★' : '☆'} plain dimColor={!isStar} onPress={() => void toggleFavourite($, key)} />
                 <Button
                   key={`${r.isGallery ? 'get' : 'play'}:${key}`}
-                  label={r.isGallery ? 'Get' : 'Play'}
+                  label="Play"
                   variant="secondary"
                   dimColor={r.isLocked}
                   onPress={() => void press($, r)}
