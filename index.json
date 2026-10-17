@@ -1,5 +1,54 @@
 {
   "v": 1,
-  "games": [],
+  "games": [
+    {
+      "name": "blocks",
+      "title": "Blocks",
+      "author": "glyphh",
+      "about": "Stack the falling blocks; clear lines before the top",
+      "files": [
+        "game.json",
+        "game.html",
+        "cover.jpg",
+        "icon.svg"
+      ]
+    },
+    {
+      "name": "chickn",
+      "title": "Chickn",
+      "author": "glyphh",
+      "about": "Hop the chicken across roads, rivers and rails",
+      "files": [
+        "game.json",
+        "game.html",
+        "cover.jpg",
+        "icon.svg"
+      ]
+    },
+    {
+      "name": "dash",
+      "title": "Dash",
+      "author": "glyphh",
+      "about": "Jump the spikes as the run gets faster",
+      "files": [
+        "game.json",
+        "game.html",
+        "cover.jpg",
+        "icon.svg"
+      ]
+    },
+    {
+      "name": "rocks",
+      "title": "Rocks",
+      "author": "glyphh",
+      "about": "Steer, thrust and shoot the rocks to dust",
+      "files": [
+        "game.json",
+        "game.html",
+        "cover.jpg",
+        "icon.svg"
+      ]
+    }
+  ],
   "drips": []
 }
