@@ -428,7 +428,7 @@ export function arcade(on: On, options: PluginOptions) {
         </Box>
         {isBought ? null : (
           <Box flexDirection="row" alignItems="center" gap={2}>
-            <Text dimColor>Missiles and every drip are free; the other games are {PRICE}, once.</Text>
+            <Text dimColor>Unlock all games for a one time payment of {PRICE}.</Text>
             <Button key="unlock" label={`Unlock · ${PRICE}`} variant="primary" onPress={() => void checkout($)} />
           </Box>
         )}
