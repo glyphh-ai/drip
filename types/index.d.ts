@@ -34,6 +34,12 @@ declare module 'claude-code' {
       /** A drip the card asked to play, for the drips' half to take (the engine
        *  follows $ only within the file whose hook received it). */
       queued: { recipe: string; at: number } | null
+      /** The Drip pane's search, its filter by type, and its page (from 0). */
+      query: string
+      filter: 'all' | 'game' | 'drip' | 'decide'
+      page: number
+      /** The starred items ("game:missiles"), the tray's buttons; kept in the store too. */
+      favourites: string[]
     }
   }
 }

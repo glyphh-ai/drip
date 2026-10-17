@@ -22,7 +22,7 @@ export type FolderDeps = {
 export type Skipped = { name: string; why: string }
 
 /** A game from a folder: a built-in game's shape, plus what the card shows. */
-export type FolderGame = Game & { isYours: boolean; about?: string; icon: string | null; author: string }
+export type FolderGame = Game & { isYours: boolean; about?: string; emoji?: string; icon: string | null; author: string }
 
 /** A drip from a folder. */
 export type FolderDrip = {
@@ -33,6 +33,8 @@ export type FolderDrip = {
   isYours: boolean
   /** Who made it: a GitHub login, or `glyphh`. */
   author: string
+  about?: string
+  emoji?: string
   /** The page with the kit, for this size; `quiet` mutes it. */
   build: (w: number, h: number, opacity: number, quiet: boolean) => string
 }
@@ -85,6 +87,7 @@ export async function loadGames(d: FolderDeps, dir: string, taken: ReadonlySet<s
       name: r.name,
       title: c.manifest.title,
       ...(c.manifest.about ? { about: c.manifest.about } : {}),
+      ...(c.manifest.emoji ? { emoji: c.manifest.emoji } : {}),
       icon: c.icon,
       isYours: isYours && !r.isGallery,
       author: c.manifest.author,
@@ -115,6 +118,8 @@ export async function loadDrips(d: FolderDeps, dir: string, taken: ReadonlySet<s
       name: r.name,
       title: c.manifest.title,
       kind,
+      ...(c.manifest.about ? { about: c.manifest.about } : {}),
+      ...(c.manifest.emoji ? { emoji: c.manifest.emoji } : {}),
       icon: c.icon,
       isYours: isYours && !r.isGallery,
       author: c.manifest.author,

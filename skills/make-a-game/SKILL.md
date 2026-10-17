@@ -14,7 +14,7 @@ Claude's window, beside the built-in games.
 
 ```
 ~/.glyphh/games/<name>/
-  game.json     { "title": "Snake", "author": "octocat", "about": "Eat, grow, don't bite your tail" }
+  game.json     { "title": "Snake", "author": "octocat", "emoji": "🐍", "about": "Eat, grow, don't bite your tail" }
   game.html     the game: one self-contained page
   cover.jpg     its picture: 960×600, made by cover.js
   icon.svg      optional: a 24×24 outline icon, stroke only
@@ -24,6 +24,8 @@ Claude's window, beside the built-in games.
   after `/drip`, so keep it short (`snake`, `space-race`). It can't be a
   built-in game's name: missiles, chickn, blocks, rocks or dash.
 - `title`: at most 32 characters. `about`: one short line, at most 60.
+
+- `emoji`: one emoji that says it, its icon in the Drip pane and the tray.
 
 ## Who made it, and its cover
 

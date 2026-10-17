@@ -64,11 +64,12 @@ page for you.
 
 ## The Drip pane
 
-`/drip` (or `/drip list`) opens the **Drip** pane in the side panel: every game, then every drip, each with
-its icon, who made it (*Glyphh built* or *@login*), your best and **Play**.
-Yours are marked *yours*. What the gallery has that isn't on your Mac yet
-follows, with **Get**: it's fetched, then played. Until Glyphh Drip is bought,
-a game other than Missiles opens checkout.
+`/drip` (or `/drip list`) opens the **Drip** pane in the side panel: a search,
+a filter by type and a table, ten rows a page. Each row is an emoji, the name,
+one line, the type, **☆** and **Play**; what the gallery has that isn't on your
+Mac yet has **Get** (fetched, then played). The ☆ puts it in the tray above the
+prompt, opened by the drip button. Until Glyphh Drip is bought, **Unlock** sits
+above the table, and a game other than Missiles opens the payment link.
 
 ## Games
 

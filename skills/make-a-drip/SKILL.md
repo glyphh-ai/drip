@@ -14,7 +14,7 @@ play it with the `play_drip` tool.
 
 ```
 ~/.glyphh/drips/<name>/
-  drip.json     { "title": "Snow", "author": "octocat", "kind": "one-shot" }
+  drip.json     { "title": "Snow", "author": "octocat", "emoji": "❄️", "about": "Flakes drift down", "kind": "one-shot" }
   drip.html     the drip: one self-contained page
   cover.jpg     its picture: 960×600, made by cover.js
   icon.svg      optional: a 24×24 outline icon, stroke only
@@ -25,6 +25,8 @@ play it with the `play_drip` tool.
 - `title`: at most 32 characters.
 - `kind`: `one-shot` plays once and ends; `loop` keeps playing until stopped
   (`/drip -1 <name>`, then `/drip stop`).
+
+- `emoji`: one emoji that says it, its icon in the Drip pane and the tray.
 
 ## Who made it, and its cover
 

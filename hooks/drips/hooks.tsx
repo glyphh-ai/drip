@@ -13,6 +13,8 @@ import type { HelperInfo } from '../../types'
 import { BUILTIN_EFFECT_LIST, BUILTIN_EFFECTS, ONE_SHOT_EFFECTS, setYourDrips, yourDrips } from './effects.ts'
 import { dripsDir, loadDrips } from '../content/folders.ts'
 import { createFun } from './fun.ts'
+import { emojiOf } from '../arcade/catalog.ts'
+import { FAVOURITES_KEY, favouritesOf } from '../arcade/favourites.ts'
 import { deleteCustom, dripId, listCustoms, readCustoms, saveCustom, type Store } from './library.ts'
 import { HELPER_FILES, linkTo, versionOf, type Link, type PageMessage } from './link.ts'
 import { createManager, customEffects, type Host, type Manager } from './manager.ts'
@@ -27,13 +29,13 @@ const helperInfo = atom({ plugin: 'glyphh-drip', key: 'helper' } as const, null 
 const pageTab = atom({ plugin: 'glyphh-drip', key: 'pageTab' } as const, null as string | null)
 const nodePath = atom({ plugin: 'glyphh-drip', key: 'node' } as const, null as string | null)
 const bandOpen = atom({ plugin: 'glyphh-drip', key: 'bandOpen' } as const, false)
+/** The starred items, the tray's buttons (the pane stars them; kept in the store). */
+const favourites = atom({ plugin: 'glyphh-drip', key: 'favourites' } as const, [] as string[])
 /** A drip the card asked to play (../arcade queues it): taken within a beat. */
 const queued = atom({ plugin: 'glyphh-drip', key: 'queued' } as const, null as { recipe: string; at: number } | null)
 /** How often the drips' half looks for a drip the card queued, in ms. */
 export const QUEUE_MS = 150
 
-/** The effects the row above the prompt offers first, before the saved drips. */
-export const QUICK_EFFECTS = ['fireworks', 'confetti', 'hearts', 'stars', 'gunfight']
 
 const TOOL_PREFIX = 'mcp__glyphh-drip__'
 const NOT_A_RECIPE = ['save', 'delete', 'list']
@@ -350,6 +352,8 @@ export function drips(on: On, options: PluginOptions) {
 
   on('session.start', async ($, e, next) => {
     mod = build($)
+    const kept = favouritesOf(await $.store.get(FAVOURITES_KEY))
+    await update($, favourites, () => kept)
     await update($, nodePath, () => null)
     const node = await findNode({ run: argv => $.process.run(argv).catch(() => null) })
     await update($, nodePath, () => node)
@@ -418,22 +422,28 @@ export function drips(on: On, options: PluginOptions) {
     return withButton($, e, line)
   })
 
-  // Its row above the prompt: quick plays, the saved drips, Stop while
-  // something persistent plays, ✕; once the trial is over, Unlock.
+  // Its row above the prompt, the tray: the starred drips (the games' half,
+  // ../arcade, puts the starred games in front), Stop while something
+  // persistent plays, ✕.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (!settings.button || e.props.hasSurvey || !(await read($, bandOpen))) return next(e)
     const { Box, Button } = $.ui.resolve(e)
     const close = <Button key="close" label="✕" plain role="dismiss" onPress={() => update($, bandOpen, () => false)} />
-    const saved = await listCustoms(store($))
+    const saved = new Set((await listCustoms(store($))).map(d => d.name))
+    await readYours($).catch(() => undefined)
+    const own = yourDrips()
+    // A starred drip that plays here: built in, a folder of one, or a saved recipe.
+    const starred = (await read($, favourites))
+      .filter(k => k.startsWith('drip:'))
+      .map(k => k.slice(5))
+      .filter(n => BUILTIN_EFFECTS.includes(n) || saved.has(n) || own.some(d => d.name === n))
     const isPlaying = modOf($).manager.running().length > 0
     return (
       <Box flexDirection="row" flexWrap="wrap" gap={1}>
-        {QUICK_EFFECTS.map(effect => (
-          <Button key={`play:${effect}`} label={effect} onPress={() => bandPlay($, effect)} />
-        ))}
-        {saved.map(d => (
-          <Button key={`drip:${d.name}`} label={d.name} variant="secondary" onPress={() => bandPlay($, d.name)} />
-        ))}
+        {starred.map(n => {
+          const d = own.find(x => x.name === n)
+          return <Button key={`play:${n}`} label={`${emojiOf('drip', n, d?.emoji)} ${d?.title ?? n}`} onPress={() => bandPlay($, n)} />
+        })}
         {isPlaying ? [<Button key="stop" label="■ Stop" onPress={() => modOf($).manager.stopAll()} />] : []}
         {close}
       </Box>

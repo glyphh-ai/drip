@@ -20,19 +20,28 @@ import { buy, type Deps } from '../unlock/flow.ts'
 import { verify } from '../unlock/verify.ts'
 import { BUILTIN_EFFECT_LIST, ONE_SHOT_EFFECTS } from '../drips/effects.ts'
 import { dripsDir, gamesDir, loadDrips, loadGames, skippedText, type FolderDeps, type FolderGame } from '../content/folders.ts'
-import { get as galleryGet, listing as galleryListing } from '../content/gallery.ts'
+import { get as galleryGet, listing as galleryListing, type Entry } from '../content/gallery.ts'
 import { GLYPHH, NAME } from '../content/rules.js'
 import { share as galleryShare } from '../content/share.ts'
 import { readCustoms } from '../drips/library.ts'
 import { GAMES, gameDoc, gameOf } from './games/index.ts'
 import type { Game } from './games/game.ts'
-import { DRIP_ICONS, GAME_ICONS, GENERIC_DRIP_ICON, GENERIC_GAME_ICON, tiled } from './icons.ts'
+import { BUILT_IN, TYPES, emojiOf, type Kind } from './catalog.ts'
+import { FAVOURITES_KEY } from './favourites.ts'
 import { scoresOf, type Store } from './scores.ts'
 import { settingsOf, type Settings } from './settings.ts'
 
 const licence = atom({ plugin: 'glyphh-drip', key: 'licence' } as const, INITIAL)
 /** A drip the pane asked to play: the drips' half (../drips) takes it. */
 const queued = atom({ plugin: 'glyphh-drip', key: 'queued' } as const, null as { recipe: string; at: number } | null)
+/** The pane's search, type filter and page (from 0). */
+const query = atom({ plugin: 'glyphh-drip', key: 'query' } as const, '')
+const filter = atom({ plugin: 'glyphh-drip', key: 'filter' } as const, 'all' as Kind | 'all')
+const page = atom({ plugin: 'glyphh-drip', key: 'page' } as const, 0)
+/** The starred items ("game:missiles"), the tray's buttons: kept in the store across sessions (../drips loads them). */
+const favourites = atom({ plugin: 'glyphh-drip', key: 'favourites' } as const, [] as string[])
+/** The tray's row is open (the drip button by the prompt). */
+const bandOpen = atom({ plugin: 'glyphh-drip', key: 'bandOpen' } as const, false)
 
 /** The Drip pane: /drip (or /drip list) opens it. */
 export const PANE = 'glyphh-drip'
@@ -210,21 +219,33 @@ async function gallery($: EngineInterface) {
 /** Who made it, as the pane says it: Glyphh's own are "Glyphh built". */
 export const byOf = (author: string) => (author === GLYPHH ? 'Glyphh built' : `@${author}`)
 
-/** One row of the pane. */
-type Row = { kind: 'game' | 'drip'; name: string; title: string; icon: string; by: string | null; best: number; isYours: boolean; isGallery: boolean; isLocked: boolean }
+/** One row of the pane's table. */
+export type Row = {
+  kind: Kind
+  name: string
+  title: string
+  about: string
+  emoji: string
+  by: string | null
+  best: number
+  isYours: boolean
+  isGallery: boolean
+  isLocked: boolean
+}
 
-/** Every game and drip for the pane: here first, then the gallery's not fetched yet. */
-async function paneRows($: EngineInterface, isBought: boolean): Promise<{ games: Row[]; drips: Row[] }> {
+/** Every game and drip for the pane: here first (games, then drips), then the gallery's not fetched yet. */
+async function paneRows($: EngineInterface, isBought: boolean): Promise<Row[]> {
   const scores = scoresOf(store($))
   const locked = (name: string) => !isBought && !FREE_GAMES.includes(name)
-  const games: Row[] = []
+  const rows: Row[] = []
   for (const g of [...GAMES, ...(await folderGames($)).games]) {
     const f = 'isYours' in g ? (g as FolderGame) : null
-    games.push({
+    rows.push({
       kind: 'game',
       name: g.name,
       title: g.title,
-      icon: GAME_ICONS[g.name] ?? (f?.icon ? tiled(f.icon) : GENERIC_GAME_ICON),
+      about: f?.about ?? BUILT_IN[g.name]?.about ?? '',
+      emoji: emojiOf('game', g.name, f?.emoji),
       by: byOf(f ? f.author : GLYPHH),
       best: await scores.best(g.name),
       isYours: f?.isYours === true,
@@ -233,32 +254,75 @@ async function paneRows($: EngineInterface, isBought: boolean): Promise<{ games:
     })
   }
   const own = await folderDrips($)
-  const saved = Object.keys(await readCustoms(store($))).filter(n => !own.some(d => d.name === n))
-  const drips: Row[] = [
-    ...BUILTIN_EFFECT_LIST.map(d => ({ name: d.name, title: titleOf(d.name), icon: DRIP_ICONS[d.name] ?? GENERIC_DRIP_ICON, by: byOf(GLYPHH), isYours: false })),
-    ...own.map(d => ({ name: d.name, title: d.title, icon: d.icon ? tiled(d.icon) : GENERIC_DRIP_ICON, by: byOf(d.author), isYours: d.isYours })),
-    // A saved recipe is the person's, made of built-in drips: no maker to name.
-    ...saved.map(name => ({ name, title: titleOf(name), icon: GENERIC_DRIP_ICON, by: null, isYours: true })),
-  ].map(d => ({ ...d, kind: 'drip' as const, best: 0, isGallery: false, isLocked: false }))
+  const saved = await readCustoms(store($))
+  const drip = (d: { name: string; title: string; about?: string; emoji?: string; by: string | null; isYours: boolean }): Row => ({
+    kind: 'drip',
+    name: d.name,
+    title: d.title,
+    about: d.about ?? BUILT_IN[d.name]?.about ?? '',
+    emoji: emojiOf('drip', d.name, d.emoji),
+    by: d.by,
+    best: 0,
+    isYours: d.isYours,
+    isGallery: false,
+    isLocked: false,
+  })
+  rows.push(
+    ...BUILTIN_EFFECT_LIST.map(d => drip({ name: d.name, title: titleOf(d.name), by: byOf(GLYPHH), isYours: false })),
+    ...own.map(d => drip({ ...d, by: byOf(d.author) })),
+    // A saved recipe is the person's, made of built-in drips: its recipe is its line.
+    ...Object.entries(saved)
+      .filter(([n]) => !own.some(d => d.name === n))
+      .map(([name, recipe]) => drip({ name, title: titleOf(name), about: recipe, by: null, isYours: true })),
+  )
   const index = await gallery($)
-  const here = new Set([...games, ...drips].map(r => r.name))
-  const fromGallery = (kind: 'game' | 'drip', e: { name: string; title: string; author?: string }): Row => ({
+  const here = new Set(rows.map(r => r.name))
+  const fromGallery = (kind: Kind, e: Entry): Row => ({
     kind,
     name: e.name,
     title: e.title,
-    icon: kind === 'game' ? GENERIC_GAME_ICON : GENERIC_DRIP_ICON,
+    about: e.about ?? '',
+    emoji: emojiOf(kind, e.name, e.emoji),
     by: e.author ? byOf(e.author) : null,
     best: 0,
     isYours: false,
     isGallery: true,
     isLocked: kind === 'game' && locked(e.name),
   })
-  for (const e of index?.games ?? []) if (!here.has(e.name)) games.push(fromGallery('game', e))
-  for (const e of index?.drips ?? []) if (!here.has(e.name)) drips.push(fromGallery('drip', e))
-  return { games, drips }
+  for (const e of index?.games ?? []) if (!here.has(e.name)) rows.push(fromGallery('game', e))
+  for (const e of index?.drips ?? []) if (!here.has(e.name)) rows.push(fromGallery('drip', e))
+  return rows
 }
 
-/** Play or Get on the pane: the game or drip, fetched first when it's the gallery's; a locked game opens checkout. */
+/** Rows to a page of the pane's table. */
+export const PAGE_ROWS = 10
+
+/** The rows a search (every word, in the name, line, type, maker or "yours") and a filter leave, in order. */
+export function shown(rows: readonly Row[], query: string, filter: Kind | 'all'): Row[] {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean)
+  return rows.filter(r => {
+    if (filter !== 'all' && r.kind !== filter) return false
+    const text = `${r.title} ${r.name} ${r.about} ${TYPES[r.kind]} ${r.by ?? ''} ${r.isYours ? 'yours' : ''}`.toLowerCase()
+    return words.every(w => text.includes(w))
+  })
+}
+
+/** A favourite's key, as the tray and the store keep it. */
+export const favKey = (kind: Kind, name: string) => `${kind}:${name}`
+
+/** The pane's search: the rows it leaves, from the first page. */
+async function search($: EngineInterface, text: string): Promise<void> {
+  await update($, query, () => text)
+  await update($, page, () => 0)
+}
+
+/** Stars or unstars an item: the tray above the prompt shows the starred ones. */
+async function toggleFavourite($: EngineInterface, key: string): Promise<void> {
+  const next = await update($, favourites, list => (list.includes(key) ? list.filter(k => k !== key) : [...list, key]))
+  await $.store.set(FAVOURITES_KEY, next)
+}
+
+/** Play or Get on the pane (or the tray): the game or drip, fetched first when it's the gallery's; a locked game opens checkout. */
 async function press($: EngineInterface, row: Row): Promise<void> {
   if (row.isLocked) return checkout($)
   const said = row.isGallery
@@ -277,7 +341,7 @@ async function queueDrip($: EngineInterface, name: string): Promise<void> {
 
 /** Fetches the gallery's `name` (/drip <name>), then plays it:
  *  says what happened when it couldn't. */
-async function getThenPlay($: EngineInterface, kind: 'game' | 'drip', name: string): Promise<string> {
+async function getThenPlay($: EngineInterface, kind: Kind, name: string): Promise<string> {
   const got = await getFromGallery($, name)
   if (!got.startsWith('Got ')) return got
   if (kind === 'drip') {
@@ -331,38 +395,111 @@ export function arcade(on: On, options: PluginOptions) {
   isMissedSaid = false
   galleryKept = null
 
-  // The Drip pane (/drip, /drip list): every game, then every drip, each row its
-  // icon, name, maker, your best and Play (Get for the gallery's); Unlock
-  // above them until it's bought.
+  // The Drip pane (/drip, /drip list): a search, a filter by type, and a
+  // table, ten rows a page: emoji, name, line, type, ☆ (the tray) and Play
+  // (Get for the gallery's). Unlock above it until it's bought.
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Button, ...els } = $.ui.resolve(e)
-    const Svg = e.surface !== 'terminal' && 'Svg' in els ? els.Svg : null
+    const Input = 'Input' in els ? els.Input : null
     const isBought = refusal(await read($, licence)) === null
-    const { games, drips } = await paneRows($, isBought)
-    const row = (r: Row) => (
-      <Box key={`${r.kind}:${r.name}`} flexDirection="row" alignItems="center" gap={2}>
-        {Svg ? <Svg source={r.icon} alt={r.title} width={24} height={24} /> : null}
-        <Box flexGrow={1} flexDirection="row" alignItems="center" gap={2}>
-          <Text bold>{r.title}</Text>
-          {r.by ? <Text dimColor>{r.by}</Text> : null}
-          {r.isYours ? <Text dimColor>yours</Text> : null}
-        </Box>
-        {r.best > 0 ? <Text dimColor>Best {r.best.toLocaleString('en-GB')}</Text> : null}
-        <Button key={`${r.isGallery ? 'get' : 'play'}:${r.kind}:${r.name}`} label={r.isGallery ? 'Get' : 'Play'} variant="secondary" dimColor={r.isLocked} onPress={() => void press($, r)} />
-      </Box>
-    )
+    const all = await paneRows($, isBought)
+    const q = await read($, query)
+    const f = await read($, filter)
+    const rows = shown(all, q, f)
+    const pages = Math.max(1, Math.ceil(rows.length / PAGE_ROWS))
+    const at = Math.min(await read($, page), pages - 1)
+    const stars = await read($, favourites)
+    const kinds = (Object.keys(TYPES) as Kind[]).filter(k => all.some(r => r.kind === k))
+    const turn = (by: number) => () => void update($, page, p => Math.max(0, Math.min(pages - 1, Math.min(p, pages - 1) + by)))
     return (
-      <Box flexDirection="column" gap={2} paddingX={1}>
+      <Box flexDirection="column" gap={1} paddingX={1}>
         {isBought ? null : (
           <Box flexDirection="row" alignItems="center" gap={2}>
             <Text dimColor>Missiles and every drip are free; the other games are {PRICE}, once.</Text>
             <Button key="unlock" label={`Unlock · ${PRICE}`} variant="primary" onPress={() => void checkout($)} />
           </Box>
         )}
-        <Text bold>Games</Text>
-        <Box flexDirection="column" gap={1}>{games.map(row)}</Box>
-        <Text bold>Drips</Text>
-        <Box flexDirection="column" gap={1}>{drips.map(row)}</Box>
+        {Input ? (
+          <Input
+            key="search"
+            placeholder="Search games and drips"
+            value={q}
+            submitLabel="search"
+            onInput={value => void search($, value)}
+            onSubmit={value => void search($, value)}
+          />
+        ) : null}
+        <Box flexDirection="row" gap={1}>
+          {(['all', ...kinds] as const).map(k => (
+            <Button
+              key={`filter:${k}`}
+              label={k === 'all' ? `All ${all.length}` : `${TYPES[k]}s ${all.filter(r => r.kind === k).length}`}
+              plain
+              dimColor={f !== k}
+              onPress={() => void update($, filter, () => k).then(() => update($, page, () => 0))}
+            />
+          ))}
+        </Box>
+        <Box flexDirection="column">
+          {rows.length === 0 ? <Text dimColor>Nothing matches “{q}”.</Text> : null}
+          {rows.slice(at * PAGE_ROWS, (at + 1) * PAGE_ROWS).map(r => {
+            const key = favKey(r.kind, r.name)
+            const isStar = stars.includes(key)
+            return (
+              <Box key={key} flexDirection="row" alignItems="center" gap={2}>
+                <Text>{r.emoji}</Text>
+                <Box width="34%" flexDirection="row" gap={1}>
+                  <Text bold wrap="truncate">{r.title}</Text>
+                  {r.isYours ? <Text dimColor>yours</Text> : null}
+                </Box>
+                <Box flexGrow={1} flexShrink={1}>
+                  <Text dimColor wrap="truncate">{r.about || r.by || ''}</Text>
+                </Box>
+                <Box width={7}>
+                  <Text dimColor>{TYPES[r.kind]}</Text>
+                </Box>
+                <Button key={`fav:${key}`} label={isStar ? '★' : '☆'} plain dimColor={!isStar} onPress={() => void toggleFavourite($, key)} />
+                <Button
+                  key={`${r.isGallery ? 'get' : 'play'}:${key}`}
+                  label={r.isGallery ? 'Get' : 'Play'}
+                  variant="secondary"
+                  dimColor={r.isLocked}
+                  onPress={() => void press($, r)}
+                />
+              </Box>
+            )
+          })}
+        </Box>
+        {pages > 1 ? (
+          <Box flexDirection="row" alignItems="center" gap={1}>
+            <Button key="prev" label="‹" plain dimColor={at === 0} onPress={turn(-1)} />
+            <Text dimColor>
+              {at + 1} of {pages}
+            </Text>
+            <Button key="next" label="›" plain dimColor={at === pages - 1} onPress={turn(1)} />
+          </Box>
+        ) : null}
+      </Box>
+    )
+  })
+
+  // The tray above the prompt: the drips' half (../drips) draws the starred
+  // drips and its own buttons; the starred games go in front, played here.
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const band = await next(e)
+    if (e.props.hasSurvey || !(await read($, bandOpen))) return band
+    const games = (await read($, favourites)).filter(k => k.startsWith('game:')).map(k => k.slice(5))
+    if (games.length === 0) return band
+    const { Box, Button } = $.ui.resolve(e)
+    const isBought = refusal(await read($, licence)) === null
+    const all = await paneRows($, isBought)
+    const tray = games.map(n => all.find(r => r.kind === 'game' && r.name === n)).filter((r): r is Row => r !== undefined)
+    return (
+      <Box flexDirection="row" flexWrap="wrap" gap={1}>
+        {tray.map(r => (
+          <Button key={`tray:game:${r.name}`} label={`${r.emoji} ${r.title}`} dimColor={r.isLocked} onPress={() => void press($, r)} />
+        ))}
+        {band}
       </Box>
     )
   })

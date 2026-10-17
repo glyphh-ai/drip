@@ -18,7 +18,7 @@ export type GalleryDeps = {
 }
 
 /** One game or drip as index.json lists it. */
-export type Entry = { name: string; title: string; author?: string; about?: string; files: string[] }
+export type Entry = { name: string; title: string; author?: string; about?: string; emoji?: string; files: string[] }
 type Index = { games: Entry[]; drips: Entry[] }
 
 /** The file `get` leaves in a folder it fetched: it is the gallery's, not the person's. */
