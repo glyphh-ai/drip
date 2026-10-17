@@ -502,7 +502,7 @@ export function arcade(on: On, options: PluginOptions) {
       return (
         <Box flexDirection="column" gap={1} paddingX={1}>
           <Box key="top" flexDirection="row">
-            <Button key="back" label={`←  ${TYPES[item.kind]}s`} plain onPress={() => void update($, detail, () => null)} />
+            <Button key="back" label={`←\u00a0\u00a0${TYPES[item.kind]}s`} plain onPress={() => void update($, detail, () => null)} />
           </Box>
           {shot === 'loading' ? (
             <Text key="shot" dimColor>
@@ -580,14 +580,15 @@ export function arcade(on: On, options: PluginOptions) {
             const isStar = stars.includes(key)
             return (
               <Box key={key} flexDirection="row" alignItems="center" gap={2}>
-                <Box width="38%" flexDirection="row" alignItems="center" gap={1}>
-                  <Button key={`open:${key}`} label={`${r.emoji}  ${r.title}`} plain onPress={() => void update($, detail, () => key)} />
-                  {r.isYours ? <Text dimColor>yours</Text> : null}
+                {/* The name button keeps its own room: nothing beside it is laid over it. */}
+                <Box flexShrink={0}>
+                  <Button key={`open:${key}`} label={`${r.emoji}\u00a0\u00a0\u00a0${r.title}`} plain onPress={() => void update($, detail, () => key)} />
                 </Box>
-                <Box flexGrow={1} flexShrink={1}>
+                {r.isYours ? <Text dimColor>yours</Text> : null}
+                <Box flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden">
                   <Text dimColor wrap="truncate">{r.about || r.by || ''}</Text>
                 </Box>
-                <Box width={7}>
+                <Box flexShrink={0}>
                   <Text dimColor>{TYPES[r.kind]}</Text>
                 </Box>
                 <Button key={`fav:${key}`} label={isStar ? '★' : '☆'} plain dimColor={!isStar} onPress={() => void toggleFavourite($, key)} />
