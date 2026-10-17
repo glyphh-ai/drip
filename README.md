@@ -33,7 +33,9 @@ The folder's name is the game's name (`/drip snake`): lowercase letters,
 digits and hyphens. `title` is at most 32 characters, `about` at most 60.
 
 `game.html` is a complete page on a transparent background filling the
-window. Before it loads, Glyphh Drip puts its kit in front of it as
+window. Glyphh Drip puts it on a dimmed, slightly see-through backdrop and
+keeps it fitted to Claude's window as that is resized (pointer coordinates
+stay in the game's own pixels). Before it loads, Glyphh Drip puts its kit in front of it as
 `window.glyphh`:
 
 | The kit | What it is |

@@ -14,6 +14,8 @@ game's name, logo, characters or art in a title, a page or an icon.
 - **One page, everything inline, at most 512 KB, no network** (README.md).
 - **Drawn on a transparent background** over Claude's window: the play area
   can have its own panel, but the page itself is transparent outside it.
+  Glyphh Drip adds a dimmed, slightly see-through backdrop and fits the page
+  to Claude's window as it is resized.
 - **Endless and harder as it goes**, with a score, and `glyphh.score(n)`
   posted as it rises. A puzzle game (Mines, Sudoku, Solitaire, Five) scores
   a won round and starts the next, harder one.
