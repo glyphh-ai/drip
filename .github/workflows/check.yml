@@ -1,5 +1,6 @@
 # Every pull request and every push to main: each game and drip folder is
-# checked with the plugin's own rules. On main, index.json is rewritten and
+# checked with the plugin's own rules, and on a pull request each folder it
+# touches must be its opener's (scripts/authors.js). On main, index.json is rewritten and
 # committed when it changed.
 name: check
 on:
@@ -13,10 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: node scripts/check.js --all
+      - if: github.event_name == 'pull_request'
+        run: node scripts/authors.js "${{ github.event.pull_request.user.login }}" "origin/${{ github.base_ref }}"
       - if: github.event_name == 'push'
         run: |
           node scripts/index.js

@@ -28,8 +28,12 @@ game's name, logo, characters or art in a title, a page or an icon.
 - **Looks like its own game**: its own colours and style, crisp at any size
   (draw with canvas, scale to `glyphh.width` and `glyphh.height`).
 - **`icon.svg`**: a 24×24 outline icon, stroke only, that says the game.
-- **`game.json`**: `title` as below, `about` one line of at most 60
-  characters.
+- **`cover.jpg`**: its card in the console, 960×600, a photo of it mid-play
+  on a background of its own colour, nothing written over it (README.md,
+  The cover). Photograph it with the plugin's
+  `skills/make-a-game/cover.js` and look at it.
+- **`game.json`**: `title` as below, `author` `"glyphh"` (these are Glyphh
+  built), `about` one line of at most 60 characters.
 
 ## The eleven
 

@@ -8,18 +8,21 @@ share it with everyone.
 
 | | |
 | --- | --- |
-| `games/<name>/` | One game: `game.json`, `game.html`, optional `icon.svg` |
-| `drips/<name>/` | One drip: `drip.json`, `drip.html`, optional `icon.svg` |
+| `games/<name>/` | One game: `game.json`, `game.html`, `cover.jpg`, optional `icon.svg` |
+| `drips/<name>/` | One drip: `drip.json`, `drip.html`, `cover.jpg`, optional `icon.svg` |
 | `templates/` | A small working game (Dodge) and drip (Bubbles) to start from |
 | `scripts/check.js` | `node scripts/check.js games/snake` checks a folder the way the plugin does |
-| `index.json` | What `/drip get` and the Gallery read; written by CI, never by hand |
+| `scripts/authors.js` | CI's check that a pull request's folders are its opener's |
+| `MAINTAINERS` | Who may publish as `glyphh` (Glyphh built) |
+| `index.json` | What `/drip get` and the console read; written by CI, never by hand |
 
 ## A game
 
 ```
 games/snake/
-  game.json     { "title": "Snake", "about": "Eat, grow, don't bite your tail" }
+  game.json     { "title": "Snake", "author": "octocat", "about": "Eat, grow, don't bite your tail" }
   game.html     the game: one self-contained page
+  cover.jpg     its card in the console (or cover.png)
   icon.svg      optional: a 24×24 outline icon
 ```
 
@@ -49,8 +52,9 @@ ends itself with `glyphh.end()`; keyboard and mouse only.
 
 ```
 drips/snow/
-  drip.json     { "title": "Snow", "kind": "one-shot" }
+  drip.json     { "title": "Snow", "author": "octocat", "kind": "one-shot" }
   drip.html
+  cover.jpg     or cover.png
   icon.svg      optional
 ```
 
@@ -58,6 +62,22 @@ drips/snow/
 within 15 seconds regardless) or `loop` (keeps playing until stopped, drawn at
 `glyphh.opacity`). A drip never takes the pointer: clicks go through to
 Claude. The kit is the same as a game's, without `best` and `score`.
+
+## Who made it
+
+`author` is the maker's GitHub login. The console shows it as "@octocat";
+Glyphh's own carry `glyphh` and show as **Glyphh built**. A pull request's
+folders must be its opener's: CI refuses one that names anyone else, changes
+someone else's folder, or uses `glyphh` (only the logins in `MAINTAINERS`
+may).
+
+## The cover
+
+Every game and drip has a cover, its card in the console: `cover.jpg` or
+`cover.png`, 16:10, 480×300 to 1920×1200 (960×600 is right), at most 300 KB.
+A photo of it mid-play on a background of its own colour, with nothing
+written over it. The plugin's skills make one with headless Chrome
+(`node cover.js <folder>`).
 
 ## The rules
 
@@ -67,19 +87,21 @@ Claude. The kit is the same as a game's, without `best` and `score`.
   no external scripts, styles, fonts or images. Glyphh Drip loads every page
   with the network blocked, so one that reaches for it breaks.
 - A transparent background, filling the page.
+- An `author` that is a GitHub login, and a cover as above.
 - An `icon.svg` of at most 16 KB, with no scripts or links.
 
 ## Contributing
 
 **From Glyphh Drip:** `/drip share <name>` checks your game or drip, forks
 this repository under your GitHub account, adds it and opens the pull
-request. It needs the GitHub command-line tool, signed in (`brew install gh`,
+request. Its `author` must be your login. It needs the GitHub command-line tool, signed in (`brew install gh`,
 then `gh auth login`).
 
 **By hand:**
 
 1. Make the game or drip (ask Claude, or start from `templates/`).
-2. Put it in `games/<name>/` or `drips/<name>/` and run
+2. Put it in `games/<name>/` or `drips/<name>/`, with your GitHub login as
+   `author` and its cover, and run
    `node scripts/check.js games/<name>` until it passes.
 3. Open a pull request.
 
