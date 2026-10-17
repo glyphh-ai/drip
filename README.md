@@ -1,9 +1,11 @@
 # Glyphh Drip
 
-Glyphh Drip plays games and drips over Claude, with sound. Five arcade games
-(Missiles, Chickn, Blocks, Rocks, Dash), endless and harder as they go,
-your best score to beat; and twenty drips, visual effects like confetti,
-fireworks, hearts and a matrix rain. Ask Claude and it makes you new ones.
+Glyphh Drip plays games and drips over Claude's window, with sound. Arcade
+games, endless and harder as they go, your best score to beat: Missiles comes
+with it, and the [gallery](https://github.com/glyphh-ai/drip) has Blocks,
+Bricks, Snake, Solitaire, Sudoku and more. Twenty drips: visual effects like
+confetti, fireworks, hearts and a matrix rain. Ask Claude and it makes you
+new ones.
 
 ```
 /drip
@@ -12,8 +14,25 @@ fireworks, hearts and a matrix rain. Ask Claude and it makes you new ones.
 /drip 3 hearts stars
 ```
 
-Glyphh Drip works in Claude Code on a Mac: in the terminal, or in the desktop
-app's Code tab. It's a one-time $5 per machine: `/drip unlock` buys it.
+Missiles and every drip are free. The other games are a one-time $4.99 per
+Mac: no account, no subscription.
+
+## What it is, and where it works
+
+Glyphh Drip is a mod for **Claude Code on a Mac**: the `claude` command in
+your terminal, the Code tab of the Claude desktop app, or Claude Code in
+VS Code. It does not work in Claude's chat, in Cowork, on the phone, on
+Windows or on Linux.
+
+That's not a gap we're filling later; it's what the product is. Games and
+drips play in a transparent window that Glyphh Drip opens over Claude's own
+window and keeps lined up with it as you move it, so a game sits right over
+your conversation and confetti falls over the answer. Only Claude Code lets
+a mod do that: it runs mods on your machine, gives them a side panel, a
+slash command and a button by the prompt, and lets them start that overlay.
+Chat and Cowork run skills, not mods, and have nothing to draw over. The
+overlay itself is a small macOS program. So it's Claude Code, on a Mac, and
+we'd rather say so than pretend otherwise.
 
 ## Requirements
 
@@ -49,7 +68,7 @@ page for you.
 
 | Command | What it does |
 |---|---|
-| `/drip` | Opens the Drip pane: every game and drip, Play |
+| `/drip` | Opens the Drip pane: every game and drip |
 | `/drip <game>` | Starts a game: `/drip blocks`, `/drip missiles` |
 | `/drip <recipe>` | Plays a drip, or one of your saved drips by name |
 | `/drip list` | Lists the games and the drips |
@@ -66,10 +85,13 @@ page for you.
 
 `/drip` (or `/drip list`) opens the **Drip** pane in the side panel: a search,
 a filter by type and a table, fifteen rows a page. Each row is an emoji, the name,
-one line, the type, **☆** and **Play**; what the gallery has that isn't on your
-Mac yet plays too: it's fetched on the first Play. The ☆ puts it in the tray above the
-prompt, opened by the drip button. Until Glyphh Drip is bought, **Unlock** sits
-above the table, and a game other than Missiles opens the payment link.
+one line, the type, **☆** and a button: **Play** for what's on your Mac,
+**Install** for what the gallery has that isn't yet (one press fetches it,
+and the row turns to Play), and **Locked** for a paid game until you buy.
+Click a name for its page: a screenshot, its line, and Play or Unlock. The ☆
+puts it in the tray above the prompt, opened by the drip button. Until Glyphh
+Drip is bought, **Unlock** sits above the table. One game plays at a time;
+drips play over anything, as many as you like.
 
 ## Games
 
@@ -191,13 +213,14 @@ Two more rows in `/config`, both off until you turn them on:
 
 ## Buying it
 
-Glyphh Drip is a one-time $5 for each machine: no account, no
-subscription, no trial. Until you buy it, games and drips don't play
-(`/drip list`, `delete` and `stop` still work).
+Missiles and every drip are free, for good. The other games are a one-time
+$4.99 for each Mac: no account, no subscription, no trial. Until you buy,
+the Drip pane shows those games as **Locked**.
 
-**Buy.** Run `/drip unlock`, or press Play on the card. Stripe's checkout
-opens in your browser; pay there, and Glyphh Drip unlocks on its own a few
-seconds later, with a notification. **Cancel** in the page stops it waiting.
+**Buy.** Run `/drip unlock`, or open a locked game in the pane and press
+**Unlock all games**. Stripe's checkout opens in your browser; pay there,
+and Glyphh Drip unlocks on its own a few seconds later, with a notification.
+**Cancel** in the page stops it waiting.
 
 **Another Mac.** In the Drips page of the Mac you bought it on, press
 **Copy licence key**, then on the other Mac run `/drip key <licence>`.

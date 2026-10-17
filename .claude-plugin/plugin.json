@@ -1,7 +1,7 @@
 {
   "name": "glyphh-drip",
-  "version": "1.11.13",
-  "description": "Glyphh Drip: games and visual effects with sound over Claude. Five arcade games (Missiles, Chickn, Blocks, Rocks, Dash) and twenty drips (confetti, fireworks, a matrix rain), plus the ones you make with Claude. A one-time $5 per machine.",
+  "version": "1.11.14",
+  "description": "Glyphh Drip: arcade games and visual effects with sound, played over Claude's window. For Claude Code on a Mac. Missiles and twenty drips (confetti, fireworks, a matrix rain) are free; the other games are a one-time $4.99 per Mac. Ask Claude and it makes you new ones.",
   "author": {
     "name": "Glyphh AI",
     "url": "https://glyphh.ai"
