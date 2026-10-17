@@ -545,7 +545,7 @@ export function arcade(on: On, options: PluginOptions) {
               <Box key={key} flexDirection="row" alignItems="center" gap={2}>
                 <Text>{r.emoji}</Text>
                 <Box width="34%" flexDirection="row" gap={1}>
-                  <Button key={`open:${key}`} label={r.title} plain onPress={() => void update($, detail, () => key)} />
+                  <Button key={`open:${key}`} label={r.title} onPress={() => void update($, detail, () => key)} />
                   {r.isYours ? <Text dimColor>yours</Text> : null}
                 </Box>
                 <Box flexGrow={1} flexShrink={1}>
