@@ -9,7 +9,7 @@ import type { Drip } from './drips.ts'
 import { emoji } from './emoji.ts'
 import { fireflies } from './fireflies.ts'
 import { fireworks } from './fireworks.ts'
-import { gunfight } from './gunfight.ts'
+import { powow } from './powow.ts'
 import { hearts } from './hearts.ts'
 import { matrix } from './matrix.ts'
 import { nebula } from './nebula.ts'
@@ -26,6 +26,6 @@ import { wave } from './wave.ts'
 
 export const DRIPS: readonly Drip[] = [
   fireworks, hearts, confetti, stars, rain, bubbles, sparkle, spiral, emoji,
-  wave, thumbsup, peace, cat, gunfight, timme,
+  wave, thumbsup, peace, cat, powow, timme,
   matrix, aurora, nebula, plasma, fireflies, starfield,
 ]

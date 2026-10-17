@@ -1,4 +1,4 @@
-// gunfight: two cartoon pixel cowboys trade shots from both sides of the
+// powow: two cartoon pixel cowboys trade shots from both sides of the
 // screen, muzzle flashes, tracers, ricochet sparks, smoke and comic bursts,
 // until the last shot settles it: either one wins (a coin toss), or now and
 // then both go down at once and a turkey struts out to gobble over them. A
@@ -11,7 +11,7 @@ import { CLOSE_SIGNAL as CLOSE } from './shared.ts'
 /** How long the fight runs, in ms; under the one-shot backstop (8 s). */
 export const GUNFIGHT_MS = 6800
 
-export function dripGunfight(w: number, h: number): string {
+export function dripPowow(w: number, h: number): string {
   const s = Math.max(3, Math.min(7, Math.floor(h / 110)))
   return `<html><head><style>
 *{margin:0;padding:0}
@@ -55,7 +55,7 @@ var r0=Math.random(),OUTCOME=r0<0.4?"L":r0<0.8?"R":"both";
 var PLAN=[["L",1300],["R",1850],["L",2400],["R",2900],["L",3400],["R",3850]];
 if(OUTCOME==="both")PLAN.push(["L",4350,true],["R",4350,true]);else PLAN.push([OUTCOME,4350,true]);
 var WIN=OUTCOME==="L"?L:OUTCOME==="R"?R:null;
-window.__gunfight={plan:PLAN,outcome:OUTCOME};
+window.__powow={plan:PLAN,outcome:OUTCOME};
 // The turkey, facing right: tail fan behind, snood and wattle in front.
 var TURKEY=[
 "..OoYO..........",
@@ -182,9 +182,9 @@ setTimeout(function(){${CLOSE}},END+600);
 }
 
 /** Its sounds: each shot a crack and a ricochet, the last ones a groan, and the turkey gobbles and jets off. */
-const SOUND = `var g=window.__gunfight;
+const SOUND = `var g=window.__powow;
 if(g){g.plan.forEach(function(p){at(p[1],function(){sfx.noise(0.18,0.55,5000,600);sfx.tone(220,0.1,"square",0.12,80);
     if(p[2])at(250,function(){sfx.tone(300,0.5,"sawtooth",0.06,120)});else at(80,function(){sfx.tone(2400,0.35,"sine",0.05,900)})})});
   if(g.outcome==="both"){at(5400,function(){[0,0.12,0.24].forEach(function(d){sfx.tone(700,0.1,"square",0.08,450,d)})});at(6150,function(){sfx.noise(0.8,0.35,600,4000)})}}`
 
-export const gunfight: Drip = { name: 'gunfight', kind: 'one-shot', build: dripGunfight, sound: SOUND }
+export const powow: Drip = { name: 'powow', kind: 'one-shot', build: dripPowow, sound: SOUND }

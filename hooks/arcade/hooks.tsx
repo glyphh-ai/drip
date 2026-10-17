@@ -211,8 +211,9 @@ async function listing($: EngineInterface): Promise<string> {
 
 /** The licence as this half sees it. Locked here but a licence saved in the
  *  store (bought in another session, or the start's check not reached): it is
- *  checked once and, when it holds, the mod unlocks. */
-async function licenceNow($: EngineInterface, isDrawing = false): Promise<LicenceState> {
+ *  checked once and, when it holds, the mod unlocks. Never from a draw: a draw
+ *  may not write state, and the check is done by /drip before the pane opens. */
+async function licenceNow($: EngineInterface): Promise<LicenceState> {
   const state = await read($, licence)
   if (state.licence) return state
   const kept = await $.store.get(LICENCE_KEY)
@@ -222,8 +223,7 @@ async function licenceNow($: EngineInterface, isDrawing = false): Promise<Licenc
     licenceHeld = (await verify(kept, MOD)) ? kept : null
   }
   if (!licenceHeld) return state
-  // A draw may not write state: it draws as bought; the next press or command records it.
-  if (!isDrawing) await update($, licence, s => ({ ...s, licence: licenceHeld, isWaiting: false, note: null }))
+  await update($, licence, s => ({ ...s, licence: licenceHeld, isWaiting: false, note: null }))
   return { ...state, licence: licenceHeld, isWaiting: false, note: null }
 }
 
@@ -502,7 +502,7 @@ export function arcade(on: On, options: PluginOptions) {
     const Input = 'Input' in els ? els.Input : null
     // Every surface but the terminal draws SVG: the logo; the terminal gets the word.
     const Svg = e.surface !== 'terminal' && 'Svg' in els ? els.Svg : null
-    const isBought = refusal(await licenceNow($, true)) === null
+    const isBought = refusal(await read($, licence)) === null
     const all = await rowsOf($, isBought)
     const q = await read($, query)
     const f = await read($, filter)
@@ -651,7 +651,7 @@ export function arcade(on: On, options: PluginOptions) {
     const games = (await read($, favourites)).filter(k => k.startsWith('game:')).map(k => k.slice(5))
     if (games.length === 0) return band
     const { Box, Button } = $.ui.resolve(e)
-    const isBought = refusal(await licenceNow($, true)) === null
+    const isBought = refusal(await read($, licence)) === null
     const all = await rowsOf($, isBought)
     const tray = games.map(n => all.find(r => r.kind === 'game' && r.name === n)).filter((r): r is Row => r !== undefined)
     return (
@@ -674,6 +674,7 @@ export function arcade(on: On, options: PluginOptions) {
     if (verb?.toLowerCase() === 'share') return { text: rest.length === 1 ? await shareToGallery($, rest[0]!) : 'Usage: /drip share <name>' }
     if (!name || name.toLowerCase() === 'list') {
       // The pane; where no surface places one (a bare terminal), the list in words.
+      await licenceNow($) // the pane draws from state: a saved licence is in it before it opens
       const { isPlaced } = await $.ui.open({ id: PANE, title: 'Drip', focus: true })
       if (isPlaced) return { text: OPENED }
       const drips = await next({ ...e, args: 'list' })

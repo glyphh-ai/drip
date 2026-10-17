@@ -93,7 +93,7 @@ Drip loads each one with the network blocked.
 
 A **drip** button sits by the prompt: in the terminal, in the hint line
 under it; in the desktop app, in the prompt's footer. Press it and a row opens just above the
-prompt: **fireworks**, **confetti**, **hearts**, **stars**, and **gunfight**, then your
+prompt: **fireworks**, **confetti**, **hearts**, **stars**, and **powow**, then your
 saved drips, then **■ Stop** while something keeps playing, and **✕** to
 close the row. A press plays the effect the way `/drip` does, where your
 **Where effects play** setting says. Until Glyphh Drip is bought, the row
@@ -106,7 +106,7 @@ A recipe is a few words, in any order:
 
 - **An effect**: `fireworks`, `hearts`, `confetti`, `stars`, `rain`,
   `bubbles`, `sparkle`, `spiral`, `emoji`, `wave`, `thumbsup`, `peace`,
-  `cat`, `gunfight`, and the backgrounds `matrix`, `aurora`, `nebula`, `plasma`,
+  `cat`, `powow`, and the backgrounds `matrix`, `aurora`, `nebula`, `plasma`,
   `fireflies`, `starfield`. Name several and they play one after another.
 - **A number from 1 to 10**: how many times to play them. Each effect
   starts 1.5 seconds after the one before.

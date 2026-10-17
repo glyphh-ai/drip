@@ -25,7 +25,7 @@ export const BUILT_IN: Record<string, { emoji: string; about: string }> = {
   thumbsup: { emoji: '👍', about: 'A big thumbs up' },
   peace: { emoji: '✌️', about: 'Peace signs drift by' },
   cat: { emoji: '🐱', about: 'A cat strolls across' },
-  gunfight: { emoji: '🤠', about: 'A showdown at high noon' },
+  powow: { emoji: '🤠', about: 'A showdown at high noon' },
   matrix: { emoji: '💻', about: 'Green code rains down' },
   aurora: { emoji: '🌌', about: 'Northern lights, kept on' },
   nebula: { emoji: '🪐', about: 'A drifting nebula, kept on' },
