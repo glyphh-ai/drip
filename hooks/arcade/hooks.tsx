@@ -15,6 +15,7 @@ import type { EngineInterface, On, PluginOptions } from 'claude-code'
 import { ancestorsOf, eventsOf, overlayHost, prepareOverlay, type OverlayDeps, type Placement, type Prepared } from '../overlay/host.ts'
 import { selectTarget, type Target, type TerminalEnv } from '../overlay/target.ts'
 import { INITIAL, refusal } from '../unlock/access.ts'
+import type { LicenceState } from '../../types'
 import { MOD, PRICE, PRODUCT } from '../unlock/config.ts'
 import { buy, type Deps } from '../unlock/flow.ts'
 import { verify } from '../unlock/verify.ts'
@@ -75,6 +76,12 @@ let native: Promise<Prepared> | null = null
 let target: Promise<Target | null> | null = null
 /** Said once per load: Claude's window not found. */
 let isMissedSaid = false
+/** The store's key for the licence (../unlock/flow.ts keeps it there). */
+const LICENCE_KEY = 'licence'
+/** The saved licence last checked here, so a locked pane checks it once, not at every draw. */
+let licenceChecked: string | null = null
+/** That licence when it checked out; null when it didn't. */
+let licenceHeld: string | null = null
 
 const short = (err: unknown) => String(err instanceof Error ? err.message : err).replace(/^(Hooks)?Error: /, '').slice(0, 300)
 
@@ -198,13 +205,31 @@ async function listing($: EngineInterface): Promise<string> {
   }
   if (yours.skipped) lines.push('', yours.skipped)
   // Not the refusal line: that one draws as the unlock module's card, this as the card.
-  if (refusal(await read($, licence))) lines.push('', `Missiles is free; the other games are ${PRICE}, once: /drip unlock buys ${PRODUCT}.`)
+  if (refusal(await licenceNow($))) lines.push('', `Missiles is free; the other games are ${PRICE}, once: /drip unlock buys ${PRODUCT}.`)
   return lines.join('\n')
+}
+
+/** The licence as this half sees it. Locked here but a licence saved in the
+ *  store (bought in another session, or the start's check not reached): it is
+ *  checked once and, when it holds, the mod unlocks. */
+async function licenceNow($: EngineInterface, isDrawing = false): Promise<LicenceState> {
+  const state = await read($, licence)
+  if (state.licence) return state
+  const kept = await $.store.get(LICENCE_KEY)
+  if (typeof kept !== 'string') return state
+  if (kept !== licenceChecked) {
+    licenceChecked = kept
+    licenceHeld = (await verify(kept, MOD)) ? kept : null
+  }
+  if (!licenceHeld) return state
+  // A draw may not write state: it draws as bought; the next press or command records it.
+  if (!isDrawing) await update($, licence, s => ({ ...s, licence: licenceHeld, isWaiting: false, note: null }))
+  return { ...state, licence: licenceHeld, isWaiting: false, note: null }
 }
 
 /** Why the game `name` may not be played now (not bought, and not free), or null. */
 async function gameRefusal($: EngineInterface, name: string): Promise<string | null> {
-  return FREE_GAMES.includes(name) ? null : refusal(await read($, licence))
+  return FREE_GAMES.includes(name) ? null : refusal(await licenceNow($))
 }
 
 /** /drip's own words, never a name to look for in the gallery. */
@@ -462,6 +487,8 @@ export function arcade(on: On, options: PluginOptions) {
   native = null
   target = null
   isMissedSaid = false
+  licenceChecked = null
+  licenceHeld = null
   galleryKept = null
   galleryCovers.clear()
   shots.clear()
@@ -475,7 +502,7 @@ export function arcade(on: On, options: PluginOptions) {
     const Input = 'Input' in els ? els.Input : null
     // Every surface but the terminal draws SVG: the logo; the terminal gets the word.
     const Svg = e.surface !== 'terminal' && 'Svg' in els ? els.Svg : null
-    const isBought = refusal(await read($, licence)) === null
+    const isBought = refusal(await licenceNow($, true)) === null
     const all = await rowsOf($, isBought)
     const q = await read($, query)
     const f = await read($, filter)
@@ -624,7 +651,7 @@ export function arcade(on: On, options: PluginOptions) {
     const games = (await read($, favourites)).filter(k => k.startsWith('game:')).map(k => k.slice(5))
     if (games.length === 0) return band
     const { Box, Button } = $.ui.resolve(e)
-    const isBought = refusal(await read($, licence)) === null
+    const isBought = refusal(await licenceNow($, true)) === null
     const all = await rowsOf($, isBought)
     const tray = games.map(n => all.find(r => r.kind === 'game' && r.name === n)).filter((r): r is Row => r !== undefined)
     return (
