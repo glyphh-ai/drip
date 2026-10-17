@@ -1,6 +1,6 @@
 // The gallery: glyphh-ai/drip, every game and drip there is but Missiles and
-// the drips built in. The console lists it (`listing`); `/drip get <name>`,
-// or launching one from the console, fetches it into the person's folder
+// the drips built in. The Drip pane lists it (`listing`); `/drip get <name>`,
+// Get on the pane, or /drip <name>, fetches one into the person's folder
 // (~/.glyphh), checked against the rules first (./rules.js), and marks it as
 // the gallery's (MARK), not theirs.
 import { COVER_FILES, NAME, checkDrip, checkGame, type Cover } from './rules.js'
@@ -24,13 +24,7 @@ type Index = { games: Entry[]; drips: Entry[] }
 /** The file `get` leaves in a folder it fetched: it is the gallery's, not the person's. */
 export const MARK = '.gallery'
 
-/** Where the console shows an entry's cover from: the gallery's own file. */
-export function coverUrl(kind: 'game' | 'drip', e: Entry): string | null {
-  const file = COVER_FILES.find(f => e.files.includes(f))
-  return file ? `${GALLERY}/${kind}s/${e.name}/${file}` : null
-}
-
-/** What the gallery has, for the console; null when it can't be read (offline, or not public). */
+/** What the gallery has; null when it can't be read (offline, or not public). */
 export async function listing(d: Pick<GalleryDeps, 'fetch'>): Promise<Index | null> {
   const res = await d.fetch(`${GALLERY}/index.json`).catch(() => null)
   return res?.ok ? parseIndex(res.text) : null

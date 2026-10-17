@@ -22,7 +22,7 @@ export type FolderDeps = {
 export type Skipped = { name: string; why: string }
 
 /** A game from a folder: a built-in game's shape, plus what the card shows. */
-export type FolderGame = Game & { isYours: boolean; about?: string; icon: string | null; author: string; cover: string }
+export type FolderGame = Game & { isYours: boolean; about?: string; icon: string | null; author: string }
 
 /** A drip from a folder. */
 export type FolderDrip = {
@@ -33,8 +33,6 @@ export type FolderDrip = {
   isYours: boolean
   /** Who made it: a GitHub login, or `glyphh`. */
   author: string
-  /** Its cover, a data: URI. */
-  cover: string
   /** The page with the kit, for this size; `quiet` mutes it. */
   build: (w: number, h: number, opacity: number, quiet: boolean) => string
 }
@@ -46,9 +44,6 @@ export const DRIP_SAFETY_MS = 15_000
 
 export const gamesDir = (home: string) => `${home}/.glyphh/games`
 export const dripsDir = (home: string) => `${home}/.glyphh/drips`
-
-/** A cover as a data: URI the console can show. */
-export const coverUri = (c: Cover) => `data:image/${c.file === 'cover.png' ? 'png' : 'jpeg'};base64,${c.base64}`
 
 /** A folder as read, and whether the gallery put it there (`get`'s mark). */
 type Found = Read & { isGallery: boolean }
@@ -93,7 +88,6 @@ export async function loadGames(d: FolderDeps, dir: string, taken: ReadonlySet<s
       icon: c.icon,
       isYours: isYours && !r.isGallery,
       author: c.manifest.author,
-      cover: coverUri(c.cover),
       safetyMs: GAME_SAFETY_MS,
       build: (w, h, best) => withKit(page, { kind: 'game', width: w, height: h, best, quiet: quiet() }),
     })
@@ -124,7 +118,6 @@ export async function loadDrips(d: FolderDeps, dir: string, taken: ReadonlySet<s
       icon: c.icon,
       isYours: isYours && !r.isGallery,
       author: c.manifest.author,
-      cover: coverUri(c.cover),
       build: (w, h, opacity, quiet) => withKit(page, { kind: 'drip', width: w, height: h, opacity, quiet }),
     })
   }

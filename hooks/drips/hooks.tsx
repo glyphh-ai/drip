@@ -323,7 +323,7 @@ async function takeQueued($: EngineInterface): Promise<void> {
 async function registerAll($: EngineInterface): Promise<void> {
   await $.command.register({
     name: 'drip',
-    description: 'Glyphh Drip: /drip opens Drip, the console of games and drips; /drip snake starts a game; /drip confetti, /drip 3 hearts stars, /drip -1 aurora play drips; get <name> fetches a game or drip from the gallery, share <name> sends one of yours there; stop, save <name> <recipe>, delete <name>; page opens your saved drips and the editor; unlock buys the games (Missiles and every drip are free); key <licence> unlocks it with a licence from another machine',
+    description: 'Glyphh Drip: /drip list opens the pane of games and drips; /drip snake starts a game; /drip confetti, /drip 3 hearts stars, /drip -1 aurora play drips; get <name> fetches a game or drip from the gallery, share <name> sends one of yours there; stop, save <name> <recipe>, delete <name>; page opens your saved drips and the editor; unlock buys the games (Missiles and every drip are free); key <licence> unlocks it with a licence from another machine',
     argumentHint: '<game> | <recipe> | get <name> | share <name> | stop | save <name> <recipe> | delete <name> | page | unlock | key <licence>',
     immediate: true,
   })

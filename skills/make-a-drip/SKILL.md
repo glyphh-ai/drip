@@ -7,7 +7,7 @@ user-invocable: false
 # Make a drip for Glyphh Drip
 
 A Glyphh Drip drip is one folder in `~/.glyphh/drips/<name>/`. Once it's there,
-it shows on the Drips tab of the console (`/drip`, Open drip), plays with `/drip <name>`, and Claude can
+it shows in the Drip pane (`/drip list`), plays with `/drip <name>`, and Claude can
 play it with the `play_drip` tool.
 
 ## The folder
@@ -16,7 +16,7 @@ play it with the `play_drip` tool.
 ~/.glyphh/drips/<name>/
   drip.json     { "title": "Snow", "author": "octocat", "kind": "one-shot" }
   drip.html     the drip: one self-contained page
-  cover.jpg     its card in the console: 960×600, made by cover.js
+  cover.jpg     its picture: 960×600, made by cover.js
   icon.svg      optional: a 24×24 outline icon, stroke only
 ```
 
@@ -32,7 +32,7 @@ play it with the `play_drip` tool.
   `gh api user --jq .login`, else `git config github.user`; if neither
   answers, ask them. Never leave `glyphh` (the template's): that's Glyphh's
   own, and the check refuses it.
-- `cover.jpg`: its card in the console, required. Make it with this skill's
+- `cover.jpg`: its picture (for the gallery and our videos), required. Make it with this skill's
   `cover.js` once the page works (below): it plays the page in headless Chrome
   at 960×600 on a background of its own colour and saves the photo. Pick two
   colours that suit it, then **look at the photo**: it should show the drip

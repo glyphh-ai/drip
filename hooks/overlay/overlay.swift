@@ -206,9 +206,7 @@ final class GameWebView: WKWebView {
 /// Hears the document's close signal: console.log("__drip_close__") is
 /// forwarded here by a script added before the document's own, and so is a
 /// postMessage of it to the window itself. A game's score comes the same way,
-/// posted as {__drip_score__: n}, and is printed as a score event; a page's
-/// ask (the console's "launch game blocks", "unlock") as {__drip_ask__: text},
-/// printed as an ask event: short text only, the mod decides what it means.
+/// posted as {__drip_score__: n}, and is printed as a score event.
 final class CloseListener: NSObject, WKScriptMessageHandler {
   let onClose: () -> Void
   init(onClose: @escaping () -> Void) { self.onClose = onClose }
@@ -216,9 +214,6 @@ final class CloseListener: NSObject, WKScriptMessageHandler {
     if (message.body as? String) == "__drip_close__" { onClose() }
     if let body = message.body as? [String: Any], let score = body["score"] as? NSNumber, score.doubleValue.isFinite, score.intValue >= 0 {
       emit(["t": "score", "score": score.intValue])
-    }
-    if let body = message.body as? [String: Any], let ask = body["ask"] as? String, !ask.isEmpty, ask.count <= 200 {
-      emit(["t": "ask", "ask": ask])
     }
   }
 }
@@ -228,7 +223,6 @@ let closeBridge = """
     var send = function (v) { try {
       if (v === "__drip_close__") window.webkit.messageHandlers.drip.postMessage(v);
       else if (v && typeof v.__drip_score__ === "number") window.webkit.messageHandlers.drip.postMessage({ score: v.__drip_score__ });
-      else if (v && typeof v.__drip_ask__ === "string") window.webkit.messageHandlers.drip.postMessage({ ask: v.__drip_ask__ });
     } catch (e) {} };
     var log = console.log;
     console.log = function () { send(arguments[0]); return log.apply(console, arguments) };

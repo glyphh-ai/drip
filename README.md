@@ -57,18 +57,21 @@ page for you.
 | `/drip delete <name>` | Deletes a saved drip |
 | `/drip stop` | Stops every effect that keeps playing |
 | `/drip page` | Opens the Drips page: your saved drips and an editor |
-| `/drip unlock` | Buys Glyphh Drip: $5, once, for this machine |
+| `/drip unlock` | Buys Glyphh Drip: $4.99, once, for this machine (Missiles and every drip are free) |
 | `/drip key <licence>` | Unlocks Glyphh Drip with a licence bought on another Mac |
 
 `/drip` runs straight away, even while Claude is working.
 
-## The card
+## The card and the pane
 
-`/drip` draws a card in the conversation: the Glyphh Drip logo, a **Games** tab
-and a **Drips** tab. Each game shows its icon, your best and **Play**; each
-drip, **Play**. Yours are listed after the built-in ones, marked *yours*. Four
-to a page, with **‹ ›** to turn. Until Glyphh Drip is bought, Play opens
-checkout.
+`/drip` draws a small card in the conversation: the logo, and **Unlock** until
+Glyphh Drip is bought.
+
+`/drip list` opens the **Drip** pane: every game, then every drip, each with
+its icon, who made it (*Glyphh built* or *@login*), your best and **Play**.
+Yours are marked *yours*. What the gallery has that isn't on your Mac yet
+follows, with **Get**: it's fetched, then played. Until Glyphh Drip is bought,
+a game other than Missiles opens checkout.
 
 ## Games
 

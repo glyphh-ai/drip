@@ -7,7 +7,7 @@ user-invocable: false
 # Make a game for Glyphh Drip
 
 A Glyphh Drip game is one folder in `~/.glyphh/games/<name>/`. Once it's there,
-it shows on the Games tab of the console (`/drip`, Open drip) and plays with `/drip <name>`, over
+it shows in the Drip pane (`/drip list`) and plays with `/drip <name>`, over
 Claude's window, beside the built-in games.
 
 ## The folder
@@ -16,7 +16,7 @@ Claude's window, beside the built-in games.
 ~/.glyphh/games/<name>/
   game.json     { "title": "Snake", "author": "octocat", "about": "Eat, grow, don't bite your tail" }
   game.html     the game: one self-contained page
-  cover.jpg     its card in the console: 960×600, made by cover.js
+  cover.jpg     its picture: 960×600, made by cover.js
   icon.svg      optional: a 24×24 outline icon, stroke only
 ```
 
@@ -31,7 +31,7 @@ Claude's window, beside the built-in games.
   `gh api user --jq .login`, else `git config github.user`; if neither
   answers, ask them. Never leave `glyphh` (the template's): that's Glyphh's
   own, and the check refuses it.
-- `cover.jpg`: its card in the console, required. Make it with this skill's
+- `cover.jpg`: its picture (for the gallery and our videos), required. Make it with this skill's
   `cover.js` once the page works (below): it plays the page in headless Chrome
   at 960×600 on a background of its own colour and saves the photo. Pick two
   colours that suit it, then **look at the photo**: it should show the game
@@ -84,8 +84,8 @@ The game must:
    node check.js ~/.glyphh/games/<name>
    ```
    Fix whatever it reports, and run it again until it passes.
-5. Tell the person it's ready: Open drip in `/drip` shows it on the Games
-   tab, and `/drip <name>` plays it. Games other than Missiles need Glyphh
+5. Tell the person it's ready: `/drip list` shows it in the Drip
+   pane, and `/drip <name>` plays it. Games other than Missiles need Glyphh
    Drip bought (`/drip unlock`, $4.99 once).
 
 To share it, the person runs `/drip share <name>`: a pull request to the

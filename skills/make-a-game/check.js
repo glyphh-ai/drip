@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Checks a Glyphh Drip game or drip folder against the rules the plugin
 // applies (../../hooks/content/rules.js, the very same code), so a game or
-// drip that passes here shows up in the console.
+// drip that passes here shows up in /drip list.
 //
 //   node check.js ~/.glyphh/games/snake
 //   node check.js ~/.glyphh/drips/snow

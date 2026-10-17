@@ -5,9 +5,11 @@
 // Claude's window or the whole screen as the /config row `display` says; the
 // overlay takes the pointer and keys while a game is on. Each game posts its
 // score as it goes, and the top one is kept for the next round to beat.
-// /drip alone draws a small card whose Open drip shows the console
-// (../console): every game and drip as covers, launched from there. Missiles
-// and every drip are free; the other games wait for Glyphh Drip to be bought.
+// /drip alone draws a small card: the logo, and Unlock until it's bought.
+// /drip list opens the Drip pane: every game and drip, here or in the
+// gallery, each with who made it and Play (Get for the gallery's, fetched
+// then played). Missiles and every drip are free; the other games wait for
+// Glyphh Drip to be bought.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On, PluginOptions } from 'claude-code'
 
@@ -19,28 +21,30 @@ import { buy, type Deps } from '../unlock/flow.ts'
 import { verify } from '../unlock/verify.ts'
 import { BUILTIN_EFFECT_LIST, ONE_SHOT_EFFECTS } from '../drips/effects.ts'
 import { dripsDir, gamesDir, loadDrips, loadGames, skippedText, type FolderDeps, type FolderGame } from '../content/folders.ts'
-import { coverUrl, get as galleryGet, listing as galleryListing, type Entry } from '../content/gallery.ts'
+import { get as galleryGet, listing as galleryListing } from '../content/gallery.ts'
 import { GLYPHH, NAME } from '../content/rules.js'
 import { share as galleryShare } from '../content/share.ts'
 import { readCustoms } from '../drips/library.ts'
-import { consoleHtml, type Item } from '../console/page.ts'
 import { CAT_RATIO, CAT_SVG, LOGO_ALT, MARK_RATIO, MARK_SVG } from './brand.ts'
 import { GAMES, gameDoc, gameOf } from './games/index.ts'
 import type { Game } from './games/game.ts'
-import { DRIP_ICONS, GAME_ICONS, GENERIC_DRIP_ICON, GENERIC_GAME_ICON } from './icons.ts'
+import { DRIP_ICONS, GAME_ICONS, GENERIC_DRIP_ICON, GENERIC_GAME_ICON, tiled } from './icons.ts'
 import { scoresOf, type Store } from './scores.ts'
 import { settingsOf, type Settings } from './settings.ts'
 
 const licence = atom({ plugin: 'glyphh-drip', key: 'licence' } as const, INITIAL)
-/** A drip the console asked to play: the drips' half (../drips) takes it. */
+/** A drip the pane asked to play: the drips' half (../drips) takes it. */
 const queued = atom({ plugin: 'glyphh-drip', key: 'queued' } as const, null as { recipe: string; at: number } | null)
+
+/** The Drip pane: /drip list opens it. */
+export const PANE = 'glyphh-drip'
+/** How long what the gallery has is kept before it's asked again, in ms. */
+const GALLERY_MS = 5 * 60_000
+/** The gallery's listing as last read, for the pane's draws. */
+let galleryKept: { at: number; index: Awaited<ReturnType<typeof galleryListing>> } | null = null
 
 /** The games anyone can play, bought or not (every drip is free too). */
 export const FREE_GAMES: readonly string[] = ['missiles']
-/** The game and the drip each console tab features. */
-export const FEATURED = { game: 'missiles', drip: 'fireworks' } as const
-/** How long the console stays up untouched, in ms. */
-const CONSOLE_MS = 30 * 60_000
 
 /** A drip's name as the card shows it: "matrix" → "Matrix". */
 const titleOf = (name: string) => name.charAt(0).toUpperCase() + name.slice(1)
@@ -77,13 +81,13 @@ async function folderGames($: EngineInterface): Promise<{ games: FolderGame[]; s
 }
 
 /** Every drip from a folder, for the card: the plugin's own, then the person's. */
-async function folderDrips($: EngineInterface): Promise<{ name: string; title: string; icon: string | null; isYours: boolean; author: string; cover: string }[]> {
+async function folderDrips($: EngineInterface): Promise<{ name: string; title: string; icon: string | null; isYours: boolean; author: string }[]> {
   const d = folderDeps($)
   const builtIn = new Set(Object.keys(ONE_SHOT_EFFECTS))
   const shipped = (await loadDrips(d, `${$.plugin.root}/drips`, builtIn, false)).drips
   const home = await $.env.get('HOME')
   const yours = home ? (await loadDrips(d, dripsDir(home), new Set([...builtIn, ...shipped.map(x => x.name)]), true)).drips : []
-  return [...shipped, ...yours].map(x => ({ name: x.name, title: x.title, icon: x.icon, isYours: x.isYours, author: x.author, cover: x.cover }))
+  return [...shipped, ...yours].map(x => ({ name: x.name, title: x.title, icon: x.icon, isYours: x.isYours, author: x.author }))
 }
 
 /** /drip share <name>: one of the person's own, to the gallery as a pull request. */
@@ -194,149 +198,97 @@ async function isDripHere($: EngineInterface, name: string): Promise<boolean> {
   return name in (await readCustoms(store($)))
 }
 
-/** What the gallery has, for the console and for a name not on this Mac; null offline. */
+/** What the gallery has, for a name not on this Mac and the pane; null offline. */
 async function gallery($: EngineInterface) {
-  return galleryListing({ fetch: url => $.http.fetch(url) })
+  const now = await $.clock.now()
+  if (galleryKept && now - galleryKept.at < GALLERY_MS) return galleryKept.index
+  const index = await galleryListing({ fetch: url => $.http.fetch(url) })
+  galleryKept = { at: now, index }
+  return index
 }
 
-/** The gallery's game or drip as the console shows it, before it's fetched. */
-function galleryItem(kind: 'game' | 'drip', e: Entry, isLocked: boolean): Item {
-  const cover = coverUrl(kind, e)
-  return {
+/** Who made it, as the pane says it: Glyphh's own are "Glyphh built". */
+export const byOf = (author: string) => (author === GLYPHH ? 'Glyphh built' : `@${author}`)
+
+/** One row of the pane. */
+type Row = { kind: 'game' | 'drip'; name: string; title: string; icon: string; by: string | null; best: number; isYours: boolean; isGallery: boolean; isLocked: boolean }
+
+/** Every game and drip for the pane: here first, then the gallery's not fetched yet. */
+async function paneRows($: EngineInterface, isBought: boolean): Promise<{ games: Row[]; drips: Row[] }> {
+  const scores = scoresOf(store($))
+  const locked = (name: string) => !isBought && !FREE_GAMES.includes(name)
+  const games: Row[] = []
+  for (const g of [...GAMES, ...(await folderGames($)).games]) {
+    const f = 'isYours' in g ? (g as FolderGame) : null
+    games.push({
+      kind: 'game',
+      name: g.name,
+      title: g.title,
+      icon: GAME_ICONS[g.name] ?? (f?.icon ? tiled(f.icon) : GENERIC_GAME_ICON),
+      by: byOf(f ? f.author : GLYPHH),
+      best: await scores.best(g.name),
+      isYours: f?.isYours === true,
+      isGallery: false,
+      isLocked: locked(g.name),
+    })
+  }
+  const own = await folderDrips($)
+  const saved = Object.keys(await readCustoms(store($))).filter(n => !own.some(d => d.name === n))
+  const drips: Row[] = [
+    ...BUILTIN_EFFECT_LIST.map(d => ({ name: d.name, title: titleOf(d.name), icon: DRIP_ICONS[d.name] ?? GENERIC_DRIP_ICON, by: byOf(GLYPHH), isYours: false })),
+    ...own.map(d => ({ name: d.name, title: d.title, icon: d.icon ? tiled(d.icon) : GENERIC_DRIP_ICON, by: byOf(d.author), isYours: d.isYours })),
+    // A saved recipe is the person's, made of built-in drips: no maker to name.
+    ...saved.map(name => ({ name, title: titleOf(name), icon: GENERIC_DRIP_ICON, by: null, isYours: true })),
+  ].map(d => ({ ...d, kind: 'drip' as const, best: 0, isGallery: false, isLocked: false }))
+  const index = await gallery($)
+  const here = new Set([...games, ...drips].map(r => r.name))
+  const fromGallery = (kind: 'game' | 'drip', e: { name: string; title: string; author?: string }): Row => ({
     kind,
     name: e.name,
     title: e.title,
-    ...(e.about ? { about: e.about } : {}),
-    ...(e.author ? { by: byOf(e.author) } : {}),
-    ...(cover ? { cover } : { icon: kind === 'game' ? GENERIC_GAME_ICON : GENERIC_DRIP_ICON }),
-    isGallery: true,
-    isLocked,
+    icon: kind === 'game' ? GENERIC_GAME_ICON : GENERIC_DRIP_ICON,
+    by: e.author ? byOf(e.author) : null,
+    best: 0,
     isYours: false,
-  }
+    isGallery: true,
+    isLocked: kind === 'game' && locked(e.name),
+  })
+  for (const e of index?.games ?? []) if (!here.has(e.name)) games.push(fromGallery('game', e))
+  for (const e of index?.drips ?? []) if (!here.has(e.name)) drips.push(fromGallery('drip', e))
+  return { games, drips }
 }
 
-/** Fetches the gallery's `name` (a launch, or /drip <name>), then plays it:
+/** Play or Get on the pane: the game or drip, fetched first when it's the gallery's; a locked game opens checkout. */
+async function press($: EngineInterface, row: Row): Promise<void> {
+  if (row.isLocked) return checkout($)
+  const said = row.isGallery
+    ? await getThenPlay($, row.kind, row.name).catch(err => `/drip: ${short(err)}`)
+    : row.kind === 'drip'
+      ? await queueDrip($, row.name).then(() => 'Got')
+      : await play($, (await findGame($, row.name))!).catch(err => `/drip: ${short(err)}`)
+  if (!said.startsWith('Got') && !said.includes('Esc quits')) $.ui.toast(said)
+}
+
+/** A drip for the drips' half (../drips) to play. */
+async function queueDrip($: EngineInterface, name: string): Promise<void> {
+  const at = await $.clock.now()
+  await update($, queued, () => ({ recipe: name, at }))
+}
+
+/** Fetches the gallery's `name` (/drip <name>), then plays it:
  *  says what happened when it couldn't. */
 async function getThenPlay($: EngineInterface, kind: 'game' | 'drip', name: string): Promise<string> {
   const got = await getFromGallery($, name)
   if (!got.startsWith('Got ')) return got
   if (kind === 'drip') {
-    const at = await $.clock.now()
-    await update($, queued, () => ({ recipe: name, at }))
+    await queueDrip($, name)
     return got
   }
   const game = await findGame($, name)
-  return game ? play($, game, () => void openConsole($, 'games').catch(err => $.ui.toast(`drip ✗ ${short(err)}`))) : got
+  return game ? play($, game) : got
 }
 
-/** Who made it, as the console says it: Glyphh's own are "Glyphh built". */
-export const byOf = (author: string) => (author === GLYPHH ? 'Glyphh built' : `@${author}`)
-
-/** A data: URI for SVG markup. */
-const svgUri = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
-
-/** The cover photographed for `key` ("game-missiles"), as a data: URI; null without one. */
-async function coverOf($: EngineInterface, key: string): Promise<string | null> {
-  const path = `${$.plugin.root}/covers/${key}.jpg`
-  if (!(await $.fs.exists(path))) return null
-  const { base64 } = await $.fs.read(path, { as: 'bytes' })
-  return `data:image/jpeg;base64,${base64}`
-}
-
-/** Every game and drip as the console shows them. */
-async function consoleItems($: EngineInterface, isBought: boolean): Promise<{ games: Item[]; drips: Item[] }> {
-  const scores = scoresOf(store($))
-  const games: Item[] = []
-  for (const g of [...GAMES, ...(await folderGames($)).games]) {
-    const best = await scores.best(g.name)
-    const isYours = 'isYours' in g && g.isYours === true
-    // A folder's game has its own cover; a built-in one's is in covers/.
-    const cover = 'cover' in g && typeof g.cover === 'string' ? g.cover : await coverOf($, `game-${g.name}`)
-    games.push({
-      kind: 'game',
-      name: g.name,
-      title: g.title,
-      ...('about' in g && typeof g.about === 'string' ? { about: g.about } : {}),
-      ...(best > 0 ? { best: `Best ${best.toLocaleString('en-GB')}` } : {}),
-      ...(cover ? { cover } : { icon: GAME_ICONS[g.name] ?? ('icon' in g && typeof g.icon === 'string' ? g.icon : GENERIC_GAME_ICON) }),
-      by: byOf('author' in g && typeof g.author === 'string' ? g.author : GLYPHH),
-      isLocked: !isBought && !FREE_GAMES.includes(g.name),
-      isYours,
-    })
-  }
-  const saved = Object.keys(await readCustoms(store($)))
-  const own = await folderDrips($)
-  const listed = [
-    ...BUILTIN_EFFECT_LIST.map(d => ({ name: d.name, title: titleOf(d.name), icon: DRIP_ICONS[d.name] ?? GENERIC_DRIP_ICON, isYours: false, author: GLYPHH, cover: null as string | null })),
-    ...own.map(d => ({ name: d.name, title: d.title, icon: d.icon ?? GENERIC_DRIP_ICON, isYours: d.isYours, author: d.author, cover: d.cover as string | null })),
-    // A saved recipe is the person's, made of built-in drips: no cover, no author.
-    ...saved.filter(n => !own.some(d => d.name === n)).map(name => ({ name, title: titleOf(name), icon: GENERIC_DRIP_ICON, isYours: true, author: null, cover: null as string | null })),
-  ]
-  const drips: Item[] = []
-  for (const d of listed) {
-    const cover = d.cover ?? (d.author === GLYPHH ? await coverOf($, `drip-${d.name}`) : null)
-    drips.push({ kind: 'drip', name: d.name, title: d.title, ...(cover ? { cover } : { icon: d.icon }), ...(d.author ? { by: byOf(d.author) } : {}), isLocked: false, isYours: d.isYours })
-  }
-  // Then what the gallery has that isn't here yet, to fetch on launch.
-  const index = await gallery($)
-  const here = new Set([...games, ...drips].map(i => i.name))
-  for (const e of index?.games ?? []) if (!here.has(e.name)) games.push(galleryItem('game', e, !isBought && !FREE_GAMES.includes(e.name)))
-  for (const e of index?.drips ?? []) if (!here.has(e.name)) drips.push(galleryItem('drip', e, false))
-  return { games, drips }
-}
-
-/** Shows the console over Claude, on `shown`'s tab. What it asks for is done
- *  once it has closed: a game (the console comes back when the game ends), a
- *  drip, or checkout. */
-async function openConsole($: EngineInterface, shown: 'games' | 'drips'): Promise<void> {
-  native ??= prepareOverlay(overlayDeps($))
-  const prepared = await native
-  if (!('binary' in prepared)) return $.ui.toast(prepared.missing)
-  const isBought = refusal(await read($, licence)) === null
-  const { games, drips } = await consoleItems($, isBought)
-  const html = consoleHtml({
-    games,
-    drips,
-    featured: FEATURED,
-    isBought,
-    price: PRICE,
-    logo: { cat: svgUri(CAT_SVG), word: svgUri(MARK_SVG) },
-    tab: shown,
-    quiet: !settings.sounds,
-  })
-  let asked = ''
-  const { show } = overlayHost(overlayDeps($), prepared.binary, placement($, prepared.binary))
-  const up = await show(
-    () => ({ html, closeAfterMs: CONSOLE_MS, interactive: true }),
-    async ev => void (ev.t === 'ask' && (asked = ev.ask)),
-  )
-  void up.closed.then(() => act($, asked), () => undefined)
-}
-
-/** Does what the console asked: `launch game <name>`, `launch drip <name>` or `unlock`. */
-async function act($: EngineInterface, asked: string): Promise<void> {
-  const [verb, kind, name] = asked.split(' ')
-  if (verb === 'unlock') return checkout($)
-  if (verb !== 'launch' || !name || (kind !== 'game' && kind !== 'drip')) return
-  if (kind === 'game' && (await gameRefusal($, name))) return checkout($)
-  const isHere = kind === 'game' ? (await findGame($, name)) !== null : await isDripHere($, name)
-  if (!isHere) {
-    const said = await getThenPlay($, kind, name).catch(err => `/drip: ${short(err)}`)
-    if (!said.startsWith('Got ') && !said.includes('Esc quits')) $.ui.toast(said)
-    return
-  }
-  if (kind === 'drip') {
-    const at = await $.clock.now()
-    await update($, queued, () => ({ recipe: name, at }))
-    return
-  }
-  const game = (await findGame($, name))!
-  const said = await play($, game, () => void openConsole($, 'games').catch(err => $.ui.toast(`drip ✗ ${short(err)}`))).catch(err => `/drip: ${short(err)}`)
-  if (!said.startsWith(game.title)) $.ui.toast(said) // the overlay could not run
-}
-
-
-/** What /drip unlock does, from the card's Play (a mod can't run its own
+/** What /drip unlock does, from the card's Unlock (a mod can't run its own
  *  command, and the engine follows $ only within this file). */
 async function checkout($: EngineInterface): Promise<void> {
   const d: Deps = {
@@ -357,7 +309,7 @@ async function checkout($: EngineInterface): Promise<void> {
 
 /** Starts `game` in the overlay; resolves once it is on screen. The score it
  *  posts is kept when it beats the top one. */
-async function play($: EngineInterface, game: Game, ended?: () => void): Promise<string> {
+async function play($: EngineInterface, game: Game): Promise<string> {
   native ??= prepareOverlay(overlayDeps($))
   const prepared = await native
   if (!('binary' in prepared)) return prepared.missing
@@ -368,7 +320,7 @@ async function play($: EngineInterface, game: Game, ended?: () => void): Promise
     s => gameDoc(game, s.w, s.h, best, settings.sounds),
     async ev => void (ev.t === 'score' && (await scores.keep(game.name, ev.score))),
   )
-  void shown.closed.then(ended, () => undefined)
+  void shown.closed.catch(() => undefined)
   return `${game.title}${best > 0 ? `: your best is ${best}` : ''}. Esc quits, M mutes.`
 }
 
@@ -377,12 +329,12 @@ export function arcade(on: On, options: PluginOptions) {
   native = null
   target = null
   isMissedSaid = false
+  galleryKept = null
 
-  // /drip alone (or /drip list): the small card, the logo and Open drip;
-  // Unlock beside it until Glyphh Drip is bought.
+  // /drip alone: the small card, the logo, and Unlock until Glyphh Drip is bought.
   on('ui.render', { component: 'CommandOutput' }, async ($, e, next) => {
     const args = e.props.args.trim().toLowerCase()
-    if (e.props.command !== 'drip' || e.props.isErrored || (args !== '' && args !== 'list')) return next(e)
+    if (e.props.command !== 'drip' || e.props.isErrored || args !== '') return next(e)
     const { Box, Text, Button, ...els } = $.ui.resolve(e)
     // Every surface but the terminal draws SVG: the logo; the terminal gets the word.
     const Svg = e.surface !== 'terminal' && 'Svg' in els ? els.Svg : null
@@ -398,8 +350,43 @@ export function arcade(on: On, options: PluginOptions) {
           <Text bold>drip</Text>
         )}
         <Box flexGrow={1} />
-        {isLocked ? <Button key="unlock" label={`Unlock · ${PRICE}`} variant="secondary" onPress={() => void checkout($)} /> : null}
-        <Button key="open" label="Open drip" variant="primary" onPress={() => void openConsole($, 'games')} />
+        {isLocked ? <Button key="unlock" label={`Unlock · ${PRICE}`} variant="primary" onPress={() => void checkout($)} /> : null}
+      </Box>
+    )
+  })
+
+  // The Drip pane (/drip list): every game, then every drip, each row its
+  // icon, name, maker, your best and Play (Get for the gallery's); Unlock
+  // above them until it's bought.
+  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
+    const { Box, Text, Button, ...els } = $.ui.resolve(e)
+    const Svg = e.surface !== 'terminal' && 'Svg' in els ? els.Svg : null
+    const isBought = refusal(await read($, licence)) === null
+    const { games, drips } = await paneRows($, isBought)
+    const row = (r: Row) => (
+      <Box key={`${r.kind}:${r.name}`} flexDirection="row" alignItems="center" gap={2}>
+        {Svg ? <Svg source={r.icon} alt={r.title} width={24} height={24} /> : null}
+        <Box flexGrow={1} flexDirection="row" alignItems="center" gap={2}>
+          <Text bold>{r.title}</Text>
+          {r.by ? <Text dimColor>{r.by}</Text> : null}
+          {r.isYours ? <Text dimColor>yours</Text> : null}
+        </Box>
+        {r.best > 0 ? <Text dimColor>Best {r.best.toLocaleString('en-GB')}</Text> : null}
+        <Button key={`${r.isGallery ? 'get' : 'play'}:${r.kind}:${r.name}`} label={r.isGallery ? 'Get' : 'Play'} variant="secondary" dimColor={r.isLocked} onPress={() => void press($, r)} />
+      </Box>
+    )
+    return (
+      <Box flexDirection="column" gap={2} paddingX={1}>
+        {isBought ? null : (
+          <Box flexDirection="row" alignItems="center" gap={2}>
+            <Text dimColor>Missiles and every drip are free; the other games are {PRICE}, once.</Text>
+            <Button key="unlock" label={`Unlock · ${PRICE}`} variant="primary" onPress={() => void checkout($)} />
+          </Box>
+        )}
+        <Text bold>Games</Text>
+        <Box flexDirection="column" gap={1}>{games.map(row)}</Box>
+        <Text bold>Drips</Text>
+        <Box flexDirection="column" gap={1}>{drips.map(row)}</Box>
       </Box>
     )
   })
@@ -412,6 +399,8 @@ export function arcade(on: On, options: PluginOptions) {
     if (verb?.toLowerCase() === 'get') return { text: rest.length === 1 ? await getFromGallery($, rest[0]!) : 'Usage: /drip get <name>' }
     if (verb?.toLowerCase() === 'share') return { text: rest.length === 1 ? await shareToGallery($, rest[0]!) : 'Usage: /drip share <name>' }
     if (!name || name.toLowerCase() === 'list') {
+      // /drip list opens the pane; both answer with the list in words too.
+      if (name) await $.ui.open({ id: PANE, title: 'Drip' })
       const drips = await next({ ...e, args: 'list' })
       return { text: `${await listing($)}\n\n${drips.text ?? ''}`.trim() }
     }

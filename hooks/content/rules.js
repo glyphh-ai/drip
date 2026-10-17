@@ -16,7 +16,7 @@ export const COVER_MIN_W = 480
 export const COVER_MAX_W = 1920
 /** A GitHub login: letters, digits and single hyphens, at most 39. */
 export const AUTHOR = /^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/
-/** The author Glyphh's own carry, which the console shows as "Glyphh built". */
+/** The author Glyphh's own carry, which the pane shows as "Glyphh built". */
 export const GLYPHH = 'glyphh'
 /** The cover files a folder may have, in the order they are looked for. */
 export const COVER_FILES = ['cover.jpg', 'cover.png']
@@ -92,7 +92,7 @@ export function imageSize(b) {
 
 /** Why a cover won't do, or null. @param {Cover | null} c @returns {string | null} */
 function coverWhy(c) {
-  if (c === null) return 'it has no cover.jpg or cover.png (its card in the console)'
+  if (c === null) return 'it has no cover.jpg or cover.png (its picture)'
   const b = bytesOf(c.base64)
   if (b === null) return `${c.file} could not be read`
   if (b.length > COVER_MAX) return `${c.file} is over 300 KB`
