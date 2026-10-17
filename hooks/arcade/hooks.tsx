@@ -73,6 +73,8 @@ const TAKEN = new Set(GAMES.flatMap(g => [g.name, ...(g.aliases ?? [])]))
 let settings: Settings
 /** This load's pieces: the overlay's binary, built on first use, and the window Claude runs in. */
 let native: Promise<Prepared> | null = null
+/** The title of the game on screen, if one is: only one plays at a time. */
+let gameOpen: string | null = null
 let target: Promise<Target | null> | null = null
 /** Said once per load: Claude's window not found. */
 let isMissedSaid = false
@@ -473,9 +475,24 @@ async function checkout($: EngineInterface): Promise<void> {
 /** Starts `game` in the overlay; resolves once it is on screen. The score it
  *  posts is kept when it beats the top one. */
 async function play($: EngineInterface, game: Game): Promise<string> {
+  // One game at a time (drips may stack; games don't).
+  if (gameOpen) return `${gameOpen} is already open. Quit it with Esc first.`
+  gameOpen = game.title
+  try {
+    return await playOne($, game)
+  } catch (err) {
+    gameOpen = null
+    throw err
+  }
+}
+
+async function playOne($: EngineInterface, game: Game): Promise<string> {
   native ??= prepareOverlay(overlayDeps($))
   const prepared = await native
-  if (!('binary' in prepared)) return prepared.missing
+  if (!('binary' in prepared)) {
+    gameOpen = null
+    return prepared.missing
+  }
   const scores = scoresOf(store($))
   const best = await scores.best(game.name)
   const { show } = overlayHost(overlayDeps($), prepared.binary, placement($, prepared.binary))
@@ -483,13 +500,14 @@ async function play($: EngineInterface, game: Game): Promise<string> {
     s => gameDoc(game, s.w, s.h, best, settings.sounds),
     async ev => void (ev.t === 'score' && (await scores.keep(game.name, ev.score))),
   )
-  void shown.closed.catch(() => undefined)
+  void shown.closed.catch(() => undefined).finally(() => (gameOpen = null))
   return `${game.title}${best > 0 ? `: your best is ${best}` : ''}. Esc quits, M mutes.`
 }
 
 export function arcade(on: On, options: PluginOptions) {
   settings = settingsOf(options)
   native = null
+  gameOpen = null
   target = null
   isMissedSaid = false
   licenceChecked = null
