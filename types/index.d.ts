@@ -40,6 +40,8 @@ declare module 'claude-code' {
       page: number
       /** The starred items ("game:missiles"), the tray's buttons; kept in the store too. */
       favourites: string[]
+      /** The item the pane shows on its own page ("game:snake"), or the table. */
+      detail: string | null
     }
   }
 }

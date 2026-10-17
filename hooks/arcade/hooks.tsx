@@ -20,8 +20,8 @@ import { buy, type Deps } from '../unlock/flow.ts'
 import { verify } from '../unlock/verify.ts'
 import { BUILTIN_EFFECT_LIST, ONE_SHOT_EFFECTS } from '../drips/effects.ts'
 import { dripsDir, gamesDir, loadDrips, loadGames, skippedText, type FolderDeps, type FolderGame } from '../content/folders.ts'
-import { get as galleryGet, listing as galleryListing, type Entry } from '../content/gallery.ts'
-import { GLYPHH, NAME } from '../content/rules.js'
+import { GALLERY_API, get as galleryGet, listing as galleryListing, type Entry } from '../content/gallery.ts'
+import { COVER_FILES, GLYPHH, NAME } from '../content/rules.js'
 import { share as galleryShare } from '../content/share.ts'
 import { readCustoms } from '../drips/library.ts'
 import { GAMES, gameDoc, gameOf } from './games/index.ts'
@@ -39,6 +39,8 @@ const queued = atom({ plugin: 'glyphh-drip', key: 'queued' } as const, null as {
 const query = atom({ plugin: 'glyphh-drip', key: 'query' } as const, '')
 const filter = atom({ plugin: 'glyphh-drip', key: 'filter' } as const, 'all' as Kind | 'all')
 const page = atom({ plugin: 'glyphh-drip', key: 'page' } as const, 0)
+/** The item the pane shows on its own page ("game:snake"); none, the table. */
+const detail = atom({ plugin: 'glyphh-drip', key: 'detail' } as const, null as string | null)
 /** The starred items ("game:missiles"), the tray's buttons: kept in the store across sessions (../drips loads them). */
 const favourites = atom({ plugin: 'glyphh-drip', key: 'favourites' } as const, [] as string[])
 /** The tray's row is open (the drip button by the prompt). */
@@ -314,6 +316,51 @@ export function shown(rows: readonly Row[], query: string, filter: Kind | 'all')
 /** A favourite's key, as the tray and the store keep it. */
 export const favKey = (kind: Kind, name: string) => `${kind}:${name}`
 
+/** The largest picture the pane can draw: an Svg's source is at most 131072 characters. */
+const SVG_MAX = 131_072
+
+/** The gallery's covers fetched this load, base64 by "kind:name": one fetch each. */
+const galleryCovers = new Map<string, string | null>()
+
+/** An item's screenshot as base64 JPEG or PNG ({ type, base64 }), from wherever it lives; null without one. */
+async function coverOf($: EngineInterface, r: Row): Promise<{ type: string; base64: string } | null> {
+  const read64 = async (path: string) => ((await $.fs.exists(path).catch(() => false)) ? (await $.fs.read(path, { as: 'bytes' })).base64 : null)
+  const home = await $.env.get('HOME')
+  if (!r.isGallery) {
+    // A folder's (fetched or the person's), else a built-in one's in the plugin's covers/.
+    for (const file of COVER_FILES) {
+      const b = home ? await read64(`${home}/.glyphh/${r.kind}s/${r.name}/${file}`) : null
+      if (b) return { type: file.endsWith('.png') ? 'png' : 'jpeg', base64: b }
+    }
+    const b = await read64(`${$.plugin.root}/covers/${r.kind}-${r.name}.jpg`)
+    return b ? { type: 'jpeg', base64: b } : null
+  }
+  const key = favKey(r.kind, r.name)
+  if (!galleryCovers.has(key)) {
+    const index = await gallery($)
+    const entry = (r.kind === 'game' ? index?.games : index?.drips)?.find(e => e.name === r.name)
+    const file = COVER_FILES.find(f => entry?.files.includes(f))
+    const res = file ? await $.http.fetch(`${GALLERY_API}/${r.kind}s/${r.name}/${file}?ref=main`).catch(() => null) : null
+    let base64: string | null = null
+    try {
+      const v = res?.ok ? (JSON.parse(res.text) as { encoding?: string; content?: string }) : null
+      base64 = v?.encoding === 'base64' && typeof v.content === 'string' ? v.content.replace(/\s+/g, '') : null
+    } catch {
+      base64 = null
+    }
+    galleryCovers.set(key, base64 && file ? `${file.endsWith('.png') ? 'png' : 'jpeg'}:${base64}` : null)
+  }
+  const kept = galleryCovers.get(key)
+  return kept ? { type: kept.slice(0, kept.indexOf(':')), base64: kept.slice(kept.indexOf(':') + 1) } : null
+}
+
+/** A screenshot as an Svg the pane can draw (480×300, filled); null when there is none or it is too big. */
+export function screenshotSvg(cover: { type: string; base64: string } | null): string | null {
+  if (!cover) return null
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300" viewBox="0 0 480 300"><image width="480" height="300" preserveAspectRatio="xMidYMid slice" href="data:image/${cover.type};base64,${cover.base64}"/></svg>`
+  return svg.length <= SVG_MAX ? svg : null
+}
+
 /** The pane's search: the rows it leaves, from the first page. */
 async function search($: EngineInterface, text: string): Promise<void> {
   await update($, query, () => text)
@@ -398,6 +445,7 @@ export function arcade(on: On, options: PluginOptions) {
   target = null
   isMissedSaid = false
   galleryKept = null
+  galleryCovers.clear()
 
   // The Drip pane (/drip, /drip list): a search, a filter by type, and a
   // table, fifteen rows a page: emoji, name, line, type, ☆ (the tray) and Play
@@ -415,6 +463,41 @@ export function arcade(on: On, options: PluginOptions) {
     const pages = Math.max(1, Math.ceil(rows.length / PAGE_ROWS))
     const at = Math.min(await read($, page), pages - 1)
     const stars = await read($, favourites)
+    // One item's page: ← back to its type, its screenshot, its line and its button.
+    const opened = await read($, detail)
+    const item = opened ? all.find(r => favKey(r.kind, r.name) === opened) : undefined
+    if (item) {
+      const key = favKey(item.kind, item.name)
+      const shot = Svg ? screenshotSvg(await coverOf($, item)) : null
+      const isStar = stars.includes(key)
+      return (
+        <Box flexDirection="column" gap={1} paddingX={1}>
+          <Box key="top" flexDirection="row">
+            <Button key="back" label={`← ${TYPES[item.kind]}s`} plain onPress={() => void update($, detail, () => null)} />
+          </Box>
+          {shot && Svg ? <Svg key="shot" source={shot} alt={`${item.title}, playing`} width={480} height={300} /> : <Text key="shot">{item.emoji}</Text>}
+          <Box key="name" flexDirection="row" alignItems="center" gap={1}>
+            <Text>{item.emoji}</Text>
+            <Text bold>{item.title}</Text>
+            {item.by ? <Text dimColor>{item.by}</Text> : null}
+            {item.isYours ? <Text dimColor>yours</Text> : null}
+          </Box>
+          {item.about ? <Text key="about">{item.about}</Text> : null}
+          <Text key="type" dimColor>
+            {TYPES[item.kind]}
+            {item.best > 0 ? ` · Best ${item.best.toLocaleString('en-GB')}` : ''}
+          </Text>
+          <Box key="act" flexDirection="row" alignItems="center" gap={1}>
+            {item.isLocked ? (
+              <Button key="unlock" label={`Unlock · ${PRICE}`} variant="primary" onPress={() => void checkout($)} />
+            ) : (
+              <Button key={`${item.isGallery ? 'get' : 'play'}:${key}`} label={item.isGallery ? 'Get' : 'Play'} variant="primary" onPress={() => void press($, item)} />
+            )}
+            <Button key={`fav:${key}`} label={isStar ? '★' : '☆'} plain dimColor={!isStar} onPress={() => void toggleFavourite($, key)} />
+          </Box>
+        </Box>
+      )
+    }
     const kinds = (Object.keys(TYPES) as Kind[]).filter(k => all.some(r => r.kind === k))
     const turn = (by: number) => () => void update($, page, p => Math.max(0, Math.min(pages - 1, Math.min(p, pages - 1) + by)))
     return (
@@ -462,7 +545,7 @@ export function arcade(on: On, options: PluginOptions) {
               <Box key={key} flexDirection="row" alignItems="center" gap={2}>
                 <Text>{r.emoji}</Text>
                 <Box width="34%" flexDirection="row" gap={1}>
-                  <Text bold wrap="truncate">{r.title}</Text>
+                  <Button key={`open:${key}`} label={r.title} plain onPress={() => void update($, detail, () => key)} />
                   {r.isYours ? <Text dimColor>yours</Text> : null}
                 </Box>
                 <Box flexGrow={1} flexShrink={1}>
