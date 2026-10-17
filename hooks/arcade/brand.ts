@@ -19,10 +19,10 @@ const WORD_DARK = 'iVBORw0KGgoAAAANSUhEUgAAAPMAAACICAYAAAAyE909AAAJdElEQVR4nO3dz
 /** The theme the logo is drawn for: `auto` follows the system's light or dark. */
 export type LogoTheme = 'light' | 'dark' | 'auto'
 
-/** The light theme's swap: the cat's white parts dark and its dark parts (the eyes) white, the dark "drip". */
-const LIGHT_CSS = '[fill="#ffffff"]{fill:#0b0a0f}[stroke="#ffffff"]{stroke:#0b0a0f}[fill="#0b0a0f"]{fill:#ffffff}[stroke="#0b0a0f"]{stroke:#ffffff}.w{display:none}.k{display:inline}'
+/** The light theme's swap: the dark "drip" for the white one. The mascot never changes. */
+const LIGHT_CSS = '.w{display:none}.k{display:inline}'
 
-/** The console's logo: the Mohawk cat beside "drip", white on a dark theme and dark on a light one. 445×216. */
+/** The console's logo: the Mohawk cat as it is, beside "drip": the text white on a dark theme, dark on a light one. 445×216. */
 export function logoSvg(theme: LogoTheme): string {
   const cat = CAT_SVG.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '')
   const css = theme === 'light' ? LIGHT_CSS : theme === 'auto' ? `@media (prefers-color-scheme: light){${LIGHT_CSS}}` : ''
