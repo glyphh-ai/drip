@@ -502,7 +502,7 @@ export function arcade(on: On, options: PluginOptions) {
       return (
         <Box flexDirection="column" gap={1} paddingX={1}>
           <Box key="top" flexDirection="row">
-            <Button key="back" label={`←  ${TYPES[item.kind]}s`} onPress={() => void update($, detail, () => null)} />
+            <Button key="back" label={`←  ${TYPES[item.kind]}s`} plain onPress={() => void update($, detail, () => null)} />
           </Box>
           {shot === 'loading' ? (
             <Text key="shot" dimColor>
@@ -581,7 +581,7 @@ export function arcade(on: On, options: PluginOptions) {
             return (
               <Box key={key} flexDirection="row" alignItems="center" gap={2}>
                 <Box width="38%" flexDirection="row" alignItems="center" gap={1}>
-                  <Button key={`open:${key}`} label={`${r.emoji}  ${r.title}`} onPress={() => void update($, detail, () => key)} />
+                  <Button key={`open:${key}`} label={`${r.emoji}  ${r.title}`} plain onPress={() => void update($, detail, () => key)} />
                   {r.isYours ? <Text dimColor>yours</Text> : null}
                 </Box>
                 <Box flexGrow={1} flexShrink={1}>
@@ -646,7 +646,7 @@ export function arcade(on: On, options: PluginOptions) {
     if (verb?.toLowerCase() === 'share') return { text: rest.length === 1 ? await shareToGallery($, rest[0]!) : 'Usage: /drip share <name>' }
     if (!name || name.toLowerCase() === 'list') {
       // The pane; where no surface places one (a bare terminal), the list in words.
-      const { isPlaced } = await $.ui.open({ id: PANE, title: 'Drip' })
+      const { isPlaced } = await $.ui.open({ id: PANE, title: 'Drip', focus: true })
       if (isPlaced) return { text: OPENED }
       const drips = await next({ ...e, args: 'list' })
       return { text: `${await listing($)}\n\n${drips.text ?? ''}`.trim() }
