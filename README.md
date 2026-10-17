@@ -65,7 +65,7 @@ page for you.
 ## The Drip pane
 
 `/drip` (or `/drip list`) opens the **Drip** pane in the side panel: a search,
-a filter by type and a table, ten rows a page. Each row is an emoji, the name,
+a filter by type and a table, fifteen rows a page. Each row is an emoji, the name,
 one line, the type, **☆** and **Play**; what the gallery has that isn't on your
 Mac yet has **Get** (fetched, then played). The ☆ puts it in the tray above the
 prompt, opened by the drip button. Until Glyphh Drip is bought, **Unlock** sits

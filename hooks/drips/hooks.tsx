@@ -169,7 +169,7 @@ async function withButton($: EngineInterface, e: Parameters<EngineInterface['ui'
   return (
     <Box flexDirection="row" gap={2}>
       {line}
-      <Button key="drip" label="drip" plain dimColor={!isOpen} onPress={() => update($, bandOpen, v => !v)} />
+      <Button key="drip" label="💧 drip" plain dimColor={!isOpen} onPress={() => update($, bandOpen, v => !v)} />
     </Box>
   )
 }

@@ -295,7 +295,7 @@ async function paneRows($: EngineInterface, isBought: boolean): Promise<Row[]> {
 }
 
 /** Rows to a page of the pane's table. */
-export const PAGE_ROWS = 10
+export const PAGE_ROWS = 15
 
 /** The rows a search (every word, in the name, line, type, maker or "yours") and a filter leave, in order. */
 export function shown(rows: readonly Row[], query: string, filter: Kind | 'all'): Row[] {
@@ -396,7 +396,7 @@ export function arcade(on: On, options: PluginOptions) {
   galleryKept = null
 
   // The Drip pane (/drip, /drip list): a search, a filter by type, and a
-  // table, ten rows a page: emoji, name, line, type, ☆ (the tray) and Play
+  // table, fifteen rows a page: emoji, name, line, type, ☆ (the tray) and Play
   // (Get for the gallery's). Unlock above it until it's bought.
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Button, ...els } = $.ui.resolve(e)
