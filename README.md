@@ -2,7 +2,7 @@
 
 Every game and drip for [Glyphh Drip](https://github.com/glyphh-ai/glyphh), the
 plugin that plays games and visual effects over Claude. The plugin ships with
-Missiles and its drips; everything here shows in its console, each marked
+Missiles and its drips; everything here shows in its Drip pane, each marked
 Glyphh built or @author, and is fetched when it's first played (or with
 `/drip get <name>`). `/drip share <name>` sends one of yours here as a pull
 request. Make your own
@@ -17,7 +17,7 @@ share it with everyone.
 | `scripts/check.js` | `node scripts/check.js games/snake` checks a folder the way the plugin does |
 | `scripts/authors.js` | CI's check that a pull request's folders are its opener's |
 | `MAINTAINERS` | Who may publish as `glyphh` (Glyphh built) |
-| `index.json` | What `/drip get` and the console read; written by CI, never by hand |
+| `index.json` | What `/drip get` and the Drip pane read; written by CI, never by hand |
 
 ## A game
 
@@ -25,7 +25,7 @@ share it with everyone.
 games/snake/
   game.json     { "title": "Snake", "author": "octocat", "about": "Eat, grow, don't bite your tail" }
   game.html     the game: one self-contained page
-  cover.jpg     its card in the console (or cover.png)
+  cover.jpg     its picture (or cover.png)
   icon.svg      optional: a 24×24 outline icon
 ```
 
@@ -68,7 +68,7 @@ Claude. The kit is the same as a game's, without `best` and `score`.
 
 ## Who made it
 
-`author` is the maker's GitHub login. The console shows it as "@octocat";
+`author` is the maker's GitHub login. The Drip pane shows it as "@octocat";
 Glyphh's own carry `glyphh` and show as **Glyphh built**. A pull request's
 folders must be its opener's: CI refuses one that names anyone else, changes
 someone else's folder, or uses `glyphh` (only the logins in `MAINTAINERS`
@@ -76,7 +76,7 @@ may).
 
 ## The cover
 
-Every game and drip has a cover, its card in the console: `cover.jpg` or
+Every game and drip has a cover, a picture of it for the gallery and our videos: `cover.jpg` or
 `cover.png`, 16:10, 480×300 to 1920×1200 (960×600 is right), at most 300 KB.
 A photo of it mid-play on a background of its own colour, with nothing
 written over it. The plugin's skills make one with headless Chrome
@@ -109,7 +109,7 @@ then `gh auth login`).
 3. Open a pull request.
 
 Either way, CI runs the check; we play it; it's merged, and `index.json` is
-updated. From then on it's in everyone's console.
+updated. From then on it's in everyone's Drip pane.
 
 By contributing you license your work under this repository's MIT licence.
 A game or drip is code that runs on players' Macs: keep it to what it says
