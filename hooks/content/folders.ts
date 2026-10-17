@@ -6,6 +6,7 @@
 // there, is left out with the reason.
 import type { Game } from '../arcade/games/game.ts'
 import { COVER_FILES, checkDrip, checkGame, type Cover, type Read } from './rules.js'
+import { MARK } from './gallery.ts'
 import { withKit } from './kit.ts'
 
 /** What a folder read needs: the engine's fs, closed over in the hooks file. */
@@ -49,10 +50,13 @@ export const dripsDir = (home: string) => `${home}/.glyphh/drips`
 /** A cover as a data: URI the console can show. */
 export const coverUri = (c: Cover) => `data:image/${c.file === 'cover.png' ? 'png' : 'jpeg'};base64,${c.base64}`
 
-async function readFolders(d: FolderDeps, dir: string, file: 'game' | 'drip'): Promise<Read[]> {
+/** A folder as read, and whether the gallery put it there (`get`'s mark). */
+type Found = Read & { isGallery: boolean }
+
+async function readFolders(d: FolderDeps, dir: string, file: 'game' | 'drip'): Promise<Found[]> {
   if (!(await d.exists(dir).catch(() => false))) return []
   const entries = await d.list(dir).catch(() => [])
-  const out: Read[] = []
+  const out: Found[] = []
   for (const e of entries.filter(x => x.kind === 'dir').sort((a, b) => a.name.localeCompare(b.name))) {
     const at = `${dir}/${e.name}`
     const opt = async (p: string) => ((await d.exists(p).catch(() => false)) ? await d.read(p).catch(() => null) : null)
@@ -62,7 +66,7 @@ async function readFolders(d: FolderDeps, dir: string, file: 'game' | 'drip'): P
       const base64 = await d.bytes(`${at}/${f}`).catch(() => null)
       if (base64 !== null) cover = { file: f, base64 }
     }
-    out.push({ name: e.name, manifest: await opt(`${at}/${file}.json`), page: await opt(`${at}/${file}.html`), icon: await opt(`${at}/icon.svg`), cover })
+    out.push({ name: e.name, manifest: await opt(`${at}/${file}.json`), page: await opt(`${at}/${file}.html`), icon: await opt(`${at}/icon.svg`), cover, isGallery: await d.exists(`${at}/${MARK}`).catch(() => false) })
   }
   return out
 }
@@ -87,7 +91,7 @@ export async function loadGames(d: FolderDeps, dir: string, taken: ReadonlySet<s
       title: c.manifest.title,
       ...(c.manifest.about ? { about: c.manifest.about } : {}),
       icon: c.icon,
-      isYours,
+      isYours: isYours && !r.isGallery,
       author: c.manifest.author,
       cover: coverUri(c.cover),
       safetyMs: GAME_SAFETY_MS,
@@ -118,7 +122,7 @@ export async function loadDrips(d: FolderDeps, dir: string, taken: ReadonlySet<s
       title: c.manifest.title,
       kind,
       icon: c.icon,
-      isYours,
+      isYours: isYours && !r.isGallery,
       author: c.manifest.author,
       cover: coverUri(c.cover),
       build: (w, h, opacity, quiet) => withKit(page, { kind: 'drip', width: w, height: h, opacity, quiet }),

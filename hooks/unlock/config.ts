@@ -14,5 +14,5 @@ export const PRICE = '$4.99'
 /** What the mod does, shown until it is bought. */
 export const ABOUT = [
   'Glyphh Drip plays games and drips over Claude, with sound: five arcade games and twenty drips, plus the ones you make with Claude.',
-  '/drip opens the card; /drip blocks starts a game; /drip confetti plays a drip.',
+  '/drip opens the card; /drip snake starts a game; /drip confetti plays a drip.',
 ]

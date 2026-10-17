@@ -1,13 +1,9 @@
-// Every game, one file each. A new game is a file in this folder and a line
-// here; the order is the order /games lists them in.
-import { blocks } from './blocks.ts'
-import { chickn } from './chickn.ts'
-import { dash } from './dash.ts'
+// The game built in: Missiles, free. Every other game is a folder in the
+// gallery (glyphh-ai/drip), installed from the console (../hooks.tsx).
 import type { Game } from './game.ts'
 import { missiles } from './missiles.ts'
-import { rocks } from './rocks.ts'
 
-export const GAMES: readonly Game[] = [missiles, chickn, blocks, rocks, dash]
+export const GAMES: readonly Game[] = [missiles]
 
 /** A game by its name or one of its other names, any case; else null. */
 export function gameOf(name: string): Game | null {

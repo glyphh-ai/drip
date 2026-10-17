@@ -19,8 +19,8 @@ import { buy, type Deps } from '../unlock/flow.ts'
 import { verify } from '../unlock/verify.ts'
 import { BUILTIN_EFFECT_LIST, ONE_SHOT_EFFECTS } from '../drips/effects.ts'
 import { dripsDir, gamesDir, loadDrips, loadGames, skippedText, type FolderDeps, type FolderGame } from '../content/folders.ts'
-import { get as galleryGet } from '../content/gallery.ts'
-import { GLYPHH } from '../content/rules.js'
+import { coverUrl, get as galleryGet, listing as galleryListing, type Entry } from '../content/gallery.ts'
+import { GLYPHH, NAME } from '../content/rules.js'
 import { share as galleryShare } from '../content/share.ts'
 import { readCustoms } from '../drips/library.ts'
 import { consoleHtml, type Item } from '../console/page.ts'
@@ -110,7 +110,8 @@ async function shareToGallery($: EngineInterface, name: string): Promise<string>
 async function getFromGallery($: EngineInterface, name: string): Promise<string> {
   const home = await $.env.get('HOME')
   if (!home) return 'No home folder to keep it in.'
-  const have = new Set([...TAKEN, ...Object.keys(ONE_SHOT_EFFECTS), ...(await folderGames($)).games.filter(g => !g.isYours).map(g => g.name)])
+  // Getting one already fetched fetches it again: the gallery's newest.
+  const have = new Set([...TAKEN, ...Object.keys(ONE_SHOT_EFFECTS)])
   return galleryGet(
     {
       fetch: url => $.http.fetch(url),
@@ -178,9 +179,54 @@ async function listing($: EngineInterface): Promise<string> {
   return lines.join('\n')
 }
 
-/** Why `game` may not be played now (not bought, and not free), or null. */
-async function gameRefusal($: EngineInterface, game: Game): Promise<string | null> {
-  return FREE_GAMES.includes(game.name) ? null : refusal(await read($, licence))
+/** Why the game `name` may not be played now (not bought, and not free), or null. */
+async function gameRefusal($: EngineInterface, name: string): Promise<string | null> {
+  return FREE_GAMES.includes(name) ? null : refusal(await read($, licence))
+}
+
+/** /drip's own words, never a name to look for in the gallery. */
+const WORDS = ['list', 'stop', 'save', 'delete', 'page', 'unlock', 'key', 'get', 'share']
+
+/** Whether `name` plays as a drip here: built in, a folder of one, or a saved recipe. */
+async function isDripHere($: EngineInterface, name: string): Promise<boolean> {
+  if (name in ONE_SHOT_EFFECTS || BUILTIN_EFFECT_LIST.some(d => d.name === name)) return true
+  if ((await folderDrips($)).some(d => d.name === name)) return true
+  return name in (await readCustoms(store($)))
+}
+
+/** What the gallery has, for the console and for a name not on this Mac; null offline. */
+async function gallery($: EngineInterface) {
+  return galleryListing({ fetch: url => $.http.fetch(url) })
+}
+
+/** The gallery's game or drip as the console shows it, before it's fetched. */
+function galleryItem(kind: 'game' | 'drip', e: Entry, isLocked: boolean): Item {
+  const cover = coverUrl(kind, e)
+  return {
+    kind,
+    name: e.name,
+    title: e.title,
+    ...(e.about ? { about: e.about } : {}),
+    ...(e.author ? { by: byOf(e.author) } : {}),
+    ...(cover ? { cover } : { icon: kind === 'game' ? GENERIC_GAME_ICON : GENERIC_DRIP_ICON }),
+    isGallery: true,
+    isLocked,
+    isYours: false,
+  }
+}
+
+/** Fetches the gallery's `name` (a launch, or /drip <name>), then plays it:
+ *  says what happened when it couldn't. */
+async function getThenPlay($: EngineInterface, kind: 'game' | 'drip', name: string): Promise<string> {
+  const got = await getFromGallery($, name)
+  if (!got.startsWith('Got ')) return got
+  if (kind === 'drip') {
+    const at = await $.clock.now()
+    await update($, queued, () => ({ recipe: name, at }))
+    return got
+  }
+  const game = await findGame($, name)
+  return game ? play($, game, () => void openConsole($, 'games').catch(err => $.ui.toast(`drip ✗ ${short(err)}`))) : got
 }
 
 /** Who made it, as the console says it: Glyphh's own are "Glyphh built". */
@@ -189,7 +235,7 @@ export const byOf = (author: string) => (author === GLYPHH ? 'Glyphh built' : `@
 /** A data: URI for SVG markup. */
 const svgUri = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 
-/** The cover photographed for `key` ("game-blocks"), as a data: URI; null without one. */
+/** The cover photographed for `key` ("game-missiles"), as a data: URI; null without one. */
 async function coverOf($: EngineInterface, key: string): Promise<string | null> {
   const path = `${$.plugin.root}/covers/${key}.jpg`
   if (!(await $.fs.exists(path))) return null
@@ -231,6 +277,11 @@ async function consoleItems($: EngineInterface, isBought: boolean): Promise<{ ga
     const cover = d.cover ?? (d.author === GLYPHH ? await coverOf($, `drip-${d.name}`) : null)
     drips.push({ kind: 'drip', name: d.name, title: d.title, ...(cover ? { cover } : { icon: d.icon }), ...(d.author ? { by: byOf(d.author) } : {}), isLocked: false, isYours: d.isYours })
   }
+  // Then what the gallery has that isn't here yet, to fetch on launch.
+  const index = await gallery($)
+  const here = new Set([...games, ...drips].map(i => i.name))
+  for (const e of index?.games ?? []) if (!here.has(e.name)) games.push(galleryItem('game', e, !isBought && !FREE_GAMES.includes(e.name)))
+  for (const e of index?.drips ?? []) if (!here.has(e.name)) drips.push(galleryItem('drip', e, false))
   return { games, drips }
 }
 
@@ -266,16 +317,20 @@ async function openConsole($: EngineInterface, shown: 'games' | 'drips'): Promis
 async function act($: EngineInterface, asked: string): Promise<void> {
   const [verb, kind, name] = asked.split(' ')
   if (verb === 'unlock') return checkout($)
-  if (verb !== 'launch' || !name) return
+  if (verb !== 'launch' || !name || (kind !== 'game' && kind !== 'drip')) return
+  if (kind === 'game' && (await gameRefusal($, name))) return checkout($)
+  const isHere = kind === 'game' ? (await findGame($, name)) !== null : await isDripHere($, name)
+  if (!isHere) {
+    const said = await getThenPlay($, kind, name).catch(err => `/drip: ${short(err)}`)
+    if (!said.startsWith('Got ') && !said.includes('Esc quits')) $.ui.toast(said)
+    return
+  }
   if (kind === 'drip') {
     const at = await $.clock.now()
     await update($, queued, () => ({ recipe: name, at }))
     return
   }
-  const game = kind === 'game' ? await findGame($, name) : null
-  if (!game) return
-  const no = await gameRefusal($, game)
-  if (no) return checkout($)
+  const game = (await findGame($, name))!
   const said = await play($, game, () => void openConsole($, 'games').catch(err => $.ui.toast(`drip ✗ ${short(err)}`))).catch(err => `/drip: ${short(err)}`)
   if (!said.startsWith(game.title)) $.ui.toast(said) // the overlay could not run
 }
@@ -361,8 +416,18 @@ export function arcade(on: On, options: PluginOptions) {
       return { text: `${await listing($)}\n\n${drips.text ?? ''}`.trim() }
     }
     const game = await findGame($, name)
-    if (!game) return next(e)
-    const no = await gameRefusal($, game)
+    if (!game) {
+      // Not here: the gallery's, fetched and played (a game waits for it to be bought).
+      const want = name.toLowerCase()
+      if (!NAME.test(want) || WORDS.includes(want) || (await isDripHere($, want))) return next(e)
+      const index = await gallery($)
+      const kind = index?.games.some(g => g.name === want) ? 'game' : index?.drips.some(d => d.name === want) ? 'drip' : null
+      if (!kind) return next(e)
+      const no = kind === 'game' ? await gameRefusal($, want) : null
+      if (no) return { text: no }
+      return { text: await getThenPlay($, kind, want).catch(err => `/drip: ${short(err)}`) }
+    }
+    const no = await gameRefusal($, game.name)
     if (no) return { text: no }
     try {
       return { text: await play($, game) }

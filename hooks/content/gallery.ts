@@ -1,6 +1,8 @@
-// The gallery: glyphh-ai/drip, every game and drip there is. `/drip get
-// <name>` fetches one into the person's own folder (~/.glyphh), checked
-// against the rules first (./rules.js), so it plays like one they made.
+// The gallery: glyphh-ai/drip, every game and drip there is but Missiles and
+// the drips built in. The console lists it (`listing`); `/drip get <name>`,
+// or launching one from the console, fetches it into the person's folder
+// (~/.glyphh), checked against the rules first (./rules.js), and marks it as
+// the gallery's (MARK), not theirs.
 import { COVER_FILES, NAME, checkDrip, checkGame, type Cover } from './rules.js'
 
 /** Where the gallery's files are read from, raw. */
@@ -15,8 +17,24 @@ export type GalleryDeps = {
   writeBytes: (path: string, base64: string) => Promise<boolean>
 }
 
-type Entry = { name: string; title: string; files: string[] }
+/** One game or drip as index.json lists it. */
+export type Entry = { name: string; title: string; author?: string; about?: string; files: string[] }
 type Index = { games: Entry[]; drips: Entry[] }
+
+/** The file `get` leaves in a folder it fetched: it is the gallery's, not the person's. */
+export const MARK = '.gallery'
+
+/** Where the console shows an entry's cover from: the gallery's own file. */
+export function coverUrl(kind: 'game' | 'drip', e: Entry): string | null {
+  const file = COVER_FILES.find(f => e.files.includes(f))
+  return file ? `${GALLERY}/${kind}s/${e.name}/${file}` : null
+}
+
+/** What the gallery has, for the console; null when it can't be read (offline, or not public). */
+export async function listing(d: Pick<GalleryDeps, 'fetch'>): Promise<Index | null> {
+  const res = await d.fetch(`${GALLERY}/index.json`).catch(() => null)
+  return res?.ok ? parseIndex(res.text) : null
+}
 
 /** The files a gallery entry may bring, by kind. */
 const FILES = { game: ['game.json', 'game.html', 'icon.svg'], drip: ['drip.json', 'drip.html', 'icon.svg'] } as const
@@ -77,6 +95,7 @@ export async function get(d: GalleryDeps, home: string, name: string, builtIn: R
   const checked = kind === 'game' ? checkGame(read) : checkDrip(read)
   if (!checked.ok) return `The gallery's ${want} doesn't pass the check (${checked.why}), so it wasn't kept.`
   for (const [file, text] of files) await d.write(`${home}/.glyphh/${kind}s/${want}/${file}`, text)
+  await d.write(`${home}/.glyphh/${kind}s/${want}/${MARK}`, 'glyphh-ai/drip\n')
   if (!(await d.writeBytes(`${home}/.glyphh/${kind}s/${want}/${checked.cover.file}`, checked.cover.base64))) return `Couldn't save ${want}'s cover. Try again in a moment.`
   return `Got ${checked.manifest.title}: /drip ${want} plays it.`
 }
