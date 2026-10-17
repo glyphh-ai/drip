@@ -42,6 +42,8 @@ declare module 'claude-code' {
       favourites: string[]
       /** The item the pane shows on its own page ("game:snake"), or the table. */
       detail: string | null
+      /** Bumped when a screenshot the pane waits for has loaded. */
+      shotTick: number
     }
   }
 }

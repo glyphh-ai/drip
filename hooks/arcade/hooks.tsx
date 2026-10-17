@@ -39,6 +39,8 @@ const queued = atom({ plugin: 'glyphh-drip', key: 'queued' } as const, null as {
 const query = atom({ plugin: 'glyphh-drip', key: 'query' } as const, '')
 const filter = atom({ plugin: 'glyphh-drip', key: 'filter' } as const, 'all' as Kind | 'all')
 const page = atom({ plugin: 'glyphh-drip', key: 'page' } as const, 0)
+/** Bumped when a screenshot the pane waits for has loaded: the page redraws with it. */
+const shotTick = atom({ plugin: 'glyphh-drip', key: 'shotTick' } as const, 0)
 /** The item the pane shows on its own page ("game:snake"); none, the table. */
 const detail = atom({ plugin: 'glyphh-drip', key: 'detail' } as const, null as string | null)
 /** The starred items ("game:missiles"), the tray's buttons: kept in the store across sessions (../drips loads them). */
@@ -131,7 +133,7 @@ async function getFromGallery($: EngineInterface, name: string): Promise<string>
   if (!home) return 'No home folder to keep it in.'
   // Getting one already fetched fetches it again: the gallery's newest.
   const have = new Set([...TAKEN, ...Object.keys(ONE_SHOT_EFFECTS)])
-  return galleryGet(
+  const said = await galleryGet(
     {
       fetch: url => $.http.fetch(url),
       write: (path, text) => $.fs.write(path, text),
@@ -141,6 +143,8 @@ async function getFromGallery($: EngineInterface, name: string): Promise<string>
     name,
     have,
   )
+  rowsKept = null // here now: the pane reads it afresh
+  return said
 }
 
 /** A game by any of its names: built in, else the person's own. */
@@ -319,6 +323,20 @@ export const favKey = (kind: Kind, name: string) => `${kind}:${name}`
 /** The largest picture the pane can draw: an Svg's source is at most 131072 characters. */
 const SVG_MAX = 131_072
 
+/** The pane's rows as last read, kept until a /drip command or a fetch changes what's here: a press redraws at once. */
+let rowsKept: { isBought: boolean; rows: Row[] } | null = null
+
+/** The pane's rows: kept ones, else read afresh. */
+async function rowsOf($: EngineInterface, isBought: boolean): Promise<Row[]> {
+  if (rowsKept?.isBought === isBought) return rowsKept.rows
+  const rows = await paneRows($, isBought)
+  rowsKept = { isBought, rows }
+  return rows
+}
+
+/** Each page's screenshot as the pane draws it, by "kind:name": loading while it is read, null for none. */
+const shots = new Map<string, string | null | 'loading'>()
+
 /** The gallery's covers fetched this load, base64 by "kind:name": one fetch each. */
 const galleryCovers = new Map<string, string | null>()
 
@@ -446,6 +464,8 @@ export function arcade(on: On, options: PluginOptions) {
   isMissedSaid = false
   galleryKept = null
   galleryCovers.clear()
+  shots.clear()
+  rowsKept = null
 
   // The Drip pane (/drip, /drip list): a search, a filter by type, and a
   // table, fifteen rows a page: emoji, name, line, type, ☆ (the tray) and Play
@@ -456,7 +476,7 @@ export function arcade(on: On, options: PluginOptions) {
     // Every surface but the terminal draws SVG: the logo; the terminal gets the word.
     const Svg = e.surface !== 'terminal' && 'Svg' in els ? els.Svg : null
     const isBought = refusal(await read($, licence)) === null
-    const all = await paneRows($, isBought)
+    const all = await rowsOf($, isBought)
     const q = await read($, query)
     const f = await read($, filter)
     const rows = shown(all, q, f)
@@ -468,14 +488,31 @@ export function arcade(on: On, options: PluginOptions) {
     const item = opened ? all.find(r => favKey(r.kind, r.name) === opened) : undefined
     if (item) {
       const key = favKey(item.kind, item.name)
-      const shot = Svg ? screenshotSvg(await coverOf($, item)) : null
+      // The page draws now; its screenshot follows once read (a gallery one is fetched).
+      await read($, shotTick)
+      if (Svg && !shots.has(key)) {
+        shots.set(key, 'loading')
+        void coverOf($, item)
+          .then(c => shots.set(key, screenshotSvg(c)))
+          .catch(() => shots.set(key, null))
+          .then(() => update($, shotTick, n => n + 1))
+      }
+      const shot = shots.get(key) ?? null
       const isStar = stars.includes(key)
       return (
         <Box flexDirection="column" gap={1} paddingX={1}>
           <Box key="top" flexDirection="row">
             <Button key="back" label={`← ${TYPES[item.kind]}s`} plain onPress={() => void update($, detail, () => null)} />
           </Box>
-          {shot && Svg ? <Svg key="shot" source={shot} alt={`${item.title}, playing`} width={480} height={300} /> : <Text key="shot">{item.emoji}</Text>}
+          {shot === 'loading' ? (
+            <Text key="shot" dimColor>
+              Loading screenshot…
+            </Text>
+          ) : shot && Svg ? (
+            <Svg key="shot" source={shot} alt={`${item.title}, playing`} width={480} height={300} />
+          ) : (
+            <Text key="shot">{item.emoji}</Text>
+          )}
           <Box key="name" flexDirection="row" alignItems="center" gap={1}>
             <Text>{item.emoji}</Text>
             <Text bold>{item.title}</Text>
@@ -588,7 +625,7 @@ export function arcade(on: On, options: PluginOptions) {
     if (games.length === 0) return band
     const { Box, Button } = $.ui.resolve(e)
     const isBought = refusal(await read($, licence)) === null
-    const all = await paneRows($, isBought)
+    const all = await rowsOf($, isBought)
     const tray = games.map(n => all.find(r => r.kind === 'game' && r.name === n)).filter((r): r is Row => r !== undefined)
     return (
       <Box flexDirection="row" flexWrap="wrap" gap={1}>
@@ -603,6 +640,7 @@ export function arcade(on: On, options: PluginOptions) {
   // /drip <game> starts a game; /drip alone lists the games, then the drips
   // (the drips' half, ../drips); anything else is the drips' to play.
   on('command.run', { command: 'drip' }, async ($, e, next) => {
+    rowsKept = null // a /drip command may change what's here: the pane reads it afresh
     const name = e.args.trim()
     const [verb, ...rest] = name.split(/\s+/)
     if (verb?.toLowerCase() === 'get') return { text: rest.length === 1 ? await getFromGallery($, rest[0]!) : 'Usage: /drip get <name>' }
