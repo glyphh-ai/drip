@@ -416,12 +416,17 @@ async function toggleFavourite($: EngineInterface, key: string): Promise<void> {
   await $.store.set(FAVOURITES_KEY, next)
 }
 
-/** Play or Get on the pane (or the tray): the game or drip, fetched first when it's the gallery's; a locked game opens checkout. */
+/** Play or Install on the pane (or the tray): plays it, or installs the gallery's
+ *  (its row then says Play); a locked game opens checkout. */
 async function press($: EngineInterface, row: Row): Promise<void> {
   if (row.isLocked) return checkout($)
-  const said = row.isGallery
-    ? await getThenPlay($, row.kind, row.name).catch(err => `/drip: ${short(err)}`)
-    : row.kind === 'drip'
+  if (row.isGallery) {
+    const got = await getFromGallery($, row.name).catch(err => `/drip: ${short(err)}`)
+    await update($, shotTick, n => n + 1)
+    $.ui.toast(got.startsWith('Got ') ? `${row.title} is installed.` : got)
+    return
+  }
+  const said = row.kind === 'drip'
       ? await queueDrip($, row.name).then(() => 'Got')
       : await play($, (await findGame($, row.name))!).catch(err => `/drip: ${short(err)}`)
   if (!said.startsWith('Got') && !said.includes('Esc quits')) $.ui.toast(said)
@@ -496,13 +501,14 @@ export function arcade(on: On, options: PluginOptions) {
 
   // The Drip pane (/drip, /drip list): a search, a filter by type, and a
   // table, fifteen rows a page: emoji, name, line, type, ☆ (the tray) and Play
-  // (Get for the gallery's). Unlock above it until it's bought.
+  // (Install for the gallery's, Locked until it's bought). Unlock above it until it's bought.
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Button, ...els } = $.ui.resolve(e)
     const Input = 'Input' in els ? els.Input : null
     // Every surface but the terminal draws SVG: the logo; the terminal gets the word.
     const Svg = e.surface !== 'terminal' && 'Svg' in els ? els.Svg : null
     const isBought = refusal(await read($, licence)) === null
+    await read($, shotTick) // an install redraws the rows
     const all = await rowsOf($, isBought)
     const q = await read($, query)
     const f = await read($, filter)
@@ -555,7 +561,7 @@ export function arcade(on: On, options: PluginOptions) {
             {item.isLocked ? (
               <Button key="unlock" label={`Unlock all games - ${PRICE}`} variant="primary" onPress={() => void checkout($)} />
             ) : (
-              <Button key={`${item.isGallery ? 'get' : 'play'}:${key}`} label="Play" variant="primary" onPress={() => void press($, item)} />
+              <Button key={`${item.isGallery ? 'get' : 'play'}:${key}`} label={item.isGallery ? 'Install' : 'Play'} variant="primary" onPress={() => void press($, item)} />
             )}
             <Button key={`fav:${key}`} label={isStar ? '★' : '☆'} plain dimColor={!isStar} onPress={() => void toggleFavourite($, key)} />
           </Box>
@@ -619,13 +625,18 @@ export function arcade(on: On, options: PluginOptions) {
                   <Text dimColor>{TYPES[r.kind]}</Text>
                 </Box>
                 <Button key={`fav:${key}`} label={isStar ? '★' : '☆'} plain dimColor={!isStar} onPress={() => void toggleFavourite($, key)} />
-                <Button
-                  key={`${r.isGallery ? 'get' : 'play'}:${key}`}
-                  label="Play"
-                  variant="secondary"
-                  dimColor={r.isLocked}
-                  onPress={() => void press($, r)}
-                />
+                {r.isLocked ? (
+                  <Box key={`locked:${key}`} flexShrink={0}>
+                    <Text dimColor>Locked</Text>
+                  </Box>
+                ) : (
+                  <Button
+                    key={`${r.isGallery ? 'get' : 'play'}:${key}`}
+                    label={r.isGallery ? 'Install' : 'Play'}
+                    variant="secondary"
+                    onPress={() => void press($, r)}
+                  />
+                )}
               </Box>
             )
           })}
