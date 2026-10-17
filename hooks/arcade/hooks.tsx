@@ -26,7 +26,7 @@ import { share as galleryShare } from '../content/share.ts'
 import { readCustoms } from '../drips/library.ts'
 import { GAMES, gameDoc, gameOf } from './games/index.ts'
 import type { Game } from './games/game.ts'
-import { LOGO_ALT, LOGO_RATIO, logoSvg, type LogoTheme } from './brand.ts'
+import { LOGO_ALT, LOGO_RATIO, logoSvg } from './brand.ts'
 import { BUILT_IN, TYPES, emojiOf, type Kind } from './catalog.ts'
 import { FAVOURITES_KEY } from './favourites.ts'
 import { scoresOf, type Store } from './scores.ts'
@@ -43,6 +43,9 @@ const page = atom({ plugin: 'glyphh-drip', key: 'page' } as const, 0)
 const favourites = atom({ plugin: 'glyphh-drip', key: 'favourites' } as const, [] as string[])
 /** The tray's row is open (the drip button by the prompt). */
 const bandOpen = atom({ plugin: 'glyphh-drip', key: 'bandOpen' } as const, false)
+
+/** The pane's logo: it follows the app's own light or dark, as the app's buttons do. */
+const LOGO = logoSvg('auto')
 
 /** The Drip pane: /drip (or /drip list) opens it. */
 export const PANE = 'glyphh-drip'
@@ -311,13 +314,6 @@ export function shown(rows: readonly Row[], query: string, filter: Kind | 'all')
 /** A favourite's key, as the tray and the store keep it. */
 export const favKey = (kind: Kind, name: string) => `${kind}:${name}`
 
-/** The theme the logo is drawn for: the /config theme when it names light or dark, else the system's. */
-async function themeOf($: EngineInterface): Promise<LogoTheme> {
-  const row = (await $.config.list().catch(() => [])).find(r => r.key === 'theme')
-  const value = String(row?.value ?? '').toLowerCase()
-  return value.startsWith('light') ? 'light' : value.startsWith('dark') ? 'dark' : 'auto'
-}
-
 /** The pane's search: the rows it leaves, from the first page. */
 async function search($: EngineInterface, text: string): Promise<void> {
   await update($, query, () => text)
@@ -425,7 +421,7 @@ export function arcade(on: On, options: PluginOptions) {
       <Box flexDirection="column" gap={1} paddingX={1}>
         <Box key="logo" flexDirection="row" alignItems="center" gap={1}>
           {Svg ? (
-            <Svg key="logo" source={logoSvg(await themeOf($))} alt={LOGO_ALT} height={28} width={Math.round(28 * LOGO_RATIO)} />
+            <Svg key="logo" source={LOGO} alt={LOGO_ALT} height={28} width={Math.round(28 * LOGO_RATIO)} />
           ) : (
             <Text bold>drip</Text>
           )}
