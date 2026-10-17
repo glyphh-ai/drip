@@ -26,6 +26,7 @@ import { share as galleryShare } from '../content/share.ts'
 import { readCustoms } from '../drips/library.ts'
 import { GAMES, gameDoc, gameOf } from './games/index.ts'
 import type { Game } from './games/game.ts'
+import { CAT_PURPLE_SVG, CAT_RATIO, LOGO_ALT, MARK_PURPLE_SVG, MARK_RATIO } from './brand.ts'
 import { BUILT_IN, TYPES, emojiOf, type Kind } from './catalog.ts'
 import { FAVOURITES_KEY } from './favourites.ts'
 import { scoresOf, type Store } from './scores.ts'
@@ -401,6 +402,8 @@ export function arcade(on: On, options: PluginOptions) {
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Button, ...els } = $.ui.resolve(e)
     const Input = 'Input' in els ? els.Input : null
+    // Every surface but the terminal draws SVG: the logo; the terminal gets the word.
+    const Svg = e.surface !== 'terminal' && 'Svg' in els ? els.Svg : null
     const isBought = refusal(await read($, licence)) === null
     const all = await paneRows($, isBought)
     const q = await read($, query)
@@ -413,6 +416,16 @@ export function arcade(on: On, options: PluginOptions) {
     const turn = (by: number) => () => void update($, page, p => Math.max(0, Math.min(pages - 1, Math.min(p, pages - 1) + by)))
     return (
       <Box flexDirection="column" gap={1} paddingX={1}>
+        <Box key="logo" flexDirection="row" alignItems="center" gap={1}>
+          {Svg ? (
+            [
+              <Svg key="cat" source={CAT_PURPLE_SVG} alt={LOGO_ALT} height={28} width={Math.round(28 * CAT_RATIO)} />,
+              <Svg key="word" source={MARK_PURPLE_SVG} alt="drip" height={20} width={Math.round(20 * MARK_RATIO)} />,
+            ]
+          ) : (
+            <Text bold>drip</Text>
+          )}
+        </Box>
         {isBought ? null : (
           <Box flexDirection="row" alignItems="center" gap={2}>
             <Text dimColor>Missiles and every drip are free; the other games are {PRICE}, once.</Text>
