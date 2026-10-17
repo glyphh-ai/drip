@@ -2,7 +2,10 @@
 
 Every game and drip for [Glyphh Drip](https://github.com/glyphh-ai/glyphh), the
 plugin that plays games and visual effects over Claude. The plugin ships with
-all of them, and `/drip get <name>` fetches any one added since, and `/drip share <name>` sends one of yours here as a pull request. Make your own
+Missiles and its drips; everything here shows in its console, each marked
+Glyphh built or @author, and is fetched when it's first played (or with
+`/drip get <name>`). `/drip share <name>` sends one of yours here as a pull
+request. Make your own
 by asking Claude ("make me a Snake game"), then open a pull request here to
 share it with everyone.
 
@@ -106,8 +109,7 @@ then `gh auth login`).
 3. Open a pull request.
 
 Either way, CI runs the check; we play it; it's merged, and `index.json` is
-updated. From then on `/drip get <name>` fetches it, and the next plugin
-release ships it.
+updated. From then on it's in everyone's console.
 
 By contributing you license your work under this repository's MIT licence.
 A game or drip is code that runs on players' Macs: keep it to what it says
