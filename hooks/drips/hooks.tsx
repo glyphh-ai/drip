@@ -297,7 +297,12 @@ async function bandPlay($: EngineInterface, recipe: string): Promise<void> {
 
 /** Reads the folder drips again (the plugin's shipped ones, then ~/.glyphh/drips): before each play and listing. */
 async function readYours($: EngineInterface): Promise<void> {
-  const d = { list: (p: string) => $.fs.list(p), read: async (p: string) => String(await $.fs.read(p)), exists: (p: string) => $.fs.exists(p) }
+  const d = {
+    list: (p: string) => $.fs.list(p),
+    read: async (p: string) => String(await $.fs.read(p)),
+    bytes: async (p: string) => (await $.fs.read(p, { as: 'bytes' })).base64,
+    exists: (p: string) => $.fs.exists(p),
+  }
   const builtIn = new Set(Object.keys(ONE_SHOT_EFFECTS))
   const shipped = (await loadDrips(d, `${$.plugin.root}/drips`, builtIn, false)).drips
   const home = await $.env.get('HOME')

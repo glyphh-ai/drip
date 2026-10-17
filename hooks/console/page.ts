@@ -18,6 +18,8 @@ export type Item = {
   cover?: string
   /** An SVG icon (markup) for an item without a cover. */
   icon?: string
+  /** Who made it: "Glyphh built", or "@" and the maker's GitHub login. */
+  by?: string
   /** Not bought, and not free: Enter asks to unlock. */
   isLocked: boolean
   isYours: boolean
@@ -80,6 +82,8 @@ body{font-family:-apple-system,'SF Pro Display','Helvetica Neue',sans-serif;colo
 .c.locked .art{filter:saturate(.55) brightness(.75)}
 .c .lock{position:absolute;top:10px;right:10px;background:rgba(10,8,16,.75);border-radius:8px;width:30px;height:28px;display:flex;align-items:center;justify-content:center}
 .yours{font-size:12px;color:#c79bff;font-weight:700}
+.by{font-size:12px;color:#8d879b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.by.glyphh{color:#c79bff;font-weight:700}
+.banner .made{font-size:14px;color:#c9c4d6;margin:-4px 0 10px}
 .empty{padding:40px 0;text-align:center;color:#8e89a0;font-size:16px}
 .pages{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:20px;font-size:14px;color:#a9a4b6}
 .pages button{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#e9e6f0;font-size:16px;border:0;cursor:pointer;font-family:inherit}
@@ -131,6 +135,7 @@ function items(){var all=S.tab==='games'?D.games:D.drips;var q=S.q.trim().toLowe
 function pages(){return Math.max(1,Math.ceil(items().length/D.PAGE))}
 function art(i,big){if(i.cover)return '<div class="art" style="background-image:url('+i.cover+')"></div>';return '<div class="art" style="background:linear-gradient(120deg,#7c3aed,#db2777)">'+(i.icon||'')+'</div>'}
 function h(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function by(i){return i.by?'<span class="by'+(i.by==='Glyphh built'?' glyphh':'')+'">'+h(i.by)+'</span>':''}
 function activate(i){if(!i)return;if(i.isLocked)return ask('unlock');ask('launch '+i.kind+' '+i.name)}
 function banner(){
   var all=S.tab==='games'?D.games:D.drips;
@@ -138,7 +143,7 @@ function banner(){
     return '<div class="banner" id="feat" data-unlock="1">'+(f?art(f):'')+'<div class="txt" style="background:'+b[0]+'"><div class="eyebrow" style="color:'+b[1]+'">Glyphh Drip</div><h1>Unlock every game</h1><p>Missiles and every drip are free. '+h(D.price)+' once unlocks every other game, and every new one.</p><div class="cta"><span class="key">enter</span>Unlock · '+h(D.price)+'</div></div></div>'}
   var want=S.tab==='games'?D.featured.game:D.featured.drip;var f=all.filter(function(i){return i.name===want})[0]||all[0];if(!f)return '';
   var b=D.BANNERS[f.kind];
-  return '<div class="banner" id="feat">'+art(f)+'<div class="txt" style="background:'+b[0]+'"><div class="eyebrow" style="color:'+b[1]+'">Featured</div><h1>'+h(f.title)+'</h1><p>'+h(f.about||(f.kind==='game'?'Play it while Claude works.':'Play it over Claude.'))+'</p><div class="cta"><span class="key">enter</span>'+(f.isLocked?'Unlock · '+h(D.price):'Play')+'</div></div></div>'}
+  return '<div class="banner" id="feat">'+art(f)+'<div class="txt" style="background:'+b[0]+'"><div class="eyebrow" style="color:'+b[1]+'">Featured</div><h1>'+h(f.title)+'</h1>'+(f.by?'<div class="made">'+h(f.by)+'</div>':'')+'<p>'+h(f.about||(f.kind==='game'?'Play it while Claude works.':'Play it over Claude.'))+'</p><div class="cta"><span class="key">enter</span>'+(f.isLocked?'Unlock · '+h(D.price):'Play')+'</div></div></div>'}
 function draw(){
   var list=items(),n=pages();if(S.page>=n)S.page=n-1;if(S.page<0)S.page=0;
   var shown=list.slice(S.page*D.PAGE,(S.page+1)*D.PAGE);if(S.sel>=shown.length)S.sel=Math.max(0,shown.length-1);
@@ -150,7 +155,7 @@ function draw(){
   $('n').textContent=(S.q?list.length+' of ':'')+total.length+(S.tab==='games'?' games':' drips')+(yours?' · '+yours+' yours':'');
   $('q').placeholder=S.tab==='games'?'Search games':'Search drips';
   $('search').className='search'+(S.inSearch?' on':'');
-  $('grid').innerHTML=shown.length?shown.map(function(i,k){return '<div class="c'+(k===S.sel&&!S.inSearch?' sel':'')+(i.isLocked?' locked':'')+'" data-k="'+k+'">'+art(i)+(i.isLocked?'<div class="lock">'+D.LOCK+'</div>':'')+'<div class="meta"><span class="t">'+h(i.title)+'</span>'+(i.isYours?'<span class="yours">yours</span>':'')+'<span class="s">'+h(i.best||'')+'</span></div></div>'}).join(''):'<div class="empty" style="grid-column:1/-1">Nothing matches “'+h(S.q)+'”.</div>';
+  $('grid').innerHTML=shown.length?shown.map(function(i,k){return '<div class="c'+(k===S.sel&&!S.inSearch?' sel':'')+(i.isLocked?' locked':'')+'" data-k="'+k+'">'+art(i)+(i.isLocked?'<div class="lock">'+D.LOCK+'</div>':'')+'<div class="meta"><span class="t">'+h(i.title)+'</span>'+by(i)+(i.isYours?'<span class="yours">yours</span>':'')+'<span class="s">'+h(i.best||'')+'</span></div></div>'}).join(''):'<div class="empty" style="grid-column:1/-1">Nothing matches “'+h(S.q)+'”.</div>';
   [].forEach.call(document.querySelectorAll('.c'),function(el){el.onclick=function(){S.sel=+el.getAttribute('data-k');S.inSearch=false;$('q').blur();activate(shown[S.sel])};el.onmouseenter=function(){if(S.sel!==+el.getAttribute('data-k')){S.sel=+el.getAttribute('data-k');draw()}}});
   var dots='';for(var p=0;p<n;p++)dots+='<i data-p="'+p+'" class="'+(p===S.page?'on':'')+'"></i>';
   $('pages').innerHTML=n>1?'<button id="prev" aria-label="Previous page"'+(S.page===0?' disabled':'')+'>‹</button><div class="dots">'+dots+'</div><span>'+(S.page+1)+' of '+n+'</span><button id="next" aria-label="Next page"'+(S.page===n-1?' disabled':'')+'>›</button>':'';

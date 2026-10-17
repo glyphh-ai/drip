@@ -3,7 +3,7 @@
 // the GitHub command-line tool, signed in as the person: their fork of the
 // gallery, synced; a branch; the folder's files; the pull request. We review
 // and merge it there; from then on anyone can /drip get it.
-import { checkDrip, checkGame } from './rules.js'
+import { COVER_FILES, GLYPHH, checkDrip, checkGame, type Cover } from './rules.js'
 
 /** The gallery's repository on GitHub. */
 export const REPO = 'glyphh-ai/drip'
@@ -14,6 +14,8 @@ export type ShareDeps = {
   run: Run
   exists: (path: string) => Promise<boolean>
   read: (path: string) => Promise<string>
+  /** A file's bytes, standard base64 (the cover). */
+  bytes: (path: string) => Promise<string>
   now: () => Promise<number>
 }
 
@@ -41,9 +43,12 @@ export async function share(d: ShareDeps, home: string, name: string): Promise<s
   const dir = `${home}/.glyphh/${kind}s/${want}`
   const files = new Map<string, string>()
   for (const f of FILES[kind]) if (await d.exists(`${dir}/${f}`)) files.set(f, await d.read(`${dir}/${f}`))
-  const read = { name: want, manifest: files.get(`${kind}.json`) ?? null, page: files.get(`${kind}.html`) ?? null, icon: files.get('icon.svg') ?? null }
+  let cover: Cover | null = null
+  for (const f of COVER_FILES) if (!cover && (await d.exists(`${dir}/${f}`))) cover = { file: f, base64: await d.bytes(`${dir}/${f}`) }
+  const read = { name: want, manifest: files.get(`${kind}.json`) ?? null, page: files.get(`${kind}.html`) ?? null, icon: files.get('icon.svg') ?? null, cover }
   const checked = kind === 'game' ? checkGame(read) : checkDrip(read)
   if (!checked.ok) return `${want} doesn't pass the check (${checked.why}), so it wasn't shared.`
+  if (checked.manifest.author === GLYPHH) return `${want}'s author is "${GLYPHH}", which is Glyphh's own: put your GitHub login in ${kind}.json.`
 
   const gh = await ghPath(d)
   if (!gh) return NEEDS_GH
@@ -51,6 +56,7 @@ export async function share(d: ShareDeps, home: string, name: string): Promise<s
   const who = await d.run([gh, 'api', 'user', '--jq', '.login'])
   const user = who?.exitCode === 0 ? who.stdout.trim() : ''
   if (!user) return `GitHub didn't say who you are: ${say(who)}`
+  if (checked.manifest.author.toLowerCase() !== user.toLowerCase()) return `${want}'s author is "${checked.manifest.author}", but you're signed in to GitHub as ${user}: only its maker shares it.`
 
   // Their fork, created if new and brought up to date with the gallery.
   const fork = `${user}/drip`
@@ -64,12 +70,17 @@ export async function share(d: ShareDeps, home: string, name: string): Promise<s
   const made = await d.run([gh, 'api', `repos/${fork}/git/refs`, '--input', '-'], { stdin: JSON.stringify({ ref: `refs/heads/${branch}`, sha: head.stdout.trim() }) })
   if (made?.exitCode !== 0) return `Couldn't make a branch on ${fork}: ${say(made)}`
 
+  const sends: [string, string][] = []
   for (const [file, text] of files) {
     const b64 = await d.run(['/usr/bin/base64'], { stdin: text })
     if (b64?.exitCode !== 0) return `Couldn't prepare ${file}: ${say(b64)}`
+    sends.push([file, b64.stdout])
+  }
+  sends.push([checked.cover.file, checked.cover.base64])
+  for (const [file, base64] of sends) {
     const path = `${kind}s/${want}/${file}`
     const sha = await d.run([gh, 'api', `repos/${fork}/contents/${path}?ref=${branch}`, '--jq', '.sha'])
-    const body = { message: `${checked.manifest.title}: ${file}`, branch, content: b64.stdout.replace(/\s+/g, ''), ...(sha?.exitCode === 0 && sha.stdout.trim() ? { sha: sha.stdout.trim() } : {}) }
+    const body = { message: `${checked.manifest.title}: ${file}`, branch, content: base64.replace(/\s+/g, ''), ...(sha?.exitCode === 0 && sha.stdout.trim() ? { sha: sha.stdout.trim() } : {}) }
     const put = await d.run([gh, 'api', '-X', 'PUT', `repos/${fork}/contents/${path}`, '--input', '-'], { stdin: JSON.stringify(body), timeoutMs: 60_000 })
     if (put?.exitCode !== 0) return `Couldn't add ${file} to ${fork}: ${say(put)}`
   }

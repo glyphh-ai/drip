@@ -20,6 +20,7 @@ import { verify } from '../unlock/verify.ts'
 import { BUILTIN_EFFECT_LIST, ONE_SHOT_EFFECTS } from '../drips/effects.ts'
 import { dripsDir, gamesDir, loadDrips, loadGames, skippedText, type FolderDeps, type FolderGame } from '../content/folders.ts'
 import { get as galleryGet } from '../content/gallery.ts'
+import { GLYPHH } from '../content/rules.js'
 import { share as galleryShare } from '../content/share.ts'
 import { readCustoms } from '../drips/library.ts'
 import { consoleHtml, type Item } from '../console/page.ts'
@@ -61,7 +62,7 @@ function store($: EngineInterface): Store {
 }
 
 function folderDeps($: EngineInterface): FolderDeps {
-  return { list: p => $.fs.list(p), read: async p => String(await $.fs.read(p)), exists: p => $.fs.exists(p) }
+  return { list: p => $.fs.list(p), read: async p => String(await $.fs.read(p)), bytes: async p => (await $.fs.read(p, { as: 'bytes' })).base64, exists: p => $.fs.exists(p) }
 }
 
 /** Every game from a folder: the plugin's own (shipped, a snapshot of the
@@ -76,13 +77,13 @@ async function folderGames($: EngineInterface): Promise<{ games: FolderGame[]; s
 }
 
 /** Every drip from a folder, for the card: the plugin's own, then the person's. */
-async function folderDrips($: EngineInterface): Promise<{ name: string; title: string; icon: string | null; isYours: boolean }[]> {
+async function folderDrips($: EngineInterface): Promise<{ name: string; title: string; icon: string | null; isYours: boolean; author: string; cover: string }[]> {
   const d = folderDeps($)
   const builtIn = new Set(Object.keys(ONE_SHOT_EFFECTS))
   const shipped = (await loadDrips(d, `${$.plugin.root}/drips`, builtIn, false)).drips
   const home = await $.env.get('HOME')
   const yours = home ? (await loadDrips(d, dripsDir(home), new Set([...builtIn, ...shipped.map(x => x.name)]), true)).drips : []
-  return [...shipped, ...yours].map(x => ({ name: x.name, title: x.title, icon: x.icon, isYours: x.isYours }))
+  return [...shipped, ...yours].map(x => ({ name: x.name, title: x.title, icon: x.icon, isYours: x.isYours, author: x.author, cover: x.cover }))
 }
 
 /** /drip share <name>: one of the person's own, to the gallery as a pull request. */
@@ -97,6 +98,7 @@ async function shareToGallery($: EngineInterface, name: string): Promise<string>
       },
       exists: p => $.fs.exists(p),
       read: async p => String(await $.fs.read(p)),
+      bytes: async p => (await $.fs.read(p, { as: 'bytes' })).base64,
       now: () => $.clock.now(),
     },
     home,
@@ -109,7 +111,16 @@ async function getFromGallery($: EngineInterface, name: string): Promise<string>
   const home = await $.env.get('HOME')
   if (!home) return 'No home folder to keep it in.'
   const have = new Set([...TAKEN, ...Object.keys(ONE_SHOT_EFFECTS), ...(await folderGames($)).games.filter(g => !g.isYours).map(g => g.name)])
-  return galleryGet({ fetch: url => $.http.fetch(url), write: (path, text) => $.fs.write(path, text) }, home, name, have)
+  return galleryGet(
+    {
+      fetch: url => $.http.fetch(url),
+      write: (path, text) => $.fs.write(path, text),
+      writeBytes: async (path, base64) => (await $.process.run(['/usr/bin/base64', '-D', '-o', path], { stdin: base64 }).catch(() => null))?.exitCode === 0,
+    },
+    home,
+    name,
+    have,
+  )
 }
 
 /** A game by any of its names: built in, else the person's own. */
@@ -172,6 +183,9 @@ async function gameRefusal($: EngineInterface, game: Game): Promise<string | nul
   return FREE_GAMES.includes(game.name) ? null : refusal(await read($, licence))
 }
 
+/** Who made it, as the console says it: Glyphh's own are "Glyphh built". */
+export const byOf = (author: string) => (author === GLYPHH ? 'Glyphh built' : `@${author}`)
+
 /** A data: URI for SVG markup. */
 const svgUri = (svg: string) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 
@@ -190,7 +204,8 @@ async function consoleItems($: EngineInterface, isBought: boolean): Promise<{ ga
   for (const g of [...GAMES, ...(await folderGames($)).games]) {
     const best = await scores.best(g.name)
     const isYours = 'isYours' in g && g.isYours === true
-    const cover = await coverOf($, `game-${g.name}`)
+    // A folder's game has its own cover; a built-in one's is in covers/.
+    const cover = 'cover' in g && typeof g.cover === 'string' ? g.cover : await coverOf($, `game-${g.name}`)
     games.push({
       kind: 'game',
       name: g.name,
@@ -198,6 +213,7 @@ async function consoleItems($: EngineInterface, isBought: boolean): Promise<{ ga
       ...('about' in g && typeof g.about === 'string' ? { about: g.about } : {}),
       ...(best > 0 ? { best: `Best ${best.toLocaleString('en-GB')}` } : {}),
       ...(cover ? { cover } : { icon: GAME_ICONS[g.name] ?? ('icon' in g && typeof g.icon === 'string' ? g.icon : GENERIC_GAME_ICON) }),
+      by: byOf('author' in g && typeof g.author === 'string' ? g.author : GLYPHH),
       isLocked: !isBought && !FREE_GAMES.includes(g.name),
       isYours,
     })
@@ -205,14 +221,15 @@ async function consoleItems($: EngineInterface, isBought: boolean): Promise<{ ga
   const saved = Object.keys(await readCustoms(store($)))
   const own = await folderDrips($)
   const listed = [
-    ...BUILTIN_EFFECT_LIST.map(d => ({ name: d.name, title: titleOf(d.name), icon: DRIP_ICONS[d.name] ?? GENERIC_DRIP_ICON, isYours: false })),
-    ...own.map(d => ({ name: d.name, title: d.title, icon: d.icon ?? GENERIC_DRIP_ICON, isYours: d.isYours })),
-    ...saved.filter(n => !own.some(d => d.name === n)).map(name => ({ name, title: titleOf(name), icon: GENERIC_DRIP_ICON, isYours: true })),
+    ...BUILTIN_EFFECT_LIST.map(d => ({ name: d.name, title: titleOf(d.name), icon: DRIP_ICONS[d.name] ?? GENERIC_DRIP_ICON, isYours: false, author: GLYPHH, cover: null as string | null })),
+    ...own.map(d => ({ name: d.name, title: d.title, icon: d.icon ?? GENERIC_DRIP_ICON, isYours: d.isYours, author: d.author, cover: d.cover as string | null })),
+    // A saved recipe is the person's, made of built-in drips: no cover, no author.
+    ...saved.filter(n => !own.some(d => d.name === n)).map(name => ({ name, title: titleOf(name), icon: GENERIC_DRIP_ICON, isYours: true, author: null, cover: null as string | null })),
   ]
   const drips: Item[] = []
   for (const d of listed) {
-    const cover = d.isYours ? null : await coverOf($, `drip-${d.name}`)
-    drips.push({ kind: 'drip', name: d.name, title: d.title, ...(cover ? { cover } : { icon: d.icon }), isLocked: false, isYours: d.isYours })
+    const cover = d.cover ?? (d.author === GLYPHH ? await coverOf($, `drip-${d.name}`) : null)
+    drips.push({ kind: 'drip', name: d.name, title: d.title, ...(cover ? { cover } : { icon: d.icon }), ...(d.author ? { by: byOf(d.author) } : {}), isLocked: false, isYours: d.isYours })
   }
   return { games, drips }
 }

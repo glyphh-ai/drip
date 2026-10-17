@@ -5,13 +5,15 @@
 // built-in ones have. A folder that fails, or is named like one already
 // there, is left out with the reason.
 import type { Game } from '../arcade/games/game.ts'
-import { checkDrip, checkGame, type Read } from './rules.js'
+import { COVER_FILES, checkDrip, checkGame, type Cover, type Read } from './rules.js'
 import { withKit } from './kit.ts'
 
 /** What a folder read needs: the engine's fs, closed over in the hooks file. */
 export type FolderDeps = {
   list: (path: string) => Promise<{ name: string; kind: string }[]>
   read: (path: string) => Promise<string>
+  /** A file's bytes, standard base64 (a cover). */
+  bytes: (path: string) => Promise<string>
   exists: (path: string) => Promise<boolean>
 }
 
@@ -19,7 +21,7 @@ export type FolderDeps = {
 export type Skipped = { name: string; why: string }
 
 /** A game from a folder: a built-in game's shape, plus what the card shows. */
-export type FolderGame = Game & { isYours: boolean; about?: string; icon: string | null }
+export type FolderGame = Game & { isYours: boolean; about?: string; icon: string | null; author: string; cover: string }
 
 /** A drip from a folder. */
 export type FolderDrip = {
@@ -28,6 +30,10 @@ export type FolderDrip = {
   kind: 'one-shot' | 'loop'
   icon: string | null
   isYours: boolean
+  /** Who made it: a GitHub login, or `glyphh`. */
+  author: string
+  /** Its cover, a data: URI. */
+  cover: string
   /** The page with the kit, for this size; `quiet` mutes it. */
   build: (w: number, h: number, opacity: number, quiet: boolean) => string
 }
@@ -40,6 +46,9 @@ export const DRIP_SAFETY_MS = 15_000
 export const gamesDir = (home: string) => `${home}/.glyphh/games`
 export const dripsDir = (home: string) => `${home}/.glyphh/drips`
 
+/** A cover as a data: URI the console can show. */
+export const coverUri = (c: Cover) => `data:image/${c.file === 'cover.png' ? 'png' : 'jpeg'};base64,${c.base64}`
+
 async function readFolders(d: FolderDeps, dir: string, file: 'game' | 'drip'): Promise<Read[]> {
   if (!(await d.exists(dir).catch(() => false))) return []
   const entries = await d.list(dir).catch(() => [])
@@ -47,7 +56,13 @@ async function readFolders(d: FolderDeps, dir: string, file: 'game' | 'drip'): P
   for (const e of entries.filter(x => x.kind === 'dir').sort((a, b) => a.name.localeCompare(b.name))) {
     const at = `${dir}/${e.name}`
     const opt = async (p: string) => ((await d.exists(p).catch(() => false)) ? await d.read(p).catch(() => null) : null)
-    out.push({ name: e.name, manifest: await opt(`${at}/${file}.json`), page: await opt(`${at}/${file}.html`), icon: await opt(`${at}/icon.svg`) })
+    let cover: Cover | null = null
+    for (const f of COVER_FILES) {
+      if (cover || !(await d.exists(`${at}/${f}`).catch(() => false))) continue
+      const base64 = await d.bytes(`${at}/${f}`).catch(() => null)
+      if (base64 !== null) cover = { file: f, base64 }
+    }
+    out.push({ name: e.name, manifest: await opt(`${at}/${file}.json`), page: await opt(`${at}/${file}.html`), icon: await opt(`${at}/icon.svg`), cover })
   }
   return out
 }
@@ -73,6 +88,8 @@ export async function loadGames(d: FolderDeps, dir: string, taken: ReadonlySet<s
       ...(c.manifest.about ? { about: c.manifest.about } : {}),
       icon: c.icon,
       isYours,
+      author: c.manifest.author,
+      cover: coverUri(c.cover),
       safetyMs: GAME_SAFETY_MS,
       build: (w, h, best) => withKit(page, { kind: 'game', width: w, height: h, best, quiet: quiet() }),
     })
@@ -102,6 +119,8 @@ export async function loadDrips(d: FolderDeps, dir: string, taken: ReadonlySet<s
       kind,
       icon: c.icon,
       isYours,
+      author: c.manifest.author,
+      cover: coverUri(c.cover),
       build: (w, h, opacity, quiet) => withKit(page, { kind: 'drip', width: w, height: h, opacity, quiet }),
     })
   }

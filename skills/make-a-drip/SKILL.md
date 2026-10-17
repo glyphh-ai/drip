@@ -7,15 +7,16 @@ user-invocable: false
 # Make a drip for Glyphh Drip
 
 A Glyphh Drip drip is one folder in `~/.glyphh/drips/<name>/`. Once it's there,
-it shows on the Drips tab of `/drip`, plays with `/drip <name>`, and Claude can
+it shows on the Drips tab of the console (`/drip`, Open drip), plays with `/drip <name>`, and Claude can
 play it with the `play_drip` tool.
 
 ## The folder
 
 ```
 ~/.glyphh/drips/<name>/
-  drip.json     { "title": "Snow", "kind": "one-shot" }
+  drip.json     { "title": "Snow", "author": "octocat", "kind": "one-shot" }
   drip.html     the drip: one self-contained page
+  cover.jpg     its card in the console: 960×600, made by cover.js
   icon.svg      optional: a 24×24 outline icon, stroke only
 ```
 
@@ -24,6 +25,19 @@ play it with the `play_drip` tool.
 - `title`: at most 32 characters.
 - `kind`: `one-shot` plays once and ends; `loop` keeps playing until stopped
   (`/drip -1 <name>`, then `/drip stop`).
+
+## Who made it, and its cover
+
+- `author`, in the JSON: the person's GitHub login. Find it with
+  `gh api user --jq .login`, else `git config github.user`; if neither
+  answers, ask them. Never leave `glyphh` (the template's): that's Glyphh's
+  own, and the check refuses it.
+- `cover.jpg`: its card in the console, required. Make it with this skill's
+  `cover.js` once the page works (below): it plays the page in headless Chrome
+  at 960×600 on a background of its own colour and saves the photo. Pick two
+  colours that suit it, then **look at the photo**: it should show the drip
+  mid-play, with nothing written over it. Not right: run it again with a
+  different time (the last number, in ms) or colours.
 
 ## The page
 
@@ -54,14 +68,20 @@ The drip must:
 
 1. Pick the name, title and kind with the person if they didn't say.
 2. Copy `template/` to `~/.glyphh/drips/<name>/`, then write the drip in
-   `drip.html` and fill in `drip.json`.
-3. Check it, from this skill's folder:
+   `drip.html` and fill in `drip.json` with its title, kind and the person's
+   GitHub login as `author`.
+3. Photograph its cover, from this skill's folder, and look at it:
+   ```
+   node cover.js ~/.glyphh/drips/<name> '#082f49' '#0369a1' 2500
+   ```
+4. Check it, from this skill's folder:
    ```
    node check.js ~/.glyphh/drips/<name>
    ```
    Fix whatever it reports, and run it again until it passes.
-4. Play it with the `play_drip` tool to show the person, and tell them
+5. Play it with the `play_drip` tool to show the person, and tell them
    `/drip <name>` plays it any time.
 
-To share a drip, the person sends the folder to someone, who puts it in their
-own `~/.glyphh/drips/`.
+To share it, the person runs `/drip share <name>`: a pull request to the
+gallery, glyphh-ai/drip, from their GitHub account (its `author` must be
+them). Once it's merged, anyone can `/drip get <name>`.

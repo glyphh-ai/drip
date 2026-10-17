@@ -1,14 +1,18 @@
 // The gallery: glyphh-ai/drip, every game and drip there is. `/drip get
 // <name>` fetches one into the person's own folder (~/.glyphh), checked
 // against the rules first (./rules.js), so it plays like one they made.
-import { NAME, checkDrip, checkGame } from './rules.js'
+import { COVER_FILES, NAME, checkDrip, checkGame, type Cover } from './rules.js'
 
 /** Where the gallery's files are read from, raw. */
 export const GALLERY = 'https://raw.githubusercontent.com/glyphh-ai/drip/main'
+/** Where its covers are read from: GitHub's API hands a file's bytes over as base64. */
+export const GALLERY_API = 'https://api.github.com/repos/glyphh-ai/drip/contents'
 
 export type GalleryDeps = {
   fetch: (url: string) => Promise<{ ok: boolean; status: number; text: string }>
   write: (path: string, text: string) => Promise<void>
+  /** Writes bytes given as base64 (a cover); false when it couldn't. */
+  writeBytes: (path: string, base64: string) => Promise<boolean>
 }
 
 type Entry = { name: string; title: string; files: string[] }
@@ -16,6 +20,16 @@ type Index = { games: Entry[]; drips: Entry[] }
 
 /** The files a gallery entry may bring, by kind. */
 const FILES = { game: ['game.json', 'game.html', 'icon.svg'], drip: ['drip.json', 'drip.html', 'icon.svg'] } as const
+
+/** A cover's base64 from GitHub's contents API; null when the answer isn't one. */
+function coverOf(text: string): string | null {
+  try {
+    const v = JSON.parse(text) as { encoding?: unknown; content?: unknown }
+    return v.encoding === 'base64' && typeof v.content === 'string' ? v.content.replace(/\s+/g, '') : null
+  } catch {
+    return null
+  }
+}
 
 function parseIndex(text: string): Index | null {
   try {
@@ -51,9 +65,18 @@ export async function get(d: GalleryDeps, home: string, name: string, builtIn: R
     if (!r?.ok) return `Couldn't fetch ${file} for ${want}${r ? ` (${r.status})` : ''}. Try again in a moment.`
     files.set(file, r.text)
   }
-  const read = { name: want, manifest: files.get(`${kind}.json`) ?? null, page: files.get(`${kind}.html`) ?? null, icon: files.get('icon.svg') ?? null }
+  let cover: Cover | null = null
+  const coverFile = COVER_FILES.find(f => entry.files.includes(f))
+  if (coverFile) {
+    const r = await d.fetch(`${GALLERY_API}/${kind}s/${want}/${coverFile}?ref=main`).catch(() => null)
+    const base64 = r?.ok ? coverOf(r.text) : null
+    if (base64 === null) return `Couldn't fetch ${coverFile} for ${want}${r ? ` (${r.status})` : ''}. Try again in a moment.`
+    cover = { file: coverFile, base64 }
+  }
+  const read = { name: want, manifest: files.get(`${kind}.json`) ?? null, page: files.get(`${kind}.html`) ?? null, icon: files.get('icon.svg') ?? null, cover }
   const checked = kind === 'game' ? checkGame(read) : checkDrip(read)
   if (!checked.ok) return `The gallery's ${want} doesn't pass the check (${checked.why}), so it wasn't kept.`
   for (const [file, text] of files) await d.write(`${home}/.glyphh/${kind}s/${want}/${file}`, text)
+  if (!(await d.writeBytes(`${home}/.glyphh/${kind}s/${want}/${checked.cover.file}`, checked.cover.base64))) return `Couldn't save ${want}'s cover. Try again in a moment.`
   return `Got ${checked.manifest.title}: /drip ${want} plays it.`
 }

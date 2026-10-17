@@ -7,15 +7,16 @@ user-invocable: false
 # Make a game for Glyphh Drip
 
 A Glyphh Drip game is one folder in `~/.glyphh/games/<name>/`. Once it's there,
-it shows on the Games tab of `/drip` and plays with `/drip <name>`, over
+it shows on the Games tab of the console (`/drip`, Open drip) and plays with `/drip <name>`, over
 Claude's window, beside the built-in games.
 
 ## The folder
 
 ```
 ~/.glyphh/games/<name>/
-  game.json     { "title": "Snake", "about": "Eat, grow, don't bite your tail" }
+  game.json     { "title": "Snake", "author": "octocat", "about": "Eat, grow, don't bite your tail" }
   game.html     the game: one self-contained page
+  cover.jpg     its card in the console: 960×600, made by cover.js
   icon.svg      optional: a 24×24 outline icon, stroke only
 ```
 
@@ -23,6 +24,19 @@ Claude's window, beside the built-in games.
   after `/drip`, so keep it short (`snake`, `space-race`). It can't be a
   built-in game's name: missiles, chickn, blocks, rocks or dash.
 - `title`: at most 32 characters. `about`: one short line, at most 60.
+
+## Who made it, and its cover
+
+- `author`, in the JSON: the person's GitHub login. Find it with
+  `gh api user --jq .login`, else `git config github.user`; if neither
+  answers, ask them. Never leave `glyphh` (the template's): that's Glyphh's
+  own, and the check refuses it.
+- `cover.jpg`: its card in the console, required. Make it with this skill's
+  `cover.js` once the page works (below): it plays the page in headless Chrome
+  at 960×600 on a background of its own colour and saves the photo. Pick two
+  colours that suit it, then **look at the photo**: it should show the game
+  mid-play, with nothing written over it. Not right: run it again with a
+  different time (the last number, in ms) or colours.
 
 ## The page
 
@@ -59,17 +73,21 @@ The game must:
 
 1. Pick the name and title with the person if they didn't say.
 2. Copy `template/` to `~/.glyphh/games/<name>/`, then write the game in
-   `game.html` and fill in `game.json`. Add `icon.svg` if a simple outline
-   icon fits.
-3. Check it, from this skill's folder:
+   `game.html` and fill in `game.json` with its title and the person's GitHub
+   login as `author`. Add `icon.svg` if a simple outline icon fits.
+3. Photograph its cover, from this skill's folder, and look at it:
+   ```
+   node cover.js ~/.glyphh/games/<name> '#0e3b4a' '#0f766e' 2600
+   ```
+4. Check it, from this skill's folder:
    ```
    node check.js ~/.glyphh/games/<name>
    ```
    Fix whatever it reports, and run it again until it passes.
-4. Tell the person it's ready: `/drip` shows it on the Games tab, and
-   `/drip <name>` plays it. Glyphh Drip has to be bought (`/drip unlock`,
-   $5 once) for games to play.
+5. Tell the person it's ready: Open drip in `/drip` shows it on the Games
+   tab, and `/drip <name>` plays it. Games other than Missiles need Glyphh
+   Drip bought (`/drip unlock`, $4.99 once).
 
-To share a game, the person sends the folder to someone, who puts it in their
-own `~/.glyphh/games/`. A game from someone else is code that runs on their
-Mac: say so if they ask about installing one.
+To share it, the person runs `/drip share <name>`: a pull request to the
+gallery, glyphh-ai/drip, from their GitHub account (its `author` must be
+them). Once it's merged, anyone can `/drip get <name>`.
