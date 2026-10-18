@@ -1,5 +1,4 @@
-// cat: a one-shot drip, from the Glyphh app's drip effects
-// (glyphh-ai/app, tag v2.0.2, src/shared/drips-effects.ts).
+// cat: a one-shot drip, one of the drips built in.
 import type { Drip } from './drips.ts'
 import { CLOSE_SIGNAL, dripWrap } from './shared.ts'
 

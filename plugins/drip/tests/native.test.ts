@@ -84,7 +84,7 @@ describe('preparing the overlay', () => {
     const bin = binaryPath('/Users/t', await digestOf(SOURCE))
     expect(await prepareOverlay(d)).toEqual({ binary: bin })
     expect(ran).toContainEqual(['xcrun', '--sdk', 'macosx', 'swiftc', '-O', '-o', `${bin}.building`, '/mods/drips/hooks/overlay/overlay.swift', '-framework', 'AppKit', '-framework', 'WebKit'])
-    expect(ran).toContainEqual(['/bin/mkdir', '-p', '/Users/t/Library/Caches/glyphh-overlay'])
+    expect(ran).toContainEqual(['/bin/mkdir', '-p', '/Users/t/Library/Caches/drip-overlay'])
     expect(files.has(bin)).toBe(true)
     ran.length = 0
     expect(await prepareOverlay(d)).toEqual({ binary: bin })
@@ -97,8 +97,8 @@ describe('preparing the overlay', () => {
     expect(await prepareOverlay(noTools.d)).toEqual({ missing: SWIFT_MISSING })
     expect(noTools.ran.some(a => a[0] === 'xcrun')).toBe(false) // never the shim that offers an install
     expect(await prepareOverlay(world({ swiftc: false }).d)).toEqual({ missing: SWIFT_MISSING })
-    expect(await prepareOverlay(world({ compiles: false }).d)).toEqual({ missing: "Glyphh's overlay did not build: error: no such module WebKit" })
-    expect(await prepareOverlay(world({ home: '' }).d)).toEqual({ missing: "Glyphh's overlay needs HOME to be set." })
+    expect(await prepareOverlay(world({ compiles: false }).d)).toEqual({ missing: "Drip's overlay did not build: error: no such module WebKit" })
+    expect(await prepareOverlay(world({ home: '' }).d)).toEqual({ missing: "Drip's overlay needs HOME to be set." })
   })
 })
 
@@ -148,11 +148,11 @@ describe('the fullscreen host', () => {
     const played = host.oneShot('hearts', -1)
     await flush()
     children[0]!.push({ t: 'error', message: 'not a play request' })
-    await expect(played).rejects.toThrow("Glyphh's overlay did not open: not a play request")
+    await expect(played).rejects.toThrow("Drip's overlay did not open: not a play request")
     const silent = host.persistent('aurora', 0.5, 1000, () => {})
     await flush()
     children[1]!.push(null)
-    await expect(silent).rejects.toThrow("Glyphh's overlay did not open")
+    await expect(silent).rejects.toThrow("Drip's overlay did not open")
     w.screenFails = true
     await expect(host.oneShot('hearts', -1)).rejects.toThrow('could not find the screen')
   })

@@ -1,5 +1,5 @@
 // page.js — the Drips page: the list of saved drips and the recipe editor
-// (the Glyphh app's Drips section). Saving, deleting and playing are the
+// (as the desktop app Drip began in had it). Saving, deleting and playing are the
 // mod's: the page asks (POST /api/ask) and draws what the mod sends back (GET
 // /api/library); effects play over Claude's window or the whole screen.
 import { buildRecipe, checkDrip, countText, dripEmojis, filterDrips, parseRecipe } from "./builder.mjs"

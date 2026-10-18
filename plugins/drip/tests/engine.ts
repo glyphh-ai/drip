@@ -95,7 +95,7 @@ export function world(on: On, options: WorldOptions = {}) {
   })
   on('tool.register', (_$, e) => {
     tools.push(e.name)
-    return { value: { tool: `mcp__glyphh-drip__${e.name}` } as never }
+    return { value: { tool: `mcp__drip__${e.name}` } as never }
   })
   on('process.run', (_$, e) => {
     const argv = [...e.argv]

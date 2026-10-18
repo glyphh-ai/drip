@@ -1,5 +1,5 @@
 // The game built in: Missiles, free. Every other game is a folder in the
-// gallery (glyphh-ai/drip), fetched from the Drip pane or /drip <name> (../hooks.tsx).
+// gallery (timmetim/drip), fetched from the Drip pane or /drip <name> (../hooks.tsx).
 import type { Game } from './game.ts'
 import { missiles } from './missiles.ts'
 

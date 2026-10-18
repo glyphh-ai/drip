@@ -1,8 +1,7 @@
 // builder.mjs — the Drips editor's recipe builder, pure (no DOM, no Node), so
-// the mod's tests load it as the page does. The Glyphh app's Drips section
-// (src/renderer/help/drips.ts at v2.0.2): a mode (one-shot, counted 2–10,
-// persistent) and a list of effects make a recipe; a saved recipe opens back
-// into the same shape.
+// the mod's tests load it as the page does. As the desktop app Drip
+// began in had it: a mode (one-shot, counted 2–10, persistent) and a list of
+// effects make a recipe; a saved recipe opens back into the same shape.
 
 export const COUNT_MIN = 2
 export const COUNT_MAX = 10

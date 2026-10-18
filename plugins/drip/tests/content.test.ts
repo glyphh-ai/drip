@@ -6,7 +6,7 @@ import { DRIP_SAFETY_MS, GAME_SAFETY_MS, loadDrips, loadGames, skippedText, type
 import { ABOUT_MAX, COVER_MAX, PAGE_MAX, TITLE_MAX, checkDrip, checkGame, imageSize } from '../hooks/content/rules.js'
 import { COVER, jpegCover, pngCover } from './cover.ts'
 
-const PAGE = '<!doctype html><html><head><title>t</title></head><body><canvas></canvas><script>glyphh.score(3)</script></body></html>'
+const PAGE = '<!doctype html><html><head><title>t</title></head><body><canvas></canvas><script>drip.score(3)</script></body></html>'
 const ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M1 1h2"/></svg>'
 const game = (over: Partial<{ name: string; manifest: string | null; page: string | null; icon: string | null; cover: { file: string; base64: string } | null }> = {}) => ({
   name: 'snake',
@@ -48,7 +48,7 @@ describe('the rules a game folder must pass', () => {
   test('a good game passes, its title and about trimmed', () => {
     const c = checkGame(game({ manifest: JSON.stringify({ title: '  Snake ', author: ' octocat ', about: ' Eat ' }), icon: ICON }))
     expect(c).toEqual({ ok: true, manifest: { title: 'Snake', author: 'octocat', about: 'Eat' }, page: PAGE, icon: ICON, cover: COVER })
-    expect(checkGame(game({ manifest: JSON.stringify({ title: 'Snake', author: 'glyphh' }), cover: { file: 'cover.png', base64: pngCover(1920, 1200) } })).ok).toBe(true)
+    expect(checkGame(game({ manifest: JSON.stringify({ title: 'Snake', author: 'drip' }), cover: { file: 'cover.png', base64: pngCover(1920, 1200) } })).ok).toBe(true)
   })
 
   test('each rule a folder can break says which', () => {
@@ -124,7 +124,7 @@ describe('the kit', () => {
     const html = withKit(PAGE, { kind: 'game', width: 800, height: 600, best: 42, quiet: false })
     expect(html.indexOf(`<meta http-equiv="Content-Security-Policy" content="${POLICY}">`)).toBe(html.indexOf('<head>') + '<head>'.length)
     expect(html.indexOf('<script>window.__dripsQuiet=false;')).toBe(html.indexOf('<body>') + '<body>'.length)
-    expect(html).toContain('window.glyphh={width:800,height:600,best:42,opacity:1,')
+    expect(html).toContain('window.drip={width:800,height:600,best:42,opacity:1,')
   })
 
   test('a page with no head or body still gets both, in front', () => {
@@ -153,15 +153,15 @@ describe('the kit', () => {
 
 describe('the folders', () => {
   const HOME = '/home/t'
-  const G = `${HOME}/.glyphh/games`
-  const D = `${HOME}/.glyphh/drips`
+  const G = `${HOME}/.drip/games`
+  const D = `${HOME}/.drip/drips`
 
   test('games: the good ones, in name order, with the kit; the rest left out with the reason', async () => {
     const fs = fsOf({
       [`${G}/zap/game.json`]: JSON.stringify({ title: 'Zap', author: 'octocat' }),
       [`${G}/zap/game.html`]: PAGE,
       [`${G}/zap/cover.png`]: pngCover(),
-      [`${G}/snake/game.json`]: JSON.stringify({ title: 'Snake', author: 'glyphh', about: 'Eat' }),
+      [`${G}/snake/game.json`]: JSON.stringify({ title: 'Snake', author: 'drip', about: 'Eat' }),
       [`${G}/snake/game.html`]: PAGE,
       [`${G}/snake/icon.svg`]: ICON,
       [`${G}/snake/cover.jpg`]: jpegCover(),
@@ -178,15 +178,15 @@ describe('the folders', () => {
       ['zap', 'Zap', null, GAME_SAFETY_MS, true],
     ])
     expect(games[0]!.about).toBe('Eat')
-    expect(games.map(g => g.author)).toEqual(['glyphh', 'octocat'])
-    expect(games[0]!.build(640, 480, 7)).toContain('window.glyphh={width:640,height:480,best:7,')
+    expect(games.map(g => g.author)).toEqual(['drip', 'octocat'])
+    expect(games[0]!.build(640, 480, 7)).toContain('window.drip={width:640,height:480,best:7,')
     quiet = true
     expect(games[0]!.build(640, 480, 7)).toContain('window.__dripsQuiet=true;')
     expect(skipped).toEqual([
       { name: 'blocks', why: 'a game already has that name' },
       { name: 'broken', why: 'it has no game.json' },
     ])
-    expect(skippedText('~/.glyphh/games', skipped)).toBe('Left out ~/.glyphh/games/blocks: a game already has that name.\nLeft out ~/.glyphh/games/broken: it has no game.json.')
+    expect(skippedText('~/.drip/games', skipped)).toBe('Left out ~/.drip/games/blocks: a game already has that name.\nLeft out ~/.drip/games/broken: it has no game.json.')
   })
 
   test('drips: the same, each with its kind', async () => {

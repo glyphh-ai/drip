@@ -1,4 +1,4 @@
-// The rules a game or drip folder must pass (docs/glyphh-drip.md), as pure
+// The rules a game or drip folder must pass (the repository's README), as pure
 // functions over what was read from it. Plain JavaScript, so the plugin and
 // the skills' checker (skills/*/check.js, run with Node before Claude says a
 // game or drip is done) apply the very same rules.
@@ -16,8 +16,8 @@ export const COVER_MIN_W = 480
 export const COVER_MAX_W = 1920
 /** A GitHub login: letters, digits and single hyphens, at most 39. */
 export const AUTHOR = /^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/
-/** The author Glyphh's own carry, which the pane shows as "Glyphh built". */
-export const GLYPHH = 'glyphh'
+/** The author Drip's own carry, which the pane shows as "Drip built". */
+export const DRIP_AUTHOR = 'drip'
 /** The cover files a folder may have, in the order they are looked for. */
 export const COVER_FILES = ['cover.jpg', 'cover.png']
 

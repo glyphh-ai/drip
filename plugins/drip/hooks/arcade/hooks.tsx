@@ -16,7 +16,7 @@ import { selectTarget, type Target, type TerminalEnv } from '../overlay/target.t
 import { BUILTIN_EFFECT_LIST, ONE_SHOT_EFFECTS } from '../drips/effects.ts'
 import { dripsDir, gamesDir, loadDrips, loadGames, skippedText, type FolderDeps, type FolderGame } from '../content/folders.ts'
 import { GALLERY_API, get as galleryGet, listing as galleryListing, type Entry } from '../content/gallery.ts'
-import { COVER_FILES, GLYPHH, NAME } from '../content/rules.js'
+import { COVER_FILES, DRIP_AUTHOR, NAME } from '../content/rules.js'
 import { share as galleryShare } from '../content/share.ts'
 import { readCustoms } from '../drips/library.ts'
 import { GAMES, gameDoc, gameOf } from './games/index.ts'
@@ -28,25 +28,25 @@ import { scoresOf, type Store } from './scores.ts'
 import { settingsOf, type Settings } from './settings.ts'
 
 /** A drip the pane asked to play: the drips' half (../drips) takes it. */
-const queued = atom({ plugin: 'glyphh-drip', key: 'queued' } as const, null as { recipe: string; at: number } | null)
+const queued = atom({ plugin: 'drip', key: 'queued' } as const, null as { recipe: string; at: number } | null)
 /** The pane's search, type filter and page (from 0). */
-const query = atom({ plugin: 'glyphh-drip', key: 'query' } as const, '')
-const filter = atom({ plugin: 'glyphh-drip', key: 'filter' } as const, 'all' as Kind | 'all')
-const page = atom({ plugin: 'glyphh-drip', key: 'page' } as const, 0)
+const query = atom({ plugin: 'drip', key: 'query' } as const, '')
+const filter = atom({ plugin: 'drip', key: 'filter' } as const, 'all' as Kind | 'all')
+const page = atom({ plugin: 'drip', key: 'page' } as const, 0)
 /** Bumped when a screenshot the pane waits for has loaded: the page redraws with it. */
-const shotTick = atom({ plugin: 'glyphh-drip', key: 'shotTick' } as const, 0)
+const shotTick = atom({ plugin: 'drip', key: 'shotTick' } as const, 0)
 /** The item the pane shows on its own page ("game:snake"); none, the table. */
-const detail = atom({ plugin: 'glyphh-drip', key: 'detail' } as const, null as string | null)
+const detail = atom({ plugin: 'drip', key: 'detail' } as const, null as string | null)
 /** The starred items ("game:missiles"), the tray's buttons: kept in the store across sessions (../drips loads them). */
-const favourites = atom({ plugin: 'glyphh-drip', key: 'favourites' } as const, [] as string[])
+const favourites = atom({ plugin: 'drip', key: 'favourites' } as const, [] as string[])
 /** The tray's row is open (the drip button by the prompt). */
-const bandOpen = atom({ plugin: 'glyphh-drip', key: 'bandOpen' } as const, false)
+const bandOpen = atom({ plugin: 'drip', key: 'bandOpen' } as const, false)
 
 /** The pane's logo: it follows the app's own light or dark, as the app's buttons do. */
 const LOGO = logoSvg('auto')
 
 /** The Drip pane: /drip (or /drip list) opens it. */
-export const PANE = 'glyphh-drip'
+export const PANE = 'drip'
 /** What /drip says in the conversation once the pane is open. */
 export const OPENED = 'Drip is open in the side panel.'
 /** How long what the gallery has is kept before it's asked again, in ms. */
@@ -80,14 +80,14 @@ function folderDeps($: EngineInterface): FolderDeps {
 }
 
 /** Every game from a folder: the plugin's own (shipped, a snapshot of the
- *  gallery), then the person's (~/.glyphh/games); read again each time. */
+ *  gallery), then the person's (~/.drip/games); read again each time. */
 async function folderGames($: EngineInterface): Promise<{ games: FolderGame[]; skipped: string }> {
   const d = folderDeps($)
   const shipped = await loadGames(d, `${$.plugin.root}/games`, TAKEN, () => !settings.sounds, false)
   const home = await $.env.get('HOME')
   if (!home) return { games: shipped.games, skipped: '' }
   const yours = await loadGames(d, gamesDir(home), new Set([...TAKEN, ...shipped.games.map(g => g.name)]), () => !settings.sounds, true)
-  return { games: [...shipped.games, ...yours.games], skipped: skippedText('~/.glyphh/games', yours.skipped) }
+  return { games: [...shipped.games, ...yours.games], skipped: skippedText('~/.drip/games', yours.skipped) }
 }
 
 /** Every drip from a folder, for the card: the plugin's own, then the person's. */
@@ -212,8 +212,8 @@ async function gallery($: EngineInterface) {
   return index
 }
 
-/** Who made it, as the pane says it: Glyphh's own are "Glyphh built". */
-export const byOf = (author: string) => (author === GLYPHH ? 'Glyphh built' : `@${author}`)
+/** Who made it, as the pane says it: Drip's own are "Drip built". */
+export const byOf = (author: string) => (author === DRIP_AUTHOR ? 'Drip built' : `@${author}`)
 
 /** One row of the pane's table. */
 export type Row = {
@@ -240,7 +240,7 @@ async function paneRows($: EngineInterface): Promise<Row[]> {
       title: g.title,
       about: f?.about ?? BUILT_IN[g.name]?.about ?? '',
       emoji: emojiOf('game', g.name, f?.emoji),
-      by: byOf(f ? f.author : GLYPHH),
+      by: byOf(f ? f.author : DRIP_AUTHOR),
       best: await scores.best(g.name),
       isYours: f?.isYours === true,
       isGallery: false,
@@ -260,7 +260,7 @@ async function paneRows($: EngineInterface): Promise<Row[]> {
     isGallery: false,
   })
   rows.push(
-    ...BUILTIN_EFFECT_LIST.map(d => drip({ name: d.name, title: titleOf(d.name), by: byOf(GLYPHH), isYours: false })),
+    ...BUILTIN_EFFECT_LIST.map(d => drip({ name: d.name, title: titleOf(d.name), by: byOf(DRIP_AUTHOR), isYours: false })),
     ...own.map(d => drip({ ...d, by: byOf(d.author) })),
     // A saved recipe is the person's, made of built-in drips: its recipe is its line.
     ...Object.entries(saved)
@@ -326,7 +326,7 @@ async function coverOf($: EngineInterface, r: Row): Promise<{ type: string; base
   if (!r.isGallery) {
     // A folder's (fetched or the person's), else a built-in one's in the plugin's covers/.
     for (const file of COVER_FILES) {
-      const b = home ? await read64(`${home}/.glyphh/${r.kind}s/${r.name}/${file}`) : null
+      const b = home ? await read64(`${home}/.drip/${r.kind}s/${r.name}/${file}`) : null
       if (b) return { type: file.endsWith('.png') ? 'png' : 'jpeg', base64: b }
     }
     const b = await read64(`${$.plugin.root}/covers/${r.kind}-${r.name}.jpg`)

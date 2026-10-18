@@ -1,8 +1,8 @@
-# Glyphh Drip
+# Drip
 
-Glyphh Drip plays games and drips over Claude's window, with sound. Arcade
+Drip plays games and drips over Claude's window, with sound. Arcade
 games, endless and harder as they go, your best score to beat: Missiles comes
-with it, and the [gallery](https://github.com/glyphh-ai/drip) has Blocks,
+with it, and the [gallery](https://github.com/timmetim/drip) has Blocks,
 Bricks, Snake, Solitaire, Sudoku and more. Twenty drips: visual effects like
 confetti, fireworks, hearts and a matrix rain. Ask Claude and it makes you
 new ones.
@@ -19,13 +19,13 @@ purchase.
 
 ## What it is, and where it works
 
-Glyphh Drip is a mod for **Claude Code on a Mac**: the `claude` command in
+Drip is a mod for **Claude Code on a Mac**: the `claude` command in
 your terminal, the Code tab of the Claude desktop app, or Claude Code in
 VS Code. It does not work in Claude's chat, in Cowork, on the phone, on
 Windows or on Linux.
 
 That's not a gap we're filling later; it's what the product is. Games and
-drips play in a transparent window that Glyphh Drip opens over Claude's own
+drips play in a transparent window that Drip opens over Claude's own
 window and keeps lined up with it as you move it, so a game sits right over
 your conversation and confetti falls over the answer. Only Claude Code lets
 a mod do that: it runs mods on your machine, gives them a side panel, a
@@ -37,7 +37,7 @@ we'd rather say so than pretend otherwise.
 ## Requirements
 
 - **macOS** and the **Xcode Command Line Tools**, which bring Swift
-  (`xcode-select --install`). Glyphh Drip builds its small overlay program
+  (`xcode-select --install`). Drip builds its small overlay program
   with them, to play games and drips over Claude's window or the whole screen.
   Without them, nothing plays: it tells you once what to install.
 - **Node.js 18 or newer** (https://nodejs.org). It runs the Drips page: your
@@ -48,11 +48,17 @@ we'd rather say so than pretend otherwise.
 In Claude Code, run:
 
 ```
-/plugin marketplace add glyphh-ai/glyphh
-/plugin install glyphh-drip@glyphh
+/plugin marketplace add timmetim/drip
+/plugin install drip@drip
 ```
 
-To let Glyphh Drip open its page in the desktop app's Browser pane without
+**Upgrading from 1.x?** Before 2.0.0 Drip had another name and came from
+another marketplace. Uninstall that one (`/plugin`), then install as above.
+The first time 2.0.0 starts it brings over your saved drips, your stars,
+your best scores and your own games and drips, by itself; set your `/config`
+rows again.
+
+To let Drip open its page in the desktop app's Browser pane without
 asking you each time, allow this call in `~/.claude/settings.json`:
 
 ```json
@@ -61,7 +67,7 @@ asking you each time, allow this call in `~/.claude/settings.json`:
 }
 ```
 
-If you don't, and the app refuses the call, Glyphh Drip asks Claude to open the
+If you don't, and the app refuses the call, Drip asks Claude to open the
 page for you.
 
 ## Commands
@@ -98,15 +104,15 @@ goes; your top score is kept and drawn in the next round, to beat.
 
 ## Make your own
 
-Ask Claude: "make me a Snake game", "make a snow drip". Glyphh Drip installs
+Ask Claude: "make me a Snake game", "make a snow drip". Drip installs
 two skills that show Claude how, with a template and a checker. Your games go
-in `~/.glyphh/games/<name>/` and your drips in `~/.glyphh/drips/<name>/`, and
+in `~/.drip/games/<name>/` and your drips in `~/.drip/drips/<name>/`, and
 they show up on the card straight away.
 
 To share one, send the folder; whoever gets it puts it in their own
-`~/.glyphh/games/` or `~/.glyphh/drips/`. A game or drip from someone else is
-code that runs on your Mac, so only add ones from people you trust. Glyphh
-Drip loads each one with the network blocked.
+`~/.drip/games/` or `~/.drip/drips/`. A game or drip from someone else is
+code that runs on your Mac, so only add ones from people you trust. Drip
+loads each one with the network blocked.
 
 ## The drip button
 
@@ -116,7 +122,7 @@ prompt: **fireworks**, **confetti**, **hearts**, **stars**, and **powow**, then 
 saved drips, then **■ Stop** while something keeps playing, and **✕** to
 close the row. A press plays the effect the way `/drip` does, where your
 **Where effects play** setting says. To hide the
-button, turn off **Drip button** under Glyphh Drip in `/config`.
+button, turn off **Drip button** under Drip in `/config`.
 
 ## Recipes
 
@@ -138,22 +144,22 @@ A recipe is a few words, in any order:
 
 ## Where effects play
 
-Open `/config` and find **Where effects play** under Glyphh Drip:
+Open `/config` and find **Where effects play** under Drip:
 
 - **claude-window** (the default) plays effects over the window Claude is
   running in: the Claude desktop app's window, or the terminal window
   running Claude Code (Ghostty, Terminal, iTerm2, kitty, WezTerm, the
   VS Code and Cursor terminals, and others). The effect sits just above
   that window and moves and resizes with it. Windows in front of Claude,
-  menus and notifications stay in front. If Glyphh Drip can't find the window, it
+  menus and notifications stay in front. If Drip can't find the window, it
   plays over the screen under the pointer and says so once.
 - **fullscreen** plays effects over the whole screen under the pointer,
   above every app and on every Space.
 
 Effects never take the pointer or the keyboard: you can keep working
 through them. The first effect over Claude's window or the screen takes a
-few seconds longer, while Glyphh Drip builds its small overlay program with
-Swift. It's built once and kept in `~/Library/Caches/glyphh-overlay`. Glyphh Drip
+few seconds longer, while Drip builds its small overlay program with
+Swift. It's built once and kept in `~/Library/Caches/drip-overlay`. Drip
 needs no extra permission for this: it reads only where Claude's window is
 and how big, never what's in it, so macOS doesn't ask for Screen Recording.
 
@@ -172,7 +178,7 @@ Every effect has its own sound: rockets whistle up and boom in
 `fireworks`, a popper goes off in `confetti`, the cat meows, and the
 backgrounds play something soft and slow for as long as they stay. Every
 sound is made as it plays; none is a recording. To turn them off, open
-`/config` and turn off **Sounds** under Glyphh Drip. The faint matrix that plays
+`/config` and turn off **Sounds** under Drip. The faint matrix that plays
 while Claude's tools run is always silent.
 
 ## The Drips page
@@ -210,9 +216,9 @@ Two more rows in `/config`, both off until you turn them on:
 ## Where things are kept
 
 Everything stays on your machine. Your saved drips are kept in Claude
-Code's store for Glyphh Drip, with your best scores.
-Your own games and drips are in `~/.glyphh/`. The overlay program is kept in
-`~/Library/Caches/glyphh-overlay`.
+Code's store for Drip, with your best scores.
+Your own games and drips are in `~/.drip/`. The overlay program is kept in
+`~/Library/Caches/drip-overlay`.
 
 ## Security
 
@@ -230,14 +236,14 @@ Your own games and drips are in `~/.glyphh/`. The overlay program is kept in
   minutes), and quits if Claude Code goes away. To find Claude's window it
   reads only each window's owner, layer and position, never a title or what
   a window shows.
-- Glyphh Drip never talks to a Glyphh server. The only network calls are to
-  GitHub, to list and fetch the gallery's games and drips.
+- Drip has no server of its own. The only network calls are to GitHub,
+  to list and fetch the gallery's games and drips.
 
 ## For developers
 
-This mod is built from the private source repository to the Glyphh mod standard
-(`docs/mod-standard.md` there). Its overlay code in `hooks/overlay/` is a copy of the
-shared module: change the source and sync, never the copy.
+Its source is this folder of [timmetim/drip](https://github.com/timmetim/drip).
+With `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1`, `claude plugin test plugins/drip`
+runs its tests and `claude plugin validate plugins/drip` checks it.
 
 Each drip is one file in `hooks/drips/effects/` that builds its whole
 document, listed once in `hooks/drips/effects/index.ts`. A new drip is a new

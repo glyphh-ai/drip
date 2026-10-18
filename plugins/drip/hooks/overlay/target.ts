@@ -1,4 +1,3 @@
-// Copied from shared/overlay/target.ts by scripts/sync-shared.mjs: edit it there.
 // The window effects play over when `display` is claude-window: the window
 // Claude is running in. In the desktop app, the Claude app's own window; in a
 // terminal, the window of the terminal app that hosts Claude Code. Pure: the

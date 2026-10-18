@@ -1,4 +1,3 @@
-// Copied from shared/overlay/overlay.ts by scripts/sync-shared.mjs: edit it there.
 // The native overlay's command protocol (native/overlay.swift), pure.
 //
 //   drips-overlay screen   prints the screen under the cursor, one JSON line:
@@ -136,7 +135,7 @@ export function lineSplitter(): (piece: string) => string[] {
 }
 
 /** Where the compiled overlay is kept: one binary per version of its source. */
-export const binaryPath = (home: string, digest: string) => `${home.replace(/\/$/, '')}/Library/Caches/glyphh-overlay/overlay-${digest}`
+export const binaryPath = (home: string, digest: string) => `${home.replace(/\/$/, '')}/Library/Caches/drip-overlay/overlay-${digest}`
 
 /** Compiled through xcrun, which points swiftc at the macOS SDK: swiftc run by
  *  its own path cannot find the standard library on Command Line Tools alone. */

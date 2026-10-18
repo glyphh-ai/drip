@@ -15,8 +15,8 @@ const SURFACES = ['terminal', 'desktop'] as const
 /** The engine line the button sits beside: the hint under the prompt on the terminal, the footer's mode labels on the desktop. */
 const mountLine = ($: Engine, surface: (typeof SURFACES)[number]) =>
   surface === 'desktop'
-    ? $.ui.mount({ plugin: 'glyphh-drip', surface, component: 'SessionMode', props: MODES })
-    : $.ui.mount({ plugin: 'glyphh-drip', surface, component: 'PromptHint', props: HINT })
+    ? $.ui.mount({ plugin: 'drip', surface, component: 'SessionMode', props: MODES })
+    : $.ui.mount({ plugin: 'drip', surface, component: 'PromptHint', props: HINT })
 
 /** A session of the mod on this machine. */
 async function started($: Engine, on: On, store: Record<string, unknown> = {}, options: WorldOptions = {}) {
@@ -48,14 +48,14 @@ describe('the Drips button by the prompt', () => {
       expect(await keysOf(hint)).toEqual(['drip'])
       expect((await hint.find({ key: 'drip' }))?.text).toBe('💧 drip')
       expect(await hint.find({ type: 'Text', text: surface === 'desktop' ? 'focus' : '? for shortcuts' })).toBeDefined()
-      const band = await $.ui.mount({ plugin: 'glyphh-drip', surface, component: 'AbovePrompt', props: BAND })
+      const band = await $.ui.mount({ plugin: 'drip', surface, component: 'AbovePrompt', props: BAND })
       expect(await keysOf(band)).toEqual([])
     })
 
     test(`on ${surface}: pressed, the tray opens above the prompt with the starred drips (a saved one too, once starred); ✕ closes it`, async ($, on) => {
       await started($, on, { customs: { party: '3 hearts' }, favourites: [...DEFAULT_FAVOURITES, 'drip:party', 'drip:nope'] })
       const hint = await mountLine($, surface)
-      const band = await $.ui.mount({ plugin: 'glyphh-drip', surface, component: 'AbovePrompt', props: BAND })
+      const band = await $.ui.mount({ plugin: 'drip', surface, component: 'AbovePrompt', props: BAND })
       await hint.press({ key: 'drip' })
       expect(await keysOf(band)).toEqual([...QUICK.map(e => `play:${e}`), 'play:party', 'close'])
       expect((await band.findAll({ type: 'Button' }))[0]!.props.label).toBe('🎆 fireworks')
@@ -69,16 +69,16 @@ describe('the Drips button by the prompt', () => {
 
   test("one button per surface: the desktop draws none in a hint line, the terminal none in its footer", async ($, on) => {
     await started($, on)
-    const desktopHint = await $.ui.mount({ plugin: 'glyphh-drip', surface: 'desktop', component: 'PromptHint', props: HINT })
+    const desktopHint = await $.ui.mount({ plugin: 'drip', surface: 'desktop', component: 'PromptHint', props: HINT })
     expect(await keysOf(desktopHint)).toEqual([])
-    const terminalModes = await $.ui.mount({ plugin: 'glyphh-drip', surface: 'terminal', component: 'SessionMode', props: MODES })
+    const terminalModes = await $.ui.mount({ plugin: 'drip', surface: 'terminal', component: 'SessionMode', props: MODES })
     expect(await keysOf(terminalModes)).toEqual([])
   })
 
   test("a quick play goes the way /drip does: over Claude's window", async ($, on) => {
     const { clock, overlays } = await started($, on, { customs: { party: '-1 aurora' } })
     const hint = await mountLine($, 'terminal')
-    const band = await $.ui.mount({ plugin: 'glyphh-drip', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+    const band = await $.ui.mount({ plugin: 'drip', surface: 'terminal', component: 'AbovePrompt', props: BAND })
     await hint.press({ key: 'drip' })
     await band.press({ key: 'play:fireworks' })
     await until(clock, () => overlays.length > 0)
@@ -88,7 +88,7 @@ describe('the Drips button by the prompt', () => {
   test('a quick play lets the pointer through: effects never take clicks; no game among them', async ($, on) => {
     const { clock, overlays } = await started($, on)
     const hint = await mountLine($, 'desktop')
-    const band = await $.ui.mount({ plugin: 'glyphh-drip', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+    const band = await $.ui.mount({ plugin: 'drip', surface: 'desktop', component: 'AbovePrompt', props: BAND })
     await hint.press({ key: 'drip' })
     expect(QUICK).toEqual(['fireworks', 'confetti', 'hearts', 'stars', 'powow'])
     await band.press({ key: 'play:powow' })
@@ -99,7 +99,7 @@ describe('the Drips button by the prompt', () => {
   test('Stop shows while a saved persistent drip plays, and ends it', async ($, on) => {
     const { clock, overlays, ran } = await started($, on, { customs: { party: '-1 aurora' }, favourites: ['drip:party'] })
     const hint = await mountLine($, 'desktop')
-    const band = await $.ui.mount({ plugin: 'glyphh-drip', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+    const band = await $.ui.mount({ plugin: 'drip', surface: 'desktop', component: 'AbovePrompt', props: BAND })
     await hint.press({ key: 'drip' })
     expect(await keysOf(band)).not.toContain('stop')
     await band.press({ key: 'play:party' })
@@ -113,7 +113,7 @@ describe('the Drips button by the prompt', () => {
   test('where the overlay cannot run, a play says why once and plays nothing', async ($, on) => {
     const { toasts, overlays } = await started($, on, {}, { noSwift: true })
     const hint = await mountLine($, 'terminal')
-    const band = await $.ui.mount({ plugin: 'glyphh-drip', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+    const band = await $.ui.mount({ plugin: 'drip', surface: 'terminal', component: 'AbovePrompt', props: BAND })
     await hint.press({ key: 'drip' })
     await band.press({ key: 'play:confetti' })
     await band.press({ key: 'play:hearts' })
@@ -124,7 +124,7 @@ describe('the Drips button by the prompt', () => {
   test('nothing stored: the row plays drips, with no Unlock', async ($, on) => {
     const { overlays, clock } = await started($, on)
     const hint = await mountLine($, 'desktop')
-    const band = await $.ui.mount({ plugin: 'glyphh-drip', surface: 'desktop', component: 'AbovePrompt', props: BAND })
+    const band = await $.ui.mount({ plugin: 'drip', surface: 'desktop', component: 'AbovePrompt', props: BAND })
     await hint.press({ key: 'drip' })
     expect(await keysOf(band)).not.toContain('unlock')
     await band.press({ key: 'play:confetti' })
@@ -135,7 +135,7 @@ describe('the Drips button by the prompt', () => {
     await started($, on)
     const hint = await mountLine($, 'terminal')
     await hint.press({ key: 'drip' })
-    const band = await $.ui.mount({ plugin: 'glyphh-drip', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, hasSurvey: true } })
+    const band = await $.ui.mount({ plugin: 'drip', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, hasSurvey: true } })
     expect(await keysOf(band)).toEqual([])
   })
 
@@ -144,7 +144,7 @@ describe('the Drips button by the prompt', () => {
     const hint = await mountLine($, 'terminal')
     expect(await keysOf(hint)).toEqual([])
     expect(await keysOf(await mountLine($, 'desktop'))).toEqual([])
-    const band = await $.ui.mount({ plugin: 'glyphh-drip', surface: 'terminal', component: 'AbovePrompt', props: BAND })
+    const band = await $.ui.mount({ plugin: 'drip', surface: 'terminal', component: 'AbovePrompt', props: BAND })
     expect(await keysOf(band)).toEqual([])
   })
 })

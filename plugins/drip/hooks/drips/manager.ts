@@ -1,5 +1,5 @@
-// What `/drip`, the play_drip tool and the Drips page's Play do: the Glyphh
-// app's DripManager.execute (src/main/drips-manager.ts at v2.0.2), on a Host
+// What `/drip`, the play_drip tool and the Drips page's Play do: the desktop
+// app's DripManager.execute, where Drip began, on a Host
 // that shows effects (Claude's window or the full screen). Counted effects
 // stagger 1500 ms apart; a persistent (`-1`) effect fired again toggles off;
 // a preview's persistent effect is bounded to 12 s; any other persistent

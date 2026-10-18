@@ -1,7 +1,7 @@
 // The drip system's pure half, shared by every surface: the registries built
 // from the drips (one file each, listed in ./effects/index.ts), the recipe
-// grammar, and the documents the overlay loads. Ported from the Glyphh app
-// (glyphh-ai/app, tag v2.0.2, src/shared/drips-effects.ts).
+// grammar, and the documents the overlay loads. Ported from the
+// desktop app Drip began in.
 //
 // Every document closes itself with the drip close signal (./effects/shared.ts)
 // but a looping one, which plays until it is stopped.

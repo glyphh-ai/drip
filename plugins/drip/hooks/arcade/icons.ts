@@ -1,6 +1,6 @@
 // Each game's and drip's icon on the /drip card: a Tabler outline icon (MIT,
 // (c) 2020-2024 Pawel Kuna; github.com/tabler/tabler-icons, v3.19.0), drawn
-// white on a rounded tile in Glyphh's purple-to-pink. A new game or drip adds
+// white on a rounded tile in Drip's purple-to-pink. A new game or drip adds
 // a line here; one from a folder brings its own icon.svg or gets the tile
 // with a controller (a game) or a drop (a drip).
 

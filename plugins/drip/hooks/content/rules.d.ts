@@ -19,7 +19,7 @@ export const COVER_MIN_W: number
 export const COVER_MAX_W: number
 export const AUTHOR: RegExp
 export const EMOJI: RegExp
-export const GLYPHH: string
+export const DRIP_AUTHOR: string
 export const COVER_FILES: string[]
 export function imageSize(b: Uint8Array): { type: 'png' | 'jpeg'; w: number; h: number } | null
 export function checkGame(r: Read): Checked<GameManifest>

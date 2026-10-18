@@ -1,12 +1,12 @@
 // /drip share <name>: one of the person's own games or drips, sent to the
-// gallery (glyphh-ai/drip) as a pull request, all from the plugin. It runs
+// gallery (timmetim/drip) as a pull request, all from the plugin. It runs
 // the GitHub command-line tool, signed in as the person: their fork of the
 // gallery, synced; a branch; the folder's files; the pull request. We review
 // and merge it there; from then on anyone can /drip get it.
-import { COVER_FILES, GLYPHH, checkDrip, checkGame, type Cover } from './rules.js'
+import { COVER_FILES, DRIP_AUTHOR, checkDrip, checkGame, type Cover } from './rules.js'
 
 /** The gallery's repository on GitHub. */
-export const REPO = 'glyphh-ai/drip'
+export const REPO = 'timmetim/drip'
 
 export type Run = (argv: string[], opts?: { stdin?: string; timeoutMs?: number }) => Promise<{ exitCode: number; stdout: string; stderr: string } | null>
 
@@ -38,9 +38,9 @@ const say = (r: { stderr: string; stdout: string } | null) => (r ? (r.stderr || 
 /** Shares `name` from `home`'s folders; says what came of it, the pull request's link when it worked. */
 export async function share(d: ShareDeps, home: string, name: string): Promise<string> {
   const want = name.trim().toLowerCase()
-  const kind = (await d.exists(`${home}/.glyphh/games/${want}/game.json`)) ? 'game' : (await d.exists(`${home}/.glyphh/drips/${want}/drip.json`)) ? 'drip' : null
-  if (!kind) return `No game or drip of yours called "${want}" (they live in ~/.glyphh/games and ~/.glyphh/drips).`
-  const dir = `${home}/.glyphh/${kind}s/${want}`
+  const kind = (await d.exists(`${home}/.drip/games/${want}/game.json`)) ? 'game' : (await d.exists(`${home}/.drip/drips/${want}/drip.json`)) ? 'drip' : null
+  if (!kind) return `No game or drip of yours called "${want}" (they live in ~/.drip/games and ~/.drip/drips).`
+  const dir = `${home}/.drip/${kind}s/${want}`
   const files = new Map<string, string>()
   for (const f of FILES[kind]) if (await d.exists(`${dir}/${f}`)) files.set(f, await d.read(`${dir}/${f}`))
   let cover: Cover | null = null
@@ -48,7 +48,7 @@ export async function share(d: ShareDeps, home: string, name: string): Promise<s
   const read = { name: want, manifest: files.get(`${kind}.json`) ?? null, page: files.get(`${kind}.html`) ?? null, icon: files.get('icon.svg') ?? null, cover }
   const checked = kind === 'game' ? checkGame(read) : checkDrip(read)
   if (!checked.ok) return `${want} doesn't pass the check (${checked.why}), so it wasn't shared.`
-  if (checked.manifest.author === GLYPHH) return `${want}'s author is "${GLYPHH}", which is Glyphh's own: put your GitHub login in ${kind}.json.`
+  if (checked.manifest.author === DRIP_AUTHOR) return `${want}'s author is "${DRIP_AUTHOR}", which is Drip's own: put your GitHub login in ${kind}.json.`
 
   const gh = await ghPath(d)
   if (!gh) return NEEDS_GH
@@ -87,7 +87,7 @@ export async function share(d: ShareDeps, home: string, name: string): Promise<s
 
   const what = kind === 'game' ? 'Game' : 'Drip'
   const pr = await d.run(
-    [gh, 'pr', 'create', '-R', REPO, '--head', `${user}:${branch}`, '--base', 'main', '--title', `${what}: ${checked.manifest.title}`, '--body', `${what} \`${want}\`, shared from Glyphh Drip with /drip share.`],
+    [gh, 'pr', 'create', '-R', REPO, '--head', `${user}:${branch}`, '--base', 'main', '--title', `${what}: ${checked.manifest.title}`, '--body', `${what} \`${want}\`, shared from Drip with /drip share.`],
     { timeoutMs: 60_000 },
   )
   if (pr?.exitCode !== 0) return `Couldn't open the pull request: ${say(pr)}`

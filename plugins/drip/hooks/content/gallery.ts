@@ -1,14 +1,14 @@
-// The gallery: glyphh-ai/drip, every game and drip there is but Missiles and
+// The gallery: timmetim/drip, every game and drip there is but Missiles and
 // the drips built in. The Drip pane lists it (`listing`); `/drip get <name>`,
 // Get on the pane, or /drip <name>, fetches one into the person's folder
-// (~/.glyphh), checked against the rules first (./rules.js), and marks it as
+// (~/.drip), checked against the rules first (./rules.js), and marks it as
 // the gallery's (MARK), not theirs.
 import { COVER_FILES, NAME, checkDrip, checkGame, type Cover } from './rules.js'
 
 /** Where the gallery's files are read from, raw. */
-export const GALLERY = 'https://raw.githubusercontent.com/glyphh-ai/drip/main'
+export const GALLERY = 'https://raw.githubusercontent.com/timmetim/drip/main'
 /** Where its covers are read from: GitHub's API hands a file's bytes over as base64. */
-export const GALLERY_API = 'https://api.github.com/repos/glyphh-ai/drip/contents'
+export const GALLERY_API = 'https://api.github.com/repos/timmetim/drip/contents'
 
 export type GalleryDeps = {
   fetch: (url: string) => Promise<{ ok: boolean; status: number; text: string }>
@@ -60,7 +60,7 @@ function parseIndex(text: string): Index | null {
 export async function get(d: GalleryDeps, home: string, name: string, builtIn: ReadonlySet<string>): Promise<string> {
   const want = name.trim().toLowerCase()
   if (!NAME.test(want)) return `A name is lowercase letters, digits and hyphens: /drip get snake.`
-  if (builtIn.has(want)) return `${want} comes with Glyphh Drip: /drip ${want} plays it.`
+  if (builtIn.has(want)) return `${want} comes with Drip: /drip ${want} plays it.`
   const res = await d.fetch(`${GALLERY}/index.json`).catch(() => null)
   if (!res?.ok) return `Couldn't reach the gallery${res ? ` (${res.status})` : ''}. Try again in a moment.`
   const index = parseIndex(res.text)
@@ -88,8 +88,8 @@ export async function get(d: GalleryDeps, home: string, name: string, builtIn: R
   const read = { name: want, manifest: files.get(`${kind}.json`) ?? null, page: files.get(`${kind}.html`) ?? null, icon: files.get('icon.svg') ?? null, cover }
   const checked = kind === 'game' ? checkGame(read) : checkDrip(read)
   if (!checked.ok) return `The gallery's ${want} doesn't pass the check (${checked.why}), so it wasn't kept.`
-  for (const [file, text] of files) await d.write(`${home}/.glyphh/${kind}s/${want}/${file}`, text)
-  await d.write(`${home}/.glyphh/${kind}s/${want}/${MARK}`, 'glyphh-ai/drip\n')
-  if (!(await d.writeBytes(`${home}/.glyphh/${kind}s/${want}/${checked.cover.file}`, checked.cover.base64))) return `Couldn't save ${want}'s cover. Try again in a moment.`
+  for (const [file, text] of files) await d.write(`${home}/.drip/${kind}s/${want}/${file}`, text)
+  await d.write(`${home}/.drip/${kind}s/${want}/${MARK}`, 'timmetim/drip\n')
+  if (!(await d.writeBytes(`${home}/.drip/${kind}s/${want}/${checked.cover.file}`, checked.cover.base64))) return `Couldn't save ${want}'s cover. Try again in a moment.`
   return `Got ${checked.manifest.title}: /drip ${want} plays it.`
 }

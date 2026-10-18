@@ -1,4 +1,4 @@
-// Glyphh Drip: games and drips (visual effects) over Claude's window or the
+// Drip: games and drips (visual effects) over Claude's window or the
 // whole screen, free. The games' half goes first: it takes /drip <game> and
 // the pane and passes everything else to the drips' half.
 import type { Register } from 'claude-code'

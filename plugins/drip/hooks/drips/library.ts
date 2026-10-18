@@ -1,5 +1,5 @@
 // The saved recipes: name → recipe, kept in the mod's store under one key.
-// Names and recipes are normalised as the Glyphh app's member library does
+// Names and recipes are normalised as the desktop app Drip began in did
 // (dripId, dripRecordOf): a name is trimmed and lowercased, so one preset has
 // one name; a recipe's whitespace is collapsed. Works on a Store, closures
 // over `$.store` that ./hooks.tsx hands it.

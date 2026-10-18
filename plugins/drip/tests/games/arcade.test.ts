@@ -71,7 +71,7 @@ describe('/games', () => {
     await until(clock, () => false)
     // A game from the gallery runs on the kit, sized and drawn with its best the same way.
     expect(await run('blocks')).toBe('Blocks: your best is 40. Esc quits, M mutes.')
-    expect(overlays[2]!.request.html).toContain('window.glyphh={width:1325,height:1138,best:40,')
+    expect(overlays[2]!.request.html).toContain('window.drip={width:1325,height:1138,best:40,')
   })
 
   test('fullscreen: over the whole screen', { options: { display: 'fullscreen' } }, async ($, on) => {
@@ -127,8 +127,8 @@ describe('/drip <name> for one of the gallery\'s', () => {
   test('a game not here yet: fetched, marked the gallery\'s, then played', async ($, on) => {
     const { run, overlays, ran } = await started($, on, {}, { gallery: GALLERY_FILES })
     expect(await run('rocks')).toBe('Rocks. Esc quits, M mutes.')
-    expect(overlays[0]!.request.html).toContain('window.glyphh={')
-    expect(ran.some(a => a[0] === '/usr/bin/base64' && a[3] === `${HOME}/.glyphh/games/rocks/cover.jpg`)).toBe(true)
+    expect(overlays[0]!.request.html).toContain('window.drip={')
+    expect(ran.some(a => a[0] === '/usr/bin/base64' && a[3] === `${HOME}/.drip/games/rocks/cover.jpg`)).toBe(true)
     // Here now: the list shows it, not as the person's own.
     expect(await run()).toContain('  rocks     Rocks\n')
     expect(await run()).not.toContain('yours')

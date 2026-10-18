@@ -40,29 +40,29 @@ describe('/drip get', () => {
     'games/snake/game.html': PAGE,
     'games/snake/cover.jpg': COVER,
     'games/snake/icon.svg': '<svg xmlns="http://www.w3.org/2000/svg"><path d="M1 1"/></svg>',
-    'drips/snow/drip.json': JSON.stringify({ title: 'Snow', author: 'glyphh', kind: 'one-shot' }),
+    'drips/snow/drip.json': JSON.stringify({ title: 'Snow', author: 'drip', kind: 'one-shot' }),
     'drips/snow/drip.html': PAGE,
     'drips/snow/cover.jpg': COVER,
   }
 
-  test('a game: its files, checked, into ~/.glyphh/games; only the files a game may have', async () => {
+  test('a game: its files, checked, into ~/.drip/games; only the files a game may have', async () => {
     const w = web(GALLERY_FILES)
     const written: Record<string, string> = {}
     const bytes: Record<string, string> = {}
     const said = await get({ fetch: w.fetch, write: async (p, t) => void (written[p] = t), writeBytes: async (p, b) => ((bytes[p] = b), true) }, HOME, 'Snake', new Set())
     expect(said).toBe('Got Snake: /drip snake plays it.')
-    expect(Object.keys(written).sort()).toEqual([`${HOME}/.glyphh/games/snake/${MARK}`, `${HOME}/.glyphh/games/snake/game.html`, `${HOME}/.glyphh/games/snake/game.json`, `${HOME}/.glyphh/games/snake/icon.svg`])
-    expect(written[`${HOME}/.glyphh/games/snake/${MARK}`]).toBe('glyphh-ai/drip\n') // the gallery's, not the person's
-    expect(bytes).toEqual({ [`${HOME}/.glyphh/games/snake/cover.jpg`]: COVER })
+    expect(Object.keys(written).sort()).toEqual([`${HOME}/.drip/games/snake/${MARK}`, `${HOME}/.drip/games/snake/game.html`, `${HOME}/.drip/games/snake/game.json`, `${HOME}/.drip/games/snake/icon.svg`])
+    expect(written[`${HOME}/.drip/games/snake/${MARK}`]).toBe('timmetim/drip\n') // the gallery's, not the person's
+    expect(bytes).toEqual({ [`${HOME}/.drip/games/snake/cover.jpg`]: COVER })
     expect(w.asked).toContain(`${GALLERY_API}/games/snake/cover.jpg?ref=main`)
     expect(w.asked.some(u => u.includes('evil'))).toBe(false)
   })
 
-  test('a drip goes to ~/.glyphh/drips', async () => {
+  test('a drip goes to ~/.drip/drips', async () => {
     const written: string[] = []
     const said = await get({ fetch: web(GALLERY_FILES).fetch, write: async p => void written.push(p), writeBytes: async p => (written.push(p), true) }, HOME, 'snow', new Set())
     expect(said).toBe('Got Snow: /drip snow plays it.')
-    expect(written).toEqual([`${HOME}/.glyphh/drips/snow/drip.json`, `${HOME}/.glyphh/drips/snow/drip.html`, `${HOME}/.glyphh/drips/snow/${MARK}`, `${HOME}/.glyphh/drips/snow/cover.jpg`])
+    expect(written).toEqual([`${HOME}/.drip/drips/snow/drip.json`, `${HOME}/.drip/drips/snow/drip.html`, `${HOME}/.drip/drips/snow/${MARK}`, `${HOME}/.drip/drips/snow/cover.jpg`])
   })
 
   test('the listing the pane shows; none when the gallery can\'t be read', async () => {
@@ -76,7 +76,7 @@ describe('/drip get', () => {
     const none = async () => {}
     const at = (files: Record<string, string>) => ({ fetch: web(files).fetch, write: none, writeBytes: async () => true })
     expect(await get(at(GALLERY_FILES), HOME, 'Bad Name', new Set())).toBe('A name is lowercase letters, digits and hyphens: /drip get snake.')
-    expect(await get(at(GALLERY_FILES), HOME, 'blocks', new Set(['blocks']))).toBe('blocks comes with Glyphh Drip: /drip blocks plays it.')
+    expect(await get(at(GALLERY_FILES), HOME, 'blocks', new Set(['blocks']))).toBe('blocks comes with Drip: /drip blocks plays it.')
     expect(await get(at({}), HOME, 'snake', new Set())).toBe("Couldn't reach the gallery (404). Try again in a moment.")
     expect(await get({ fetch: () => Promise.reject(new Error('offline')), write: none, writeBytes: async () => true }, HOME, 'snake', new Set())).toBe("Couldn't reach the gallery. Try again in a moment.")
     expect(await get(at({ 'index.json': 'nope' }), HOME, 'snake', new Set())).toBe("The gallery's index didn't read. Try again later.")
@@ -98,9 +98,9 @@ describe('/drip get', () => {
 
 describe('/drip share', () => {
   const OWN: Record<string, string> = {
-    [`${HOME}/.glyphh/games/snake/game.json`]: JSON.stringify({ title: 'Snake', author: 'Octo' }),
-    [`${HOME}/.glyphh/games/snake/game.html`]: PAGE,
-    [`${HOME}/.glyphh/games/snake/cover.jpg`]: COVER,
+    [`${HOME}/.drip/games/snake/game.json`]: JSON.stringify({ title: 'Snake', author: 'Octo' }),
+    [`${HOME}/.drip/games/snake/game.html`]: PAGE,
+    [`${HOME}/.drip/games/snake/cover.jpg`]: COVER,
   }
 
   /** gh as GitHub would answer, signed in as `octo`; `fail` makes one step fail. */
@@ -122,7 +122,7 @@ describe('/drip share', () => {
       if (line.startsWith('api repos/octo/drip/git/refs')) return ok()
       if (line.startsWith('api repos/octo/drip/contents/') && !line.includes('-X')) return no('Not Found')
       if (line.startsWith('api -X PUT')) return ok()
-      if (line.startsWith('pr create')) return ok('https://github.com/glyphh-ai/drip/pull/7\n')
+      if (line.startsWith('pr create')) return ok('https://github.com/timmetim/drip/pull/7\n')
       return no(`unexpected: ${line}`)
     }
     return { ran, run }
@@ -137,7 +137,7 @@ describe('/drip share', () => {
 
   test('forks, syncs, branches, adds each file, opens the pull request, and says its link', async () => {
     const g = gh()
-    expect(await share(deps(g.run), HOME, 'snake')).toBe("Shared Snake: https://github.com/glyphh-ai/drip/pull/7. Once it's merged, anyone can /drip get snake.")
+    expect(await share(deps(g.run), HOME, 'snake')).toBe("Shared Snake: https://github.com/timmetim/drip/pull/7. Once it's merged, anyone can /drip get snake.")
     const lines = g.ran.map(r => r.argv.join(' '))
     expect(lines).toContain(`gh repo fork ${REPO} --clone=false`)
     expect(lines).toContain(`gh repo sync octo/drip --source ${REPO} --branch main`)
@@ -160,17 +160,17 @@ describe('/drip share', () => {
 
   test('not one of theirs, or one that fails the check: nothing runs', async () => {
     const g = gh()
-    expect(await share(deps(g.run), HOME, 'pong')).toBe('No game or drip of yours called "pong" (they live in ~/.glyphh/games and ~/.glyphh/drips).')
-    OWN[`${HOME}/.glyphh/games/snake/game.html`] = '<body>fetch("x")</body>'
+    expect(await share(deps(g.run), HOME, 'pong')).toBe('No game or drip of yours called "pong" (they live in ~/.drip/games and ~/.drip/drips).')
+    OWN[`${HOME}/.drip/games/snake/game.html`] = '<body>fetch("x")</body>'
     expect(await share(deps(g.run), HOME, 'snake')).toBe("snake doesn't pass the check (game.html reaches the network, which isn't allowed), so it wasn't shared.")
-    OWN[`${HOME}/.glyphh/games/snake/game.html`] = PAGE
-    OWN[`${HOME}/.glyphh/games/snake/game.json`] = JSON.stringify({ title: 'Snake', author: 'glyphh' })
-    expect(await share(deps(g.run), HOME, 'snake')).toBe('snake\'s author is "glyphh", which is Glyphh\'s own: put your GitHub login in game.json.')
+    OWN[`${HOME}/.drip/games/snake/game.html`] = PAGE
+    OWN[`${HOME}/.drip/games/snake/game.json`] = JSON.stringify({ title: 'Snake', author: 'drip' })
+    expect(await share(deps(g.run), HOME, 'snake')).toBe('snake\'s author is "drip", which is Drip\'s own: put your GitHub login in game.json.')
     expect(g.ran).toEqual([])
-    OWN[`${HOME}/.glyphh/games/snake/game.json`] = JSON.stringify({ title: 'Snake', author: 'someone' })
+    OWN[`${HOME}/.drip/games/snake/game.json`] = JSON.stringify({ title: 'Snake', author: 'someone' })
     expect(await share(deps(g.run), HOME, 'snake')).toBe('snake\'s author is "someone", but you\'re signed in to GitHub as octo: only its maker shares it.')
     expect(g.ran.some(r => r.argv.includes('fork'))).toBe(false)
-    OWN[`${HOME}/.glyphh/games/snake/game.json`] = JSON.stringify({ title: 'Snake', author: 'Octo' })
+    OWN[`${HOME}/.drip/games/snake/game.json`] = JSON.stringify({ title: 'Snake', author: 'Octo' })
   })
 
   test('a step GitHub refuses is said, and nothing after it runs', async () => {

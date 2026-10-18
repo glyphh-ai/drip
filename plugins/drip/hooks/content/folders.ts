@@ -1,6 +1,6 @@
-// Games and drips from folders (docs/glyphh-drip.md): the ones the plugin
-// ships (its games/ and drips/, a snapshot of glyphh-ai/drip) and the
-// person's own (~/.glyphh/games, ~/.glyphh/drips), read every time they are
+// Games and drips from folders (the repository's README): the ones the plugin
+// ships (its games/ and drips/, a snapshot of timmetim/drip) and the
+// person's own (~/.drip/games, ~/.drip/drips), read every time they are
 // asked for, checked against ./rules, and made into the same shapes the
 // built-in ones have. A folder that fails, or is named like one already
 // there, is left out with the reason.
@@ -31,7 +31,7 @@ export type FolderDrip = {
   kind: 'one-shot' | 'loop'
   icon: string | null
   isYours: boolean
-  /** Who made it: a GitHub login, or `glyphh`. */
+  /** Who made it: a GitHub login, or `drip`. */
   author: string
   about?: string
   emoji?: string
@@ -44,8 +44,8 @@ export const GAME_SAFETY_MS = 30 * 60_000
 /** A one-shot drip's backstop: 15 seconds. */
 export const DRIP_SAFETY_MS = 15_000
 
-export const gamesDir = (home: string) => `${home}/.glyphh/games`
-export const dripsDir = (home: string) => `${home}/.glyphh/drips`
+export const gamesDir = (home: string) => `${home}/.drip/games`
+export const dripsDir = (home: string) => `${home}/.drip/drips`
 
 /** A folder as read, and whether the gallery put it there (`get`'s mark). */
 type Found = Read & { isGallery: boolean }
@@ -129,7 +129,7 @@ export async function loadDrips(d: FolderDeps, dir: string, taken: ReadonlySet<s
   return { drips, skipped }
 }
 
-/** What the listing says of the folders left out of `where` (~/.glyphh/games, say). */
+/** What the listing says of the folders left out of `where` (~/.drip/games, say). */
 export function skippedText(where: string, skipped: Skipped[]): string {
   return skipped.map(s => `Left out ${where}/${s.name}: ${s.why}.`).join('\n')
 }

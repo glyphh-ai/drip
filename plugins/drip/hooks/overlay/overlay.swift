@@ -1,8 +1,8 @@
-// overlay.swift — Glyphh's native overlay: one effect over Claude's window, or
+// overlay.swift — Drip's native overlay: one effect over Claude's window, or
 // over the whole screen.
 //
 // Compiled by the mod with swiftc the first time a native effect plays
-// (hooks/overlay/host.ts) and kept in ~/Library/Caches/glyphh-overlay. The
+// (hooks/overlay/host.ts) and kept in ~/Library/Caches/drip-overlay. The
 // protocol is hooks/overlay/overlay.ts's (version 2):
 //
 //   drips-overlay screen   prints the screen under the pointer as one JSON

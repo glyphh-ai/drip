@@ -11,27 +11,27 @@ export const T0 = Date.parse('2026-10-15T09:00:00Z')
 export const HOME = '/home/t'
 
 /** A game page from the gallery, on the kit. */
-export const GALLERY_PAGE = '<html><head></head><body><canvas></canvas><script>glyphh.score(1)</script></body></html>'
+export const GALLERY_PAGE = '<html><head></head><body><canvas></canvas><script>drip.score(1)</script></body></html>'
 
 /** Blocks, a gallery game fetched onto this Mac (its mark says so): a gallery game the tests play. */
 export const INSTALLED: Record<string, string> = {
-  [`${HOME}/.glyphh/games/blocks/game.json`]: JSON.stringify({ title: 'Blocks', author: 'glyphh', about: 'Stack the falling blocks' }),
-  [`${HOME}/.glyphh/games/blocks/game.html`]: GALLERY_PAGE,
-  [`${HOME}/.glyphh/games/blocks/cover.jpg`]: jpegCover(),
-  [`${HOME}/.glyphh/games/blocks/.gallery`]: 'glyphh-ai/drip\n',
+  [`${HOME}/.drip/games/blocks/game.json`]: JSON.stringify({ title: 'Blocks', author: 'drip', about: 'Stack the falling blocks' }),
+  [`${HOME}/.drip/games/blocks/game.html`]: GALLERY_PAGE,
+  [`${HOME}/.drip/games/blocks/cover.jpg`]: jpegCover(),
+  [`${HOME}/.drip/games/blocks/.gallery`]: 'timmetim/drip\n',
 }
 
-/** The gallery, glyphh-ai/drip: Rocks (a game) and Snow (a drip), not fetched yet. */
+/** The gallery, timmetim/drip: Rocks (a game) and Snow (a drip), not fetched yet. */
 export const GALLERY_FILES: Record<string, string> = {
   'index.json': JSON.stringify({
     v: 1,
     games: [
-      { name: 'blocks', title: 'Blocks', author: 'glyphh', files: ['game.json', 'game.html', 'cover.jpg'] },
-      { name: 'rocks', title: 'Rocks', author: 'glyphh', about: 'Shoot the rocks', emoji: '☄️', files: ['game.json', 'game.html', 'cover.jpg'] },
+      { name: 'blocks', title: 'Blocks', author: 'drip', files: ['game.json', 'game.html', 'cover.jpg'] },
+      { name: 'rocks', title: 'Rocks', author: 'drip', about: 'Shoot the rocks', emoji: '☄️', files: ['game.json', 'game.html', 'cover.jpg'] },
     ],
     drips: [{ name: 'snow', title: 'Snow', author: 'octocat', kind: 'one-shot', files: ['drip.json', 'drip.html', 'cover.jpg'] }],
   }),
-  'games/rocks/game.json': JSON.stringify({ title: 'Rocks', author: 'glyphh', about: 'Shoot the rocks' }),
+  'games/rocks/game.json': JSON.stringify({ title: 'Rocks', author: 'drip', about: 'Shoot the rocks' }),
   'games/rocks/game.html': GALLERY_PAGE,
   'games/rocks/cover.jpg': jpegCover(),
   'drips/snow/drip.json': JSON.stringify({ title: 'Snow', author: 'octocat', kind: 'one-shot' }),
@@ -116,7 +116,7 @@ export function world(on: On, options: WorldOptions = {}) {
     commands.push(e.name)
     return { value: { command: e.name } }
   })
-  on('tool.register', (_$, e) => ({ value: { tool: `mcp__glyphh-drip__${e.name}` } as never }))
+  on('tool.register', (_$, e) => ({ value: { tool: `mcp__drip__${e.name}` } as never }))
   on('process.run', (_$, e) => {
     const argv = [...e.argv]
     ran.push(argv)

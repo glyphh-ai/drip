@@ -1,5 +1,4 @@
-// aurora: a looping background drip, from the Glyphh app's drip effects
-// (glyphh-ai/app, tag v2.0.2, src/shared/drips-effects.ts).
+// aurora: a looping background drip, one of the drips built in.
 import type { Drip } from './drips.ts'
 import { dripWrapLoop } from './shared.ts'
 

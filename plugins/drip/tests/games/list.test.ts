@@ -12,7 +12,7 @@ const CARD: RenderPropsOf['CommandOutput'] = { command: 'drip', args: '', text: 
 
 /** The Drip pane, as a surface mounts it. */
 const pane = (surface: 'desktop' | 'terminal' = 'desktop') => ({
-  plugin: 'glyphh-drip',
+  plugin: 'drip',
   surface,
   component: 'Pane' as const,
   requestId: PANE,
@@ -46,7 +46,7 @@ describe('the Drip pane (/drip, /drip list)', () => {
     expect(await runCommand($, 'drip')).toBe(OPENED)
     expect(await runCommand($, 'drip', 'list')).toBe(OPENED)
     expect(panes).toEqual([{ id: PANE, title: 'Drip', focus: true }, { id: PANE, title: 'Drip', focus: true }]) // focused: the first click presses
-    const row = await $.ui.mount({ plugin: 'glyphh-drip', surface: 'desktop', component: 'CommandOutput', props: { ...CARD, text: OPENED } })
+    const row = await $.ui.mount({ plugin: 'drip', surface: 'desktop', component: 'CommandOutput', props: { ...CARD, text: OPENED } })
     expect(await row.findAll({ type: 'Button' })).toEqual([])
     expect(await row.find({ type: 'Text', text: OPENED })).toBeDefined()
   })
@@ -97,7 +97,7 @@ describe('the Drip pane (/drip, /drip list)', () => {
     expect(await keysOf(ui)).toEqual(['back', 'play:game:missiles', 'fav:game:missiles'])
     expect((await ui.findAll({ type: 'Button' }))[0]!.props.label).toBe('←\u00a0\u00a0Games')
     expect((await ui.findAll({ type: 'Svg' })).map(n => n.props.source)).toEqual([screenshotSvg({ type: 'jpeg', base64: 'Q09WRVI=' })])
-    expect(await textsOf(ui)).toEqual(expect.arrayContaining(['🚀', 'Missiles', 'Glyphh built', 'Keep the missiles off the ground', 'Game · Best 1,200']))
+    expect(await textsOf(ui)).toEqual(expect.arrayContaining(['🚀', 'Missiles', 'Drip built', 'Keep the missiles off the ground', 'Game · Best 1,200']))
     await ui.press({ key: 'fav:game:missiles' })
     expect((await ui.findAll({ type: 'Button' })).find(b => b.key === 'fav:game:missiles')!.props.label).toBe('★')
     await ui.press({ key: 'back' })
@@ -123,7 +123,7 @@ describe('the Drip pane (/drip, /drip list)', () => {
     expect(await keysOf(ui)).toEqual(['back', 'play:game:blocks', 'fav:game:blocks'])
     await ui.press({ key: 'play:game:blocks' })
     await until(clock, () => overlays.length > 0)
-    expect(overlays[0]!.request.html).toContain('glyphh.score(1)') // the fixture Blocks
+    expect(overlays[0]!.request.html).toContain('drip.score(1)') // the fixture Blocks
   })
 
   test("a gallery game's page: its screenshot fetched from the gallery once, and Get", async ($, on) => {
@@ -161,7 +161,7 @@ describe('the Drip pane (/drip, /drip list)', () => {
     const ui = await $.ui.mount(pane())
     await ui.input({ key: 'search', text: 'rain', kind: 'change' })
     expect((await keysOf(ui)).filter(k => k?.startsWith('play:'))).toEqual(plays('drip', ['rain', 'emoji', 'matrix'])) // "A rain of emoji" too
-    await ui.input({ key: 'search', text: 'game glyphh' })
+    await ui.input({ key: 'search', text: 'game drip' })
     expect((await keysOf(ui)).filter(k => k?.startsWith('play:'))).toEqual(plays('game', ['missiles', 'blocks']))
     await ui.input({ key: 'search', text: 'nothing like it' })
     expect(await textsOf(ui)).toContain('Nothing matches “nothing like it”.')
@@ -170,9 +170,9 @@ describe('the Drip pane (/drip, /drip list)', () => {
   test('the star adds it to the tray above the prompt; again takes it off', async ($, on) => {
     await started($, on, {}, { pane: true })
     const trayKeys = async () => {
-      const line = await $.ui.mount({ plugin: 'glyphh-drip', surface: 'desktop', component: 'SessionMode', props: { mode: 'default' } as never })
+      const line = await $.ui.mount({ plugin: 'drip', surface: 'desktop', component: 'SessionMode', props: { mode: 'default' } as never })
       await line.press({ key: 'drip' })
-      const band = await $.ui.mount({ plugin: 'glyphh-drip', surface: 'desktop', component: 'AbovePrompt', props: { hasSurvey: false } as never })
+      const band = await $.ui.mount({ plugin: 'drip', surface: 'desktop', component: 'AbovePrompt', props: { hasSurvey: false } as never })
       const keys = await keysOf(band)
       await band.unmount()
       await line.press({ key: 'drip' })
@@ -230,7 +230,7 @@ describe('the Drip pane (/drip, /drip list)', () => {
     await clock.advance(200)
     await ui.press({ key: 'play:game:blocks' })
     for (let i = 0; i < 20 && overlays.length < 4; i++) await clock.advance(200)
-    expect(overlays[3]!.request.html).toContain('glyphh.score(1)') // the fixture Blocks
+    expect(overlays[3]!.request.html).toContain('drip.score(1)') // the fixture Blocks
   })
 
   test("a game the overlay can't play: the toast says why", async ($, on) => {
@@ -255,7 +255,7 @@ describe('the Drip pane (/drip, /drip list)', () => {
     expect((await ui.findAll({ type: 'Button' })).find(b => b.key === 'play:game:rocks')!.props.label).toBe('Play')
     await ui.press({ key: 'play:game:rocks' })
     await until(clock, () => overlays.length > 0)
-    expect(overlays[0]!.request.html).toContain('window.glyphh={')
+    expect(overlays[0]!.request.html).toContain('window.drip={')
     expect(ran.some(a => a[0] === '/usr/bin/base64' && a[3]!.endsWith('/games/rocks/cover.jpg'))).toBe(true)
     await ui.unmount()
     const again = await $.ui.mount(pane())
@@ -308,9 +308,9 @@ describe('the Drip pane (/drip, /drip list)', () => {
 describe('the tray above the prompt', () => {
   const BAND = { hasSurvey: false } as never
   async function tray($: Engine, surface: 'desktop' | 'terminal' = 'desktop') {
-    const line = await $.ui.mount({ plugin: 'glyphh-drip', surface, component: 'SessionMode', props: { mode: 'default' } as never })
+    const line = await $.ui.mount({ plugin: 'drip', surface, component: 'SessionMode', props: { mode: 'default' } as never })
     await line.press({ key: 'drip' })
-    return $.ui.mount({ plugin: 'glyphh-drip', surface, component: 'AbovePrompt', props: BAND })
+    return $.ui.mount({ plugin: 'drip', surface, component: 'AbovePrompt', props: BAND })
   }
 
   test('the starred games first, emoji and name, then the starred drips; a game plays from it', async ($, on) => {
@@ -332,20 +332,20 @@ describe('the tray above the prompt', () => {
   })
 })
 
-describe('your own games and drips (~/.glyphh)', () => {
+describe('your own games and drips (~/.drip)', () => {
   const PAGE = '<html><head></head><body><canvas></canvas></body></html>'
   const ICON = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M2 2h4"/></svg>'
   const OWN = {
-    '/home/t/.glyphh/games/snake/game.json': JSON.stringify({ title: 'Snake', author: 'octocat' }),
-    '/home/t/.glyphh/games/snake/game.html': PAGE,
-    '/home/t/.glyphh/games/snake/icon.svg': ICON,
-    '/home/t/.glyphh/games/snake/cover.png': pngCover(),
-    '/home/t/.glyphh/games/pong/game.json': JSON.stringify({ title: 'Pong', author: 'octocat' }),
-    '/home/t/.glyphh/games/pong/game.html': '<body><script>fetch("https://x.io")</script></body>',
-    '/home/t/.glyphh/games/pong/cover.png': pngCover(),
-    '/home/t/.glyphh/drips/snow/drip.json': JSON.stringify({ title: 'Snow', author: 'octocat', kind: 'one-shot' }),
-    '/home/t/.glyphh/drips/snow/drip.html': PAGE,
-    '/home/t/.glyphh/drips/snow/cover.jpg': jpegCover(),
+    '/home/t/.drip/games/snake/game.json': JSON.stringify({ title: 'Snake', author: 'octocat' }),
+    '/home/t/.drip/games/snake/game.html': PAGE,
+    '/home/t/.drip/games/snake/icon.svg': ICON,
+    '/home/t/.drip/games/snake/cover.png': pngCover(),
+    '/home/t/.drip/games/pong/game.json': JSON.stringify({ title: 'Pong', author: 'octocat' }),
+    '/home/t/.drip/games/pong/game.html': '<body><script>fetch("https://x.io")</script></body>',
+    '/home/t/.drip/games/pong/cover.png': pngCover(),
+    '/home/t/.drip/drips/snow/drip.json': JSON.stringify({ title: 'Snow', author: 'octocat', kind: 'one-shot' }),
+    '/home/t/.drip/drips/snow/drip.html': PAGE,
+    '/home/t/.drip/drips/snow/cover.jpg': jpegCover(),
   }
 
   test('in the pane after the built-in and fetched ones, with their makers and "yours"', async ($, on) => {
@@ -365,17 +365,17 @@ describe('your own games and drips (~/.glyphh)', () => {
     const { clock, overlays } = await started($, on, {}, { own: OWN })
     expect(await runCommand($, 'drip', 'snake')).toBe('Snake. Esc quits, M mutes.')
     await until(clock, () => overlays.length > 0)
-    expect(String(overlays[0]!.request.html)).toContain('window.glyphh={')
+    expect(String(overlays[0]!.request.html)).toContain('window.drip={')
     expect(overlays[0]!.request).toMatchObject({ interactive: true })
     const listed = (await runCommand($, 'drip'))!
     expect(listed).toContain('snake     Snake  ·  yours')
-    expect(listed).toContain("Left out ~/.glyphh/games/pong: game.html reaches the network, which isn't allowed.")
+    expect(listed).toContain("Left out ~/.drip/games/pong: game.html reaches the network, which isn't allowed.")
   })
 
   test('a drip of yours plays by name', async ($, on) => {
     const { clock, overlays } = await started($, on, {}, { own: OWN })
     expect(await runCommand($, 'drip', 'snow')).toBe('drip: snow')
     await until(clock, () => overlays.length > 0)
-    expect(String(overlays[0]!.request.html)).toContain('window.glyphh={')
+    expect(String(overlays[0]!.request.html)).toContain('window.drip={')
   })
 })

@@ -1,9 +1,8 @@
-// Copied from shared/overlay/host.ts by scripts/sync-shared.mjs: edit it there.
-// The native overlay (./overlay.swift), shared by every Glyphh mod that draws
-// over Claude: over Claude's window (the window Claude is running in,
+// The native overlay (./overlay.swift) every game and drip draws in:
+// over Claude's window (the window Claude is running in,
 // followed as it moves) or over the whole screen. It is compiled with swiftc
-// the first time it is needed and kept in ~/Library/Caches/glyphh-overlay,
-// one binary per version of its source, so every mod uses the same one. Each
+// the first time it is needed and kept in ~/Library/Caches/drip-overlay,
+// one binary per version of its source, so every load uses the same one. Each
 // document is one overlay process. Works on OverlayDeps, closures over `$`
 // that the mod's hooks hand it.
 import {
@@ -42,8 +41,8 @@ export type OverlayDeps = {
  *  it takes the pointer and keys (a game) or lets them through. */
 export type Doc = { html: string; closeAfterMs: number; interactive: boolean }
 
-export const SWIFT_MISSING = "Glyphh's overlay needs Swift: install the Xcode Command Line Tools (xcode-select --install)."
-export const MAC_ONLY = "Glyphh's overlay needs macOS."
+export const SWIFT_MISSING = "Drip's overlay needs Swift: install the Xcode Command Line Tools (xcode-select --install)."
+export const MAC_ONLY = "Drip's overlay needs macOS."
 const BUILD_MS = 5 * 60_000
 const ASK_MS = 10_000
 
@@ -67,7 +66,7 @@ export async function* eventsOf(chunks: AsyncIterable<{ stream: string; text: st
 export async function prepareOverlay(d: OverlayDeps): Promise<Prepared> {
   if ((await d.run(['uname', '-s']))?.stdout.trim() !== 'Darwin') return { missing: MAC_ONLY }
   const home = await d.home()
-  if (!home) return { missing: "Glyphh's overlay needs HOME to be set." }
+  if (!home) return { missing: "Drip's overlay needs HOME to be set." }
   const source = `${d.root}/hooks/overlay/overlay.swift`
   const binary = binaryPath(home, await digestOf(await d.read(source)))
   if (await d.exists(binary)) return { binary }
@@ -78,9 +77,9 @@ export async function prepareOverlay(d: OverlayDeps): Promise<Prepared> {
   await d.run(['/bin/mkdir', '-p', binary.slice(0, binary.lastIndexOf('/'))])
   const building = `${binary}.building`
   const built = await d.run(compileArgv(source, building), { timeoutMs: BUILD_MS })
-  if (built?.exitCode !== 0) return { missing: `Glyphh's overlay did not build: ${firstLine(built?.stderr ?? 'swiftc did not run')}` }
+  if (built?.exitCode !== 0) return { missing: `Drip's overlay did not build: ${firstLine(built?.stderr ?? 'swiftc did not run')}` }
   const moved = await d.run(['/bin/mv', '-f', building, binary])
-  if (moved?.exitCode !== 0) return { missing: `Glyphh's overlay could not be kept: ${firstLine(moved?.stderr ?? '')}` }
+  if (moved?.exitCode !== 0) return { missing: `Drip's overlay could not be kept: ${firstLine(moved?.stderr ?? '')}` }
   return { binary }
 }
 
@@ -106,7 +105,7 @@ export function overlayHost(d: OverlayDeps, binary: string, place: Placement): {
   async function screen(): Promise<Screen> {
     const r = await d.run([binary, 'screen'], { timeoutMs: ASK_MS })
     const s = r?.exitCode === 0 ? parseScreen(r.stdout) : null
-    if (!s) throw new Error("Glyphh's overlay could not find the screen.")
+    if (!s) throw new Error("Drip's overlay could not find the screen.")
     return s
   }
 
@@ -134,7 +133,7 @@ export function overlayHost(d: OverlayDeps, binary: string, place: Placement): {
     const first = await events.next()
     if (first.done || first.value.t !== 'shown') {
       const said = !first.done && first.value.t === 'error' ? `: ${first.value.message}` : ''
-      throw new Error(`Glyphh's overlay did not open${said}`)
+      throw new Error(`Drip's overlay did not open${said}`)
     }
     const closed = (async () => {
       // Read to the end (the child has exited), hearing what it says on the way.

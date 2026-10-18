@@ -12,6 +12,7 @@ import type { EngineInterface, On, PluginOptions, RenderChildren, Timer } from '
 import type { HelperInfo } from '../../types'
 import { BUILTIN_EFFECT_LIST, BUILTIN_EFFECTS, ONE_SHOT_EFFECTS, setYourDrips, yourDrips } from './effects.ts'
 import { dripsDir, loadDrips } from '../content/folders.ts'
+import { moveOnce } from '../content/moved.ts'
 import { createFun } from './fun.ts'
 import { emojiOf } from '../arcade/catalog.ts'
 import { FAVOURITES_KEY, favouritesOf } from '../arcade/favourites.ts'
@@ -25,19 +26,19 @@ import { findNode, NODE_MISSING } from './node.ts'
 import { settingsOf, type Settings } from './settings.ts'
 import { showPage, shownText, type PageDeps } from './window.ts'
 
-const helperInfo = atom({ plugin: 'glyphh-drip', key: 'helper' } as const, null as HelperInfo | null)
-const pageTab = atom({ plugin: 'glyphh-drip', key: 'pageTab' } as const, null as string | null)
-const nodePath = atom({ plugin: 'glyphh-drip', key: 'node' } as const, null as string | null)
-const bandOpen = atom({ plugin: 'glyphh-drip', key: 'bandOpen' } as const, false)
+const helperInfo = atom({ plugin: 'drip', key: 'helper' } as const, null as HelperInfo | null)
+const pageTab = atom({ plugin: 'drip', key: 'pageTab' } as const, null as string | null)
+const nodePath = atom({ plugin: 'drip', key: 'node' } as const, null as string | null)
+const bandOpen = atom({ plugin: 'drip', key: 'bandOpen' } as const, false)
 /** The starred items, the tray's buttons (the pane stars them; kept in the store). */
-const favourites = atom({ plugin: 'glyphh-drip', key: 'favourites' } as const, [] as string[])
+const favourites = atom({ plugin: 'drip', key: 'favourites' } as const, [] as string[])
 /** A drip the card asked to play (../arcade queues it): taken within a beat. */
-const queued = atom({ plugin: 'glyphh-drip', key: 'queued' } as const, null as { recipe: string; at: number } | null)
+const queued = atom({ plugin: 'drip', key: 'queued' } as const, null as { recipe: string; at: number } | null)
 /** How often the drips' half looks for a drip the card queued, in ms. */
 export const QUEUE_MS = 150
 
 
-const TOOL_PREFIX = 'mcp__glyphh-drip__'
+const TOOL_PREFIX = 'mcp__drip__'
 const NOT_A_RECIPE = ['save', 'delete', 'list']
 
 /** This load's pieces: made at the session's start (a reload makes them again). */
@@ -63,6 +64,24 @@ let isMissedSaid = false
 class Unavailable extends Error {}
 
 const short = (err: unknown) => String(err instanceof Error ? err.message : err).replace(/^(Hooks)?Error: /, '').slice(0, 300)
+
+/** What Drip before 2.0.0 kept, brought over once (../content/moved.ts). */
+async function moveFromBefore($: EngineInterface): Promise<void> {
+  const home = await $.env.get('HOME')
+  if (!home) return
+  const config = (await $.env.get('CLAUDE_CONFIG_DIR')) || `${home}/.claude`
+  const moved = await moveOnce(
+    {
+      list: p => $.fs.list(p),
+      read: async p => String(await $.fs.read(p)),
+      exists: p => $.fs.exists(p),
+      run: async argv => (await $.process.run(argv).catch(() => null))?.exitCode ?? null,
+    },
+    store($),
+    { home, config },
+  )
+  if (moved && moved.folders.length) $.ui.toast(`Drip brought over your ${moved.folders.length === 1 ? 'game or drip' : `${moved.folders.length} games and drips`} into ~/.drip`)
+}
 
 function store($: EngineInterface): Store {
   return { get: key => $.store.get(key), set: (key, value) => $.store.set(key, value) }
@@ -287,7 +306,7 @@ async function bandPlay($: EngineInterface, recipe: string): Promise<void> {
 }
 
 
-/** Reads the folder drips again (the plugin's shipped ones, then ~/.glyphh/drips): before each play and listing. */
+/** Reads the folder drips again (the plugin's shipped ones, then ~/.drip/drips): before each play and listing. */
 async function readYours($: EngineInterface): Promise<void> {
   const d = {
     list: (p: string) => $.fs.list(p),
@@ -315,7 +334,7 @@ async function takeQueued($: EngineInterface): Promise<void> {
 async function registerAll($: EngineInterface): Promise<void> {
   await $.command.register({
     name: 'drip',
-    description: 'Glyphh Drip: /drip list opens the pane of games and drips; /drip snake starts a game; /drip confetti, /drip 3 hearts stars, /drip -1 aurora play drips; get <name> fetches a game or drip from the gallery, share <name> sends one of yours there; stop, save <name> <recipe>, delete <name>; page opens your saved drips and the editor. Every game and drip is free',
+    description: 'Drip: /drip list opens the pane of games and drips; /drip snake starts a game; /drip confetti, /drip 3 hearts stars, /drip -1 aurora play drips; get <name> fetches a game or drip from the gallery, share <name> sends one of yours there; stop, save <name> <recipe>, delete <name>; page opens your saved drips and the editor. Every game and drip is free',
     argumentHint: '<game> | <recipe> | get <name> | share <name> | stop | save <name> <recipe> | delete <name> | page',
     immediate: true,
   })
@@ -342,6 +361,7 @@ export function drips(on: On, options: PluginOptions) {
 
   on('session.start', async ($, e, next) => {
     mod = build($)
+    await moveFromBefore($).catch(() => null)
     const kept = favouritesOf(await $.store.get(FAVOURITES_KEY))
     await update($, favourites, () => kept)
     await update($, nodePath, () => null)
@@ -372,7 +392,7 @@ export function drips(on: On, options: PluginOptions) {
     }
   })
 
-  on('tool.call', { tool: 'mcp__glyphh-drip__play_drip' }, async ($, e) => {
+  on('tool.call', { tool: 'mcp__drip__play_drip' }, async ($, e) => {
     const recipe = String((e.input as { recipe?: unknown } | undefined)?.recipe ?? '').trim()
     if (NOT_A_RECIPE.includes(recipe.split(/\s+/)[0]?.toLowerCase() ?? '')) return { result: 'play_drip takes a recipe or "stop"; list_drips lists the effects.' }
     try {
@@ -384,7 +404,7 @@ export function drips(on: On, options: PluginOptions) {
     }
   })
 
-  on('tool.call', { tool: 'mcp__glyphh-drip__list_drips' }, async ($, e) => {
+  on('tool.call', { tool: 'mcp__drip__list_drips' }, async ($, e) => {
     await readYours($).catch(() => undefined)
     const own = yourDrips().map(d => ({ name: d.name, kind: d.kind, title: d.title }))
     return { result: JSON.stringify({ effects: BUILTIN_EFFECT_LIST, yours: own, custom: await listCustoms(store($)), running: modOf($).manager.running() }) }

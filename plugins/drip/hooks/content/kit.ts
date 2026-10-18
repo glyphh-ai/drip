@@ -1,5 +1,5 @@
-// The kit every game and drip from a folder gets (docs/glyphh-drip.md): put
-// in front of its page as `window.glyphh`, with a policy that blocks the
+// The kit every game and drip from a folder gets (the repository's README): put
+// in front of its page as `window.drip`, with a policy that blocks the
 // network. It is the built-in games' own plumbing (../arcade/games/shared.ts):
 // the close signal the overlay hears, the sound kit and the score post.
 import { CLOSE_SIGNAL, GAME_SCORE, GAME_SOUND, gameFrame } from '../arcade/games/shared.ts'
@@ -20,20 +20,23 @@ export type KitOptions = {
   quiet: boolean
 }
 
-/** The kit's script: `window.glyphh`, and for a game Esc (quits), M (mutes),
+/** Pages made before 2.0.0 call the kit by Drip's old name: it answers to it too. */
+export const OLD_NAME = 'window.glyphh=window.drip;'
+
+/** The kit's script: `window.drip`, and for a game Esc (quits), M (mutes),
  *  the backdrop and the fit to Claude's window as it is resized. */
 export function kitScript(o: KitOptions): string {
   const n = (v: number) => (Number.isFinite(v) ? v : 0)
   const keys =
     o.kind === 'game'
-      ? `document.addEventListener("keydown",function(e){if(e.key==="Escape"){e.preventDefault();glyphh.end()}else if(e.key==="m"||e.key==="M"){sfx.toggle()}},true);` + gameFrame(o.width, o.height)
+      ? `document.addEventListener("keydown",function(e){if(e.key==="Escape"){e.preventDefault();drip.end()}else if(e.key==="m"||e.key==="M"){sfx.toggle()}},true);` + gameFrame(o.width, o.height)
       : ''
   return (
     `<script>window.__dripsQuiet=${o.quiet ? 'true' : 'false'};${GAME_SOUND}${GAME_SCORE}` +
-    `window.glyphh={width:${n(o.width)},height:${n(o.height)},best:${n(o.best ?? 0)},opacity:${n(o.opacity ?? 1)},` +
+    `window.drip={width:${n(o.width)},height:${n(o.height)},best:${n(o.best ?? 0)},opacity:${n(o.opacity ?? 1)},` +
     `score:function(v){postScore(Math.floor(Number(v)||0))},` +
-    `end:function(){if(window.glyphh.ended)return;window.glyphh.ended=true;${CLOSE_SIGNAL}},` +
-    `sfx:sfx,muted:function(){return sfx.muted()}};${keys}</script>`
+    `end:function(){if(window.drip.ended)return;window.drip.ended=true;${CLOSE_SIGNAL}},` +
+    `sfx:sfx,muted:function(){return sfx.muted()}};${OLD_NAME}${keys}</script>`
   )
 }
 

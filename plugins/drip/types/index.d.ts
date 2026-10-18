@@ -12,7 +12,7 @@ export type HelperInfo = { port: number; token: string }
 
 declare module 'claude-code' {
   interface PluginState {
-    'glyphh-drip': {
+    'drip': {
       helper: HelperInfo | null
       /** The Browser pane's tab showing the Drips page, kept across reloads. */
       pageTab: string | null

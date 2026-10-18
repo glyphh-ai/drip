@@ -94,7 +94,7 @@ describe("/drip over Claude's window (the default)", () => {
     const { run, clock, toasts, overlays } = await started($, on, {}, { noSwift: true })
     expect(await run('drip', 'confetti')).toBe(`/drip: ${SWIFT_MISSING}`)
     expect(await run('drip', '-1 aurora')).toBe(`/drip: ${SWIFT_MISSING}`)
-    expect(await callTool($, 'mcp__glyphh-drip__play_drip', { recipe: 'hearts' })).toBe(`Not played: ${SWIFT_MISSING}`)
+    expect(await callTool($, 'mcp__drip__play_drip', { recipe: 'hearts' })).toBe(`Not played: ${SWIFT_MISSING}`)
     await clock.advance(5000)
     expect(toasts).toEqual([SWIFT_MISSING])
     expect(overlays).toEqual([])
@@ -252,21 +252,21 @@ describe('fullscreen', () => {
 describe('the tools Claude calls', () => {
   test('play_drip plays a recipe or stops; it does not save, delete or list', async ($, on) => {
     const { clock, overlays } = await started($, on)
-    expect(await callTool($, 'mcp__glyphh-drip__play_drip', { recipe: 'fireworks' })).toBe('drip: fireworks')
+    expect(await callTool($, 'mcp__drip__play_drip', { recipe: 'fireworks' })).toBe('drip: fireworks')
     await until(clock, () => overlays.length > 0)
     expect(overlays).toHaveLength(1)
-    expect(await callTool($, 'mcp__glyphh-drip__play_drip', { recipe: 'stop' })).toBe('stopped all persistent effects')
-    expect(await callTool($, 'mcp__glyphh-drip__play_drip', { recipe: 'save x confetti' })).toBe('play_drip takes a recipe or "stop"; list_drips lists the effects.')
+    expect(await callTool($, 'mcp__drip__play_drip', { recipe: 'stop' })).toBe('stopped all persistent effects')
+    expect(await callTool($, 'mcp__drip__play_drip', { recipe: 'save x confetti' })).toBe('play_drip takes a recipe or "stop"; list_drips lists the effects.')
   })
 
   test("play_drip's failure is its result", async ($, on) => {
     await started($, on, {}, { notMac: true })
-    expect(await callTool($, 'mcp__glyphh-drip__play_drip', { recipe: '-1 aurora' })).toBe(`Not played: ${MAC_ONLY}`)
+    expect(await callTool($, 'mcp__drip__play_drip', { recipe: '-1 aurora' })).toBe(`Not played: ${MAC_ONLY}`)
   })
 
   test("list_drips lists the effects and the person's drips", async ($, on) => {
     await started($, on, { customs: { party: '3 hearts' } })
-    expect(await callTool($, 'mcp__glyphh-drip__list_drips')).toBe(JSON.stringify({ effects: BUILTIN_EFFECT_LIST, yours: [], custom: [{ name: 'party', recipe: '3 hearts' }], running: [] }))
+    expect(await callTool($, 'mcp__drip__list_drips')).toBe(JSON.stringify({ effects: BUILTIN_EFFECT_LIST, yours: [], custom: [{ name: 'party', recipe: '3 hearts' }], running: [] }))
   })
 })
 
@@ -277,8 +277,8 @@ describe('free for everyone', () => {
     expect(await run('drip', 'confetti')).toBe('drip: confetti')
     await until(clock, () => overlays.length > 0)
     expect(overlays[0]!.request.layer).toBe('screen')
-    expect(await callTool($, 'mcp__glyphh-drip__play_drip', { recipe: 'hearts' })).toBe('drip: hearts')
-    expect(await callTool($, 'mcp__glyphh-drip__list_drips')).toContain('"a"')
+    expect(await callTool($, 'mcp__drip__play_drip', { recipe: 'hearts' })).toBe('drip: hearts')
+    expect(await callTool($, 'mcp__drip__list_drips')).toContain('"a"')
     expect(await run('drip', 'a')).toBe('drip: stars')
     expect(await run('drip')).not.toContain('unlock')
     expect(await run('drip', 'blocks')).toBe('Blocks. Esc quits, M mutes.')
@@ -324,7 +324,7 @@ describe('the fun hooks', () => {
 
   test("Drips's own tools and subagents' tools bring no matrix", FUN, async ($, on) => {
     const { overlays, clock } = await started($, on)
-    await callTool($, 'mcp__glyphh-drip__list_drips')
+    await callTool($, 'mcp__drip__list_drips')
     await $.tool.call({ tool: 'Bash', input: { command: 'ls' }, agentId: 'sub-1' } as never)
     await clock.advance(0)
     expect(overlays).toEqual([])

@@ -1,5 +1,5 @@
-// What the drips share (from the Glyphh app's drip effects, glyphh-ai/app,
-// tag v2.0.2, src/shared/drips-effects.ts): the close signal, the palettes,
+// What the drips share (ported, as the drips are, from the
+// desktop app Drip began in): the close signal, the palettes,
 // the random helpers and the two document wrappers.
 //
 // Close protocol: a one-shot doc signals completion by BOTH

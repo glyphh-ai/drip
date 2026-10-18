@@ -1,4 +1,4 @@
-// Photographs a game or drip folder for its cover (docs/glyphh-drip.md,
+// Photographs a game or drip folder for its cover (the repository's README,
 // Covers): the page played for a few seconds in headless Chrome at 960×600,
 // on a background of its own colour, saved beside it as cover.jpg. Plain
 // JavaScript run with Node by the skills' cover.js; macOS only (Google Chrome
@@ -13,7 +13,7 @@ export const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chr
 /** Stands in for the plugin's kit while the page is photographed: no sound, nothing kept. */
 const SHIM = `<script>// Headless Chrome's virtual time runs timers, not frames: frames by timer.
 window.requestAnimationFrame=function(f){return setTimeout(function(){f(performance.now())},16)};window.cancelAnimationFrame=function(i){clearTimeout(i)};
-window.glyphh={width:960,height:600,best:0,opacity:1,score:function(){},end:function(){},sfx:{tone:function(){},noise:function(){},notes:function(){}},muted:function(){return true}};
+window.drip={width:960,height:600,best:0,opacity:1,score:function(){},end:function(){},sfx:{tone:function(){},noise:function(){},notes:function(){}},muted:function(){return true}};
 // Past a title screen: a key and a click, then a few more, as a player would.
 [300,900,1500,2100].forEach(function(t){setTimeout(function(){['keydown','keyup'].forEach(function(k){window.dispatchEvent(new KeyboardEvent(k,{key:' ',code:'Space',keyCode:32,bubbles:true}));document.dispatchEvent(new KeyboardEvent(k,{key:' ',code:'Space',keyCode:32,bubbles:true}))});var c=document.querySelector('canvas')||document.body;['mousedown','mouseup','click'].forEach(function(k){c.dispatchEvent(new MouseEvent(k,{clientX:480,clientY:300,bubbles:true}))})},t)})</script>`
 
@@ -34,7 +34,7 @@ export function photograph(dir, o = {}) {
   const page = readFileSync(pageFile, 'utf8')
   const lead = paint + SHIM
   const html = /<head[^>]*>/i.test(page) ? page.replace(/<head[^>]*>/i, m => m + lead) : lead + page
-  const work = mkdtempSync(join(tmpdir(), 'glyphh-cover-'))
+  const work = mkdtempSync(join(tmpdir(), 'drip-cover-'))
   try {
     writeFileSync(join(work, 'page.html'), html)
     // A few moments: the busiest (the largest PNG: more on screen compresses less) is kept.
