@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html,body{margin:0;height:100%;background:transparent;overflow:hidden}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// Bubbles: a template Glyphh Drip drip. Bubbles rise from the bottom and pop
+// for four seconds, then it ends itself. Everything it needs from Glyphh Drip
+// is on window.glyphh (the kit). It never takes the pointer: clicks go to Claude.
+var c = document.getElementById("c"), x = c.getContext("2d");
+var W = glyphh.width, H = glyphh.height;
+c.width = W; c.height = H;
+var bubbles = [], start = 0, LENGTH = 4000;
+for (var i = 0; i < 60; i++) bubbles.push({ x: Math.random() * W, y: H + Math.random() * H * 0.6, r: 6 + Math.random() * 22, v: 120 + Math.random() * 220 });
+glyphh.sfx.notes([[523, 0.08, 0], [659, 0.08, 0.1], [784, 0.12, 0.2]], "sine", 0.06);
+
+function frame(now) {
+  start = start || now;
+  var t = now - start;
+  x.clearRect(0, 0, W, H);
+  bubbles.forEach(function (b) {
+    b.y -= b.v / 60;
+    x.beginPath(); x.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    x.strokeStyle = "rgba(196,181,253," + Math.max(0, 1 - t / LENGTH) + ")"; x.lineWidth = 2; x.stroke();
+  });
+  if (t > LENGTH) { glyphh.end(); return; }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

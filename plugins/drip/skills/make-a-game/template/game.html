@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html,body{margin:0;height:100%;background:transparent;overflow:hidden}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// Dodge: a template Glyphh Drip game. Move with ← → (or A D); rocks fall
+// faster and thicker the longer you last. The score is seconds survived.
+// Everything the game needs from Glyphh Drip is on window.glyphh (the kit).
+var c = document.getElementById("c"), x = c.getContext("2d");
+var W = glyphh.width, H = glyphh.height;
+c.width = W; c.height = H;
+var me = { x: W / 2, w: 44, h: 14 }, rocks = [], keys = {}, t = 0, last = 0, over = false, overAt = 0;
+document.addEventListener("keydown", function (e) { keys[e.key] = true; });
+document.addEventListener("keyup", function (e) { keys[e.key] = false; });
+
+function step(now) {
+  var dt = Math.min(0.05, (now - (last || now)) / 1000); last = now;
+  if (!over) {
+    t += dt;
+    var speed = 520;
+    if (keys.ArrowLeft || keys.a) me.x -= speed * dt;
+    if (keys.ArrowRight || keys.d) me.x += speed * dt;
+    me.x = Math.max(me.w / 2, Math.min(W - me.w / 2, me.x));
+    // Harder as it goes: more rocks, falling faster.
+    if (Math.random() < dt * (1.5 + t * 0.25)) rocks.push({ x: Math.random() * W, y: -20, r: 8 + Math.random() * 14, v: 160 + t * 12 + Math.random() * 120 });
+    for (var i = rocks.length - 1; i >= 0; i--) {
+      var r = rocks[i]; r.y += r.v * dt;
+      if (r.y - r.r > H) { rocks.splice(i, 1); continue; }
+      var py = H - 40;
+      if (Math.abs(r.x - me.x) < r.r + me.w / 2 && Math.abs(r.y - py) < r.r + me.h / 2) {
+        over = true; overAt = now; glyphh.sfx.noise(0.5, 0.4, 900, 120);
+      }
+    }
+    glyphh.score(Math.floor(t));
+  } else if (now - overAt > 2000) {
+    glyphh.end();
+    return;
+  }
+  draw();
+  requestAnimationFrame(step);
+}
+
+function draw() {
+  x.clearRect(0, 0, W, H);
+  x.fillStyle = "rgba(236,72,153,0.9)";
+  rocks.forEach(function (r) { x.beginPath(); x.arc(r.x, r.y, r.r, 0, Math.PI * 2); x.fill(); });
+  x.fillStyle = "#fff";
+  x.fillRect(me.x - me.w / 2, H - 40 - me.h / 2, me.w, me.h);
+  x.font = "600 18px system-ui"; x.textAlign = "right";
+  x.fillText(Math.floor(t) + "  ·  best " + Math.max(glyphh.best, Math.floor(t)), W - 24, 36);
+  if (over) { x.textAlign = "center"; x.font = "600 32px system-ui"; x.fillText("Game over: " + Math.floor(t), W / 2, H / 2); }
+}
+
+requestAnimationFrame(step);
+</script>
+</body>
+</html>

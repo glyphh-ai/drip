@@ -1,0 +1,38 @@
+/** A saved recipe, as `/drips save <name> <recipe>` and the Drips page keep it. */
+export type CustomDrip = { name: string; recipe: string }
+
+/** Where effects play: the /config row `display`. claude-window: the native
+ *  overlay over the window Claude runs in; fullscreen: the native overlay over
+ *  the whole screen. */
+export type Display = 'claude-window' | 'fullscreen'
+
+/** The running Drips page helper: where it listens and its token, kept in
+ *  the session's memory (never on disk) so a reload of the mod finds it again. */
+export type HelperInfo = { port: number; token: string }
+
+declare module 'claude-code' {
+  interface PluginState {
+    'glyphh-drip': {
+      helper: HelperInfo | null
+      /** The Browser pane's tab showing the Drips page, kept across reloads. */
+      pageTab: string | null
+      /** Node, as the session start found it (it runs the page's helper). */
+      node: string | null
+      /** The quick-play row above the prompt is open (the drip button pressed). */
+      bandOpen: boolean
+      /** A drip the card asked to play, for the drips' half to take (the engine
+       *  follows $ only within the file whose hook received it). */
+      queued: { recipe: string; at: number } | null
+      /** The Drip pane's search, its filter by type, and its page (from 0). */
+      query: string
+      filter: 'all' | 'game' | 'drip' | 'decide'
+      page: number
+      /** The starred items ("game:missiles"), the tray's buttons; kept in the store too. */
+      favourites: string[]
+      /** The item the pane shows on its own page ("game:snake"), or the table. */
+      detail: string | null
+      /** Bumped when a screenshot the pane waits for has loaded. */
+      shotTick: number
+    }
+  }
+}
