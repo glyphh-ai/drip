@@ -1,9 +1,9 @@
 # The games to build
 
-Glyphh Drip is $4.99 once. Missiles and every drip are free; the games are
-what people pay for, so the library has to hold the game someone already
-wants. These eleven join the five there are (Missiles, Chickn, Blocks, Rocks,
-Dash). Each is one folder in `games/<name>/` in this repository's format
+Drip is free, every game and every drip, and people come for the games,
+so the library has to hold the game someone already wants.
+These eleven join the five there are (Missiles, Chickn, Blocks, Rocks, Dash).
+Each is one folder in `games/<name>/` in this repository's format
 (README.md), checked with `node scripts/check.js games/<name>`.
 
 Names are our own: the famous ones are trademarks. Never use the original
@@ -14,27 +14,27 @@ game's name, logo, characters or art in a title, a page or an icon.
 - **One page, everything inline, at most 512 KB, no network** (README.md).
 - **Drawn on a transparent background** over Claude's window: the play area
   can have its own panel, but the page itself is transparent outside it.
-  Glyphh Drip adds a dimmed, slightly see-through backdrop and fits the page
+  Drip adds a dimmed, slightly see-through backdrop and fits the page
   to Claude's window as it is resized.
-- **Endless and harder as it goes**, with a score, and `glyphh.score(n)`
+- **Endless and harder as it goes**, with a score, and `drip.score(n)`
   posted as it rises. A puzzle game (Mines, Sudoku, Solitaire, Five) scores
   a won round and starts the next, harder one.
 - **A title screen** with the game's name, its controls in one line and
-  `BEST <n>` from `glyphh.best`, then play on any key or click.
-- **A short end screen** ("Game over: 1,240"), then `glyphh.end()` after
+  `BEST <n>` from `drip.best`, then play on any key or click.
+- **A short end screen** ("Game over: 1,240"), then `drip.end()` after
   about two seconds.
-- **Sound** through `glyphh.sfx` for the moments that matter (a hit, a clear,
+- **Sound** through `drip.sfx` for the moments that matter (a hit, a clear,
   a loss); nothing constant.
 - **Esc and M are the kit's** (quit, mute): no game uses them. P pauses.
 - **Keyboard first; mouse where it's natural** (Mines, Solitaire, Merge).
 - **Looks like its own game**: its own colours and style, crisp at any size
-  (draw with canvas, scale to `glyphh.width` and `glyphh.height`).
+  (draw with canvas, scale to `drip.width` and `drip.height`).
 - **`icon.svg`**: a 24×24 outline icon, stroke only, that says the game.
 - **`cover.jpg`**: its picture, 960×600, a photo of it mid-play
   on a background of its own colour, nothing written over it (README.md,
   The cover). Photograph it with the plugin's
   `skills/make-a-game/cover.js` and look at it.
-- **`game.json`**: `title` as below, `author` `"glyphh"` (these are Glyphh
+- **`game.json`**: `title` as below, `author` `"drip"` (these are Drip
   built), `about` one line of at most 60 characters.
 
 ## The eleven
@@ -66,5 +66,5 @@ A kit shim for trying a page in a browser, pasted at the top of `<body>`
 while testing and removed after (the plugin supplies the real kit):
 
 ```html
-<script>window.glyphh={width:innerWidth,height:innerHeight,best:0,opacity:1,score:function(n){console.log('score',n)},end:function(){console.log('end')},sfx:{tone:function(){},noise:function(){},notes:function(){}},muted:function(){return true}}</script>
+<script>window.drip={width:innerWidth,height:innerHeight,best:0,opacity:1,score:function(n){console.log('score',n)},end:function(){console.log('end')},sfx:{tone:function(){},noise:function(){},notes:function(){}},muted:function(){return true}}</script>
 ```

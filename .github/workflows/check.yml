@@ -1,7 +1,8 @@
 # Every pull request and every push to main: each game and drip folder is
 # checked with the plugin's own rules, and on a pull request each folder it
 # touches must be its opener's (scripts/authors.js). On main, index.json is rewritten and
-# committed when it changed.
+# committed when it changed. The plugin (plugins/drip) runs its tests and is
+# validated, with the marketplace, by Claude Code on a Mac.
 name: check
 on:
   pull_request:
@@ -26,9 +27,24 @@ jobs:
         run: |
           node scripts/index.js
           if ! git diff --quiet index.json; then
-            git config user.name "glyphh-drip-bot"
-            git config user.email "bot@glyphh.ai"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
             git add index.json
             git commit -m "index.json: $(git rev-parse --short HEAD)"
             git push
           fi
+  plugin:
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    env:
+      CLAUDE_CODE_ENABLE_FUNCTION_HOOKS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g @anthropic-ai/claude-code
+      - run: claude plugin test plugins/drip
+      - run: claude plugin validate plugins/drip
+      - run: claude plugin validate .

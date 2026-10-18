@@ -10,7 +10,7 @@ canvas{position:absolute;left:0;top:0;display:block}
 // tiles merge and double. The score is the sum of merges; 4s turn up more
 // often as the biggest tile grows; over when no move is left.
 (function(){
-var W=glyphh.width,H=glyphh.height,BEST=glyphh.best,sfx=glyphh.sfx,N=4,ANIM=115,ENDMS=2400;
+var W=drip.width,H=drip.height,BEST=drip.best,sfx=drip.sfx,N=4,ANIM=115,ENDMS=2400;
 var cv=document.getElementById("c"),c=cv.getContext("2d");cv.width=W;cv.height=H;
 // The panel: a header above a square board, sized to fit the window.
 var PH=Math.floor(Math.min(H*0.94,W*0.9*1.22)),U=PH/600,HEAD=Math.round(92*U),PAD=Math.round(14*U),BOARD=PH-HEAD-PAD*2,PW=BOARD+PAD*2;
@@ -39,7 +39,7 @@ function finish(now){var a=anim;anim=null;grid=a.grid;
   for(var i=0;i<a.merges.length;i++){var m=a.merges[i];pops.push({r:m.r,c:m.c,t0:now});if(m.v>maxTile)maxTile=m.v;
     var f=220*Math.pow(2,Math.log(m.v)/Math.LN2/6);sfx.tone(f,0.14,"triangle",0.07,f*1.5,i*0.03);
     if(m.v>=128)sfx.notes([[f,0.1,0.05],[f*1.25,0.1,0.13],[f*1.5,0.22,0.21]],"sine",0.06)}
-  if(a.gained){score+=a.gained;glyphh.score(score);if(BEST>0&&!beat&&score>BEST){beat=true;beatAt=now;sfx.notes([[784,0.08,0],[988,0.08,0.08],[1319,0.24,0.16]],"triangle",0.1)}}
+  if(a.gained){score+=a.gained;drip.score(score);if(BEST>0&&!beat&&score>BEST){beat=true;beatAt=now;sfx.notes([[784,0.08,0],[988,0.08,0.08],[1319,0.24,0.16]],"triangle",0.1)}}
   moves++;spawnPop=spawn(grid);
   if(!canMove(grid)){dead=true;endAt=now+700;sfx.notes([[392,0.2,0.3],[330,0.2,0.5],[262,0.45,0.7]],"triangle",0.14)}}
 function start(){if(state==="title"){state="play"}}
@@ -97,7 +97,7 @@ function frame(now){if(closed)return;
   for(var i=pops.length-1;i>=0;i--)if(now-pops[i].t0>200)pops.splice(i,1);
   c.clearRect(0,0,W,H);drawBoard(now);
   if(state==="title")drawTitle(now);
-  if(dead&&now>=endAt){if(state!=="end"){state="end";glyphh.score(score)}drawEnd(now);if(now-endAt>=ENDMS){closed=true;c.clearRect(0,0,W,H);glyphh.end();return}}
+  if(dead&&now>=endAt){if(state!=="end"){state="end";drip.score(score)}drawEnd(now);if(now-endAt>=ENDMS){closed=true;c.clearRect(0,0,W,H);drip.end();return}}
   requestAnimationFrame(frame)}
 requestAnimationFrame(frame);
 })();

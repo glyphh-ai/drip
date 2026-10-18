@@ -4,12 +4,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:rgba(0,0,0,0);user-s
 canvas{position:absolute;left:0;top:0}
 </style></head><body>
 <canvas id="c"></canvas>
-<script>var __c=document.getElementById("c");__c.width=glyphh.width;__c.height=glyphh.height</script>
+<script>var __c=document.getElementById("c");__c.width=drip.width;__c.height=drip.height</script>
 <script>
 (function(){
 // Snake: arrows (or WASD) steer a snake that grows with each apple. Walls and
 // its own tail end it. It speeds up every five apples. P pauses.
-var W=glyphh.width,H=glyphh.height,BEST=glyphh.best,ENDMS=2400;
+var W=drip.width,H=drip.height,BEST=drip.best,ENDMS=2400;
 var c=document.getElementById("c").getContext("2d");
 // The board: a fixed grid scaled to fit, so the game is the same at any size.
 var COLS=30,ROWS=20,PAD=Math.max(12,Math.min(W,H)*0.03);
@@ -20,7 +20,7 @@ var acc=0,endAt=0,closed=false,paused=false,parts=[],flash=0,beat=false,beatAt=-
 var now0=0,last=0,start=performance.now();
 function rnd(a,b){return a+Math.random()*(b-a)}
 function speed(){return Math.min(22,6+(level-1)*1.6)}// cells per second
-function close(){if(closed)return;closed=true;c.clearRect(0,0,W,H);glyphh.end()}
+function close(){if(closed)return;closed=true;c.clearRect(0,0,W,H);drip.end()}
 function reset(){
   snake=[];var cx=Math.floor(COLS/3),cy=Math.floor(ROWS/2);
   for(var i=0;i<4;i++)snake.push({x:cx-i,y:cy});
@@ -35,7 +35,7 @@ function placeApple(){
 }
 function burst(x,y,n,cols,sp){for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,v=sp*(0.4+Math.random());
   parts.push({x:x,y:y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:600,max:600,size:T*0.18*(0.6+Math.random()),col:cols[i%cols.length]})}}
-function begin(){state="play";start=performance.now();reset();glyphh.sfx.notes([[440,0.07,0],[554,0.07,0.08],[659,0.07,0.16],[880,0.18,0.24]],"square",0.1)}
+function begin(){state="play";start=performance.now();reset();drip.sfx.notes([[440,0.07,0],[554,0.07,0.08],[659,0.07,0.16],[880,0.18,0.24]],"square",0.1)}
 function turn(dx,dy){
   if(state!=="play"||paused)return;
   var lastD=queue.length?queue[queue.length-1]:dir;
@@ -46,8 +46,8 @@ function turn(dx,dy){
 function die(reason){
   why=reason;state="end";endAt=now0;flash=1;
   var h=snake[0];burst(BX+h.x*T+T/2,BY+h.y*T+T/2,28,["#fff","#a3e635","#4ade80","#f87171"],T*0.12);
-  glyphh.sfx.noise(0.4,0.4,1400,160);glyphh.sfx.tone(300,0.45,"sawtooth",0.12,70);
-  glyphh.sfx.notes([[392,0.18,0.3],[330,0.18,0.5],[262,0.4,0.7]],"triangle",0.12);
+  drip.sfx.noise(0.4,0.4,1400,160);drip.sfx.tone(300,0.45,"sawtooth",0.12,70);
+  drip.sfx.notes([[392,0.18,0.3],[330,0.18,0.5],[262,0.4,0.7]],"triangle",0.12);
 }
 function step(){
   if(queue.length)dir=queue.shift();
@@ -59,11 +59,11 @@ function step(){
   for(var i=0;i<tailEnd;i++)if(snake[i].x===nx&&snake[i].y===ny){die("BIT YOUR TAIL");return}
   snake.unshift({x:nx,y:ny});
   if(grow){
-    apples++;score+=10*level;glyphh.score(score);eatAt=now0;eatPos={x:nx,y:ny};
+    apples++;score+=10*level;drip.score(score);eatAt=now0;eatPos={x:nx,y:ny};
     burst(BX+nx*T+T/2,BY+ny*T+T/2,10,["#f87171","#fca5a5","#fbbf24"],T*0.08);
-    var n=Math.min(12,apples);glyphh.sfx.tone(520+n*30,0.08,"square",0.09,900+n*40);
-    if(BEST>0&&!beat&&score>BEST){beat=true;beatAt=now0;glyphh.sfx.notes([[784,0.08,0.1],[988,0.08,0.18],[1319,0.24,0.26]],"triangle",0.11)}
-    if(apples%5===0){level++;lvlAt=now0;glyphh.sfx.notes([[659,0.07,0.12],[784,0.07,0.2],[1047,0.16,0.28]],"square",0.09)}
+    var n=Math.min(12,apples);drip.sfx.tone(520+n*30,0.08,"square",0.09,900+n*40);
+    if(BEST>0&&!beat&&score>BEST){beat=true;beatAt=now0;drip.sfx.notes([[784,0.08,0.1],[988,0.08,0.18],[1319,0.24,0.26]],"triangle",0.11)}
+    if(apples%5===0){level++;lvlAt=now0;drip.sfx.notes([[659,0.07,0.12],[784,0.07,0.2],[1047,0.16,0.28]],"square",0.09)}
     placeApple();
   }else snake.pop();
 }

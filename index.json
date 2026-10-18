@@ -4,7 +4,7 @@
     {
       "name": "blocks",
       "title": "Blocks",
-      "author": "glyphh",
+      "author": "drip",
       "about": "Stack the falling blocks; clear lines before the top",
       "emoji": "🟦",
       "files": [
@@ -17,7 +17,7 @@
     {
       "name": "bricks",
       "title": "Bricks",
-      "author": "glyphh",
+      "author": "drip",
       "about": "Bounce the ball, break the wall, three balls",
       "emoji": "🧱",
       "files": [
@@ -30,7 +30,7 @@
     {
       "name": "chickn",
       "title": "Chickn",
-      "author": "glyphh",
+      "author": "drip",
       "about": "Hop the chicken across roads, rivers and rails",
       "emoji": "🐔",
       "files": [
@@ -43,7 +43,7 @@
     {
       "name": "chomp",
       "title": "Chomp",
-      "author": "glyphh",
+      "author": "drip",
       "about": "Eat every dot in the maze and dodge the spooks",
       "emoji": "👻",
       "files": [
@@ -56,7 +56,7 @@
     {
       "name": "dash",
       "title": "Dash",
-      "author": "glyphh",
+      "author": "drip",
       "about": "Jump the spikes as the run gets faster",
       "emoji": "🔺",
       "files": [
@@ -69,7 +69,7 @@
     {
       "name": "five",
       "title": "Five",
-      "author": "glyphh",
+      "author": "drip",
       "about": "Guess the five-letter word in six tries; keep the streak",
       "emoji": "🔤",
       "files": [
@@ -82,7 +82,7 @@
     {
       "name": "flap",
       "title": "Flap",
-      "author": "glyphh",
+      "author": "drip",
       "about": "Flap through the gaps; they only get narrower",
       "emoji": "🐦",
       "files": [
@@ -95,7 +95,7 @@
     {
       "name": "lander",
       "title": "Lander",
-      "author": "glyphh",
+      "author": "drip",
       "about": "Thrust and tilt to set down gently on the pad",
       "emoji": "🌙",
       "files": [
@@ -108,7 +108,7 @@
     {
       "name": "merge",
       "title": "Merge",
-      "author": "glyphh",
+      "author": "drip",
       "about": "Slide the tiles; equal ones merge and double",
       "emoji": "🔢",
       "files": [
@@ -121,7 +121,7 @@
     {
       "name": "mines",
       "title": "Mines",
-      "author": "glyphh",
+      "author": "drip",
       "about": "Open the safe cells, flag the mines; boards grow",
       "emoji": "💣",
       "files": [
@@ -134,7 +134,7 @@
     {
       "name": "paddle",
       "title": "Paddle",
-      "author": "glyphh",
+      "author": "drip",
       "about": "Two paddles, one ball; beat the computer or a friend",
       "emoji": "🏓",
       "files": [
@@ -147,7 +147,7 @@
     {
       "name": "rocks",
       "title": "Rocks",
-      "author": "glyphh",
+      "author": "drip",
       "about": "Steer, thrust and shoot the rocks to dust",
       "emoji": "☄️",
       "files": [
@@ -160,7 +160,7 @@
     {
       "name": "snake",
       "title": "Snake",
-      "author": "glyphh",
+      "author": "drip",
       "about": "Eat apples, grow long, don't bite your tail",
       "emoji": "🐍",
       "files": [
@@ -173,7 +173,7 @@
     {
       "name": "solitaire",
       "title": "Solitaire",
-      "author": "glyphh",
+      "author": "drip",
       "about": "Klondike, drawing one; a won deal deals the next",
       "emoji": "🃏",
       "files": [
@@ -186,7 +186,7 @@
     {
       "name": "sudoku",
       "title": "Sudoku",
-      "author": "glyphh",
+      "author": "drip",
       "about": "A 9×9 with one solution; each solved puzzle is harder",
       "emoji": "🧩",
       "files": [
@@ -199,7 +199,7 @@
     {
       "name": "swarm",
       "title": "Swarm",
-      "author": "glyphh",
+      "author": "drip",
       "about": "Shoot the diving swarm before it lands on you",
       "emoji": "👾",
       "files": [

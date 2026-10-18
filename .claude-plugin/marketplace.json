@@ -1,0 +1,16 @@
+{
+  "name": "drip",
+  "description": "Drip: arcade games and visual effects with sound, played over Claude's window",
+  "owner": {
+    "name": "timmetim",
+    "url": "https://github.com/timmetim"
+  },
+  "plugins": [
+    {
+      "name": "drip",
+      "source": "./plugins/drip",
+      "description": "Drip: arcade games and visual effects with sound, played over Claude's window. For Claude Code on a Mac. Free: every game and twenty drips (confetti, fireworks, a matrix rain). Ask Claude and it makes you new ones.",
+      "version": "2.0.0"
+    }
+  ]
+}
