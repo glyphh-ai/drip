@@ -9,7 +9,7 @@ canvas{position:absolute;left:0;top:0;display:block}
 // Flap: one key flaps a bird through the gaps between pillars. One point a
 // gap; the gaps narrow and the pillars come quicker as the score climbs.
 (function(){
-var W=glyphh.width,H=glyphh.height,BEST=glyphh.best,sfx=glyphh.sfx;
+var W=drip.width,H=drip.height,BEST=drip.best,sfx=drip.sfx;
 var cv=document.getElementById("c"),c=cv.getContext("2d");cv.width=W;cv.height=H;
 // The play area: a tall panel in the middle of the window, everything sized from its height.
 var PH=Math.floor(H*0.94),PW=Math.floor(Math.min(W*0.8,PH*0.8)),PX=Math.floor((W-PW)/2),PY=Math.floor((H-PH)/2),U=PH/600;
@@ -57,10 +57,10 @@ function update(dt,now){
     var r=BR*0.82;
     for(i=0;i<pipes.length;i++){var p=pipes[i];
       if(hitRect(BX,bird.y,r,p.x,PY-10,PIPEW,p.cy-p.gap/2-PY+10)||hitRect(BX,bird.y,r,p.x,p.cy+p.gap/2,PIPEW,GROUND-p.cy-p.gap/2+10)){die();break}
-      if(!p.passed&&p.x+PIPEW<BX){p.passed=true;score++;glyphh.score(score);sfx.notes([[880,0.06,0],[1320,0.1,0.06]],"triangle",0.07);
+      if(!p.passed&&p.x+PIPEW<BX){p.passed=true;score++;drip.score(score);sfx.notes([[880,0.06,0],[1320,0.1,0.06]],"triangle",0.07);
         burst(BX+BR,bird.y,6,["#fde68a","#fff"],120*U);
         if(BEST>0&&!beat&&score>BEST){beat=true;beatAt=now;sfx.notes([[784,0.08,0],[988,0.08,0.08],[1319,0.24,0.16]],"triangle",0.1)}}}
-  } else {physics(dt);if(state==="play"&&now-deadAt>900){state="end";endAt=now;glyphh.score(score);
+  } else {physics(dt);if(state==="play"&&now-deadAt>900){state="end";endAt=now;drip.score(score);
       if(beat)sfx.notes([[523,0.12,0],[659,0.12,0.12],[784,0.12,0.24],[1047,0.35,0.36]]);else sfx.notes([[392,0.2,0],[330,0.2,0.2],[262,0.45,0.4]],"triangle",0.14)}}
   for(i=parts.length-1;i>=0;i--){var q=parts[i];q.life-=dt;q.vy+=900*U*dt;q.x+=q.vx*dt;q.y+=q.vy*dt;if(q.life<=0)parts.splice(i,1)}
 }
@@ -115,7 +115,7 @@ function frame(now){if(closed)return;var dt=Math.min(0.04,(now-last)/1000);last=
   drawSky(now);drawPipes();drawGround();drawParts();drawBird();c.restore();
   c.strokeStyle="rgba(255,255,255,0.25)";c.lineWidth=2;roundRect(PX+1,PY+1,PW-2,PH-2,14*U);c.stroke();
   if(state==="title")drawTitle(now);else drawHud(now);
-  if(state==="end"){drawEnd(now);if(now-endAt>=ENDMS){closed=true;c.clearRect(0,0,W,H);glyphh.end();return}}
+  if(state==="end"){drawEnd(now);if(now-endAt>=ENDMS){closed=true;c.clearRect(0,0,W,H);drip.end();return}}
   requestAnimationFrame(frame)}
 requestAnimationFrame(frame);
 })();

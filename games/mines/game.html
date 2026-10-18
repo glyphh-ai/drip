@@ -10,7 +10,7 @@ canvas{position:absolute;left:0;top:0;display:block}
 // one; the numbers count the mines around them. A point a safe cell, a bonus
 // for a cleared board, and each board is bigger and holds more mines.
 (function(){
-var W=glyphh.width,H=glyphh.height,BEST=glyphh.best,sfx=glyphh.sfx,ENDMS=2500;
+var W=drip.width,H=drip.height,BEST=drip.best,sfx=drip.sfx,ENDMS=2500;
 var cv=document.getElementById("c"),c=cv.getContext("2d");cv.width=W;cv.height=H;
 var PH=Math.floor(H*0.94),U=PH/600,HEAD=Math.round(66*U),FOOT=Math.round(24*U),PAD=Math.round(12*U);
 var NUMCOL=["","#60a5fa","#4ade80","#f87171","#c084fc","#fb923c","#2dd4bf","#f472b6","#e5e7eb"];
@@ -33,7 +33,7 @@ function boom(r,q){dead=true;deadAt=performance.now();at(r,q).hit=true;shake=10*
   burst(BX+q*cell+cell/2,BY+r*cell+cell/2,40,["#f472b6","#fb923c","#fff","#fde68a"],300*U);sfx.noise(0.7,0.6,1800,70);sfx.tone(160,0.7,"sawtooth",0.14,40)}
 function reveal(r,q){var x=at(r,q);if(!x||x.open||x.flag)return 0;x.open=true;
   if(x.mine){boom(r,q);return 0}var n=1;opened++;if(x.n===0)around(r,q,function(y,i,j){n+=reveal(i,j)});return n}
-function gain(n,now){if(!n)return;score+=n;glyphh.score(score);if(BEST>0&&!beat&&score>BEST){beat=true;beatAt=now;sfx.notes([[784,0.08,0],[988,0.08,0.08],[1319,0.24,0.16]],"triangle",0.1)}}
+function gain(n,now){if(!n)return;score+=n;drip.score(score);if(BEST>0&&!beat&&score>BEST){beat=true;beatAt=now;sfx.notes([[784,0.08,0],[988,0.08,0.08],[1319,0.24,0.16]],"triangle",0.1)}}
 function open(r,q){if(state!=="play"||paused||dead||state==="clear")return;var x=at(r,q);if(!x)return;var now=performance.now();
   if(x.open){ // chord: the flags around it count, open the rest
     var f=0;around(r,q,function(y){if(y.flag)f++});if(f!==x.n)return;var n=0;around(r,q,function(y,i,j){if(!y.flag&&!y.open)n+=reveal(i,j)});
@@ -100,7 +100,7 @@ var last=performance.now();
 function frame(now){if(closed)return;var dt=Math.min(0.05,(now-last)/1000);last=now;
   if(state==="play"&&placed&&!paused&&!dead)elapsed+=dt*1000;
   if(state==="clear"&&now-clearAt>1500){setup(level+1);state="play"}
-  if(dead&&state==="play"&&now-deadAt>900){state="end";endAt=now;glyphh.score(score);sfx.notes([[392,0.2,0],[330,0.2,0.2],[262,0.45,0.4]],"triangle",0.14)}
+  if(dead&&state==="play"&&now-deadAt>900){state="end";endAt=now;drip.score(score);sfx.notes([[392,0.2,0],[330,0.2,0.2],[262,0.45,0.4]],"triangle",0.14)}
   for(var i=parts.length-1;i>=0;i--){var p=parts[i];p.life-=dt;p.vy+=900*U*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.life<=0)parts.splice(i,1)}
   c.clearRect(0,0,W,H);c.save();if(shake>0){c.translate((Math.random()-0.5)*shake,(Math.random()-0.5)*shake);shake=Math.max(0,shake-dt*40*U)}
   c.fillStyle="#17112e";roundRect(PX,PY,PW,PH,14*U);c.fill();c.strokeStyle="rgba(255,255,255,0.18)";c.lineWidth=2;c.stroke();
@@ -112,7 +112,7 @@ function frame(now){if(closed)return;var dt=Math.min(0.05,(now-last)/1000);last=
   if(paused){c.fillStyle="rgba(15,8,36,0.85)";c.fillRect(BX,BY,cols*cell,rows*cell);text("PAUSED",PX+PW/2,BY+rows*cell/2,Math.max(20,36*U),"#fff","center",800)}
   c.restore();
   if(state==="title")drawTitle(now);if(state==="clear")drawClear(now);
-  if(state==="end"){drawEnd(now);if(now-endAt>=ENDMS){closed=true;c.clearRect(0,0,W,H);glyphh.end();return}}
+  if(state==="end"){drawEnd(now);if(now-endAt>=ENDMS){closed=true;c.clearRect(0,0,W,H);drip.end();return}}
   requestAnimationFrame(frame)}
 requestAnimationFrame(frame);
 })();

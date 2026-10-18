@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Checks game and drip folders against the rules Glyphh Drip applies
+// Checks game and drip folders against the rules Drip applies
 // (./rules.js, the plugin's own code).
 //
 //   node scripts/check.js games/snake drips/snow   one or more folders

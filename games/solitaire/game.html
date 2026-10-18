@@ -11,7 +11,7 @@ canvas{position:absolute;left:0;top:0;display:block;cursor:default}
 // foundations; a won deal banks it and deals the next, with fewer passes
 // through the stock and less time.
 (function(){
-var W=glyphh.width,H=glyphh.height,BEST=glyphh.best,cv=document.getElementById("c"),c=cv.getContext("2d");
+var W=drip.width,H=drip.height,BEST=drip.best,cv=document.getElementById("c"),c=cv.getContext("2d");
 var DPR=Math.min(2,window.devicePixelRatio||1);cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+"px";cv.style.height=H+"px";c.scale(DPR,DPR);
 var FONT="'Avenir Next','Helvetica Neue',Helvetica,Arial,sans-serif";
 var SUITS=["♠","♥","♦","♣"],RED=[false,true,true,false],RANKS=["","A","2","3","4","5","6","7","8","9","10","J","Q","K"];
@@ -35,14 +35,14 @@ function newDeal(){deal++;var d=[];for(var s=0;s<4;s++)for(var r=1;r<=13;r++)d.p
   tab=[];for(var col=0;col<7;col++){tab.push([]);for(var k=0;k<=col;k++){var cd=d.pop();cd.up=k===col;tab[col].push(cd)}}
   stock=d;waste=[];found=[[],[],[],[]];passes=0;passLimit=deal<=1?3:deal===2?2:1;limitMs=Math.max(240,480-60*(deal-1))*1000;
   dealStart=performance.now();pauseTotal=0;undos=[];sel=null;drag=null;autoRun=false;
-  glyphh.sfx.notes([[392,0.06,0],[523,0.06,0.07],[659,0.06,0.14],[784,0.14,0.21]],"triangle",0.07)}
+  drip.sfx.notes([[392,0.06,0],[523,0.06,0.07],[659,0.06,0.14],[784,0.14,0.21]],"triangle",0.07)}
 function foundCount(){return found[0].length+found[1].length+found[2].length+found[3].length}
 function score(){return bank+foundCount()*10}
-function post(){glyphh.score(score());if(BEST>0&&!beat&&score()>BEST){beat=true;beatAt=tNow;glyphh.sfx.notes([[784,0.08,0],[988,0.08,0.08],[1319,0.24,0.16]],"triangle",0.1)}}
+function post(){drip.score(score());if(BEST>0&&!beat&&score()>BEST){beat=true;beatAt=tNow;drip.sfx.notes([[784,0.08,0],[988,0.08,0.08],[1319,0.24,0.16]],"triangle",0.1)}}
 function elapsed(){return (paused?pausedAt:performance.now())-dealStart-pauseTotal}
 function timeLeft(){return Math.max(0,limitMs-elapsed())}
 function snap(){undos.push(JSON.stringify({stock:stock,waste:waste,found:found,tab:tab,passes:passes}));if(undos.length>100)undos.shift()}
-function undo(){if(!undos.length||state!=="play"||paused||autoRun)return;var u=JSON.parse(undos.pop());stock=u.stock;waste=u.waste;found=u.found;tab=u.tab;passes=u.passes;sel=null;glyphh.sfx.tone(300,0.06,"triangle",0.05,220)}
+function undo(){if(!undos.length||state!=="play"||paused||autoRun)return;var u=JSON.parse(undos.pop());stock=u.stock;waste=u.waste;found=u.found;tab=u.tab;passes=u.passes;sel=null;drip.sfx.tone(300,0.06,"triangle",0.05,220)}
 function canFound(card,i){var f=found[i];if(!f.length)return card.r===1;var t=f[f.length-1];return t.s===card.s&&card.r===t.r+1}
 function canTab(card,col){var t=tab[col];if(!t.length)return card.r===13;var top=t[t.length-1];return top.up&&RED[top.s]!==RED[card.s]&&card.r===top.r-1}
 function foundFor(card){for(var i=0;i<4;i++)if(canFound(card,i))return i;return -1}
@@ -52,15 +52,15 @@ function put(cards,dst){if(dst.kind==="found")found[dst.i].push(cards[0]);else i
 function peek(src){if(src.kind==="waste")return waste.length?[waste[waste.length-1]]:[];if(src.kind==="found")return found[src.i].length?[found[src.i][found[src.i].length-1]]:[];return tab[src.i].slice(src.idx)}
 function legal(src,dst){var cards=peek(src);if(!cards.length)return false;if(src.kind===dst.kind&&src.i===dst.i)return false;
   if(dst.kind==="found")return cards.length===1&&canFound(cards[0],dst.i);if(dst.kind==="tab")return canTab(cards[0],dst.i);return false}
-function afterMove(src){if(src.kind==="tab"){var t=tab[src.i];if(t.length&&!t[t.length-1].up){t[t.length-1].up=true;glyphh.sfx.tone(520,0.06,"triangle",0.06,700)}}}
+function afterMove(src){if(src.kind==="tab"){var t=tab[src.i];if(t.length&&!t[t.length-1].up){t[t.length-1].up=true;drip.sfx.tone(520,0.06,"triangle",0.06,700)}}}
 function move(src,dst){if(!legal(src,dst))return false;snap();var cards=take(src);put(cards,dst);afterMove(src);sel=null;
-  if(dst.kind==="found"){flash.push({i:dst.i,at:tNow});glyphh.sfx.tone(660+dst.i*40,0.08,"triangle",0.07,900);post()}else glyphh.sfx.noise(0.06,0.12,3000,900);
+  if(dst.kind==="found"){flash.push({i:dst.i,at:tNow});drip.sfx.tone(660+dst.i*40,0.08,"triangle",0.07,900);post()}else drip.sfx.noise(0.06,0.12,3000,900);
   checkState();return true}
 function draw1(){if(state!=="play"||paused||autoRun)return;sel=null;
-  if(stock.length){snap();var cd=stock.pop();cd.up=true;waste.push(cd);glyphh.sfx.noise(0.05,0.15,2500,700);checkState();return}
+  if(stock.length){snap();var cd=stock.pop();cd.up=true;waste.push(cd);drip.sfx.noise(0.05,0.15,2500,700);checkState();return}
   if(!waste.length)return;
-  if(passes+1>=passLimit){glyphh.sfx.tone(160,0.12,"square",0.05,110);banner="NO MORE PASSES";bannerAt=tNow;checkState();return}
-  snap();passes++;while(waste.length){var w=waste.pop();w.up=false;stock.push(w)}glyphh.sfx.noise(0.14,0.2,2000,400);checkState()}
+  if(passes+1>=passLimit){drip.sfx.tone(160,0.12,"square",0.05,110);banner="NO MORE PASSES";bannerAt=tNow;checkState();return}
+  snap();passes++;while(waste.length){var w=waste.pop();w.up=false;stock.push(w)}drip.sfx.noise(0.14,0.2,2000,400);checkState()}
 function sendUp(src){var cards=peek(src);if(cards.length!==1)return false;var i=foundFor(cards[0]);if(i<0)return false;return move(src,{kind:"found",i:i})}
 // Any move left? Counting a run moved to another column only when it uncovers something.
 function anyMove(){if(stock.length)return true;if(waste.length&&passes+1<passLimit)return true;
@@ -71,12 +71,12 @@ function anyMove(){if(stock.length)return true;if(waste.length&&passes+1<passLim
 function checkState(){if(foundCount()===52){winDeal();return}
   if(!stock.length&&!waste.length){var allUp=true;for(var col=0;col<7;col++)for(var i=0;i<tab[col].length;i++)if(!tab[col][i].up)allUp=false;if(allUp){autoRun=true;autoAt=tNow;return}}
   if(!anyMove())over("NO MOVES LEFT")}
-function autoStep(){for(var col=0;col<7;col++){var t=tab[col];if(!t.length)continue;var i=foundFor(t[t.length-1]);if(i>=0){var cd=t.pop();found[i].push(cd);flash.push({i:i,at:tNow});glyphh.sfx.tone(600+found[i].length*30,0.06,"triangle",0.06,900);post();return}}
+function autoStep(){for(var col=0;col<7;col++){var t=tab[col];if(!t.length)continue;var i=foundFor(t[t.length-1]);if(i>=0){var cd=t.pop();found[i].push(cd);flash.push({i:i,at:tNow});drip.sfx.tone(600+found[i].length*30,0.06,"triangle",0.06,900);post();return}}
   autoRun=false;if(foundCount()===52)winDeal()}
 function winDeal(){var bonus=Math.round(timeLeft()/1000)*2;bank+=foundCount()*10+bonus;post();wonAt=tNow;banner="DEAL "+deal+" WON  +"+bonus+" TIME BONUS";bannerAt=tNow;
-  glyphh.sfx.notes([[523,0.1,0],[659,0.1,0.1],[784,0.1,0.2],[1047,0.1,0.3],[1319,0.4,0.4]],"triangle",0.1);state="won"}
-function over(why){if(state!=="play")return;state="end";endAt=tNow;endWhy=why;sel=null;drag=null;glyphh.sfx.noise(0.6,0.3,900,80);glyphh.sfx.notes([[392,0.2,0.1],[330,0.2,0.3],[262,0.5,0.5]],"triangle",0.14)}
-function close(){if(closed)return;closed=true;c.clearRect(0,0,W,H);glyphh.end()}
+  drip.sfx.notes([[523,0.1,0],[659,0.1,0.1],[784,0.1,0.2],[1047,0.1,0.3],[1319,0.4,0.4]],"triangle",0.1);state="won"}
+function over(why){if(state!=="play")return;state="end";endAt=tNow;endWhy=why;sel=null;drag=null;drip.sfx.noise(0.6,0.3,900,80);drip.sfx.notes([[392,0.2,0.1],[330,0.2,0.3],[262,0.5,0.5]],"triangle",0.14)}
+function close(){if(closed)return;closed=true;c.clearRect(0,0,W,H);drip.end()}
 function start(){state="play";bank=0;deal=0;beat=false;newDeal()}
 function inRect(r,x,y){return x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h}
 function hit(x,y){if(inRect(stockRect(),x,y))return{kind:"stock"};if(inRect(wasteRect(),x,y))return{kind:"waste",i:0};
@@ -99,11 +99,11 @@ cv.addEventListener("mousedown",function(ev){ev.preventDefault();if(ev.button!==
   if(movable(h)){drag={src:h,sx:mouse.x,sy:mouse.y,ox:mouse.x-(h.kind==="tab"?colX(h.i):h.kind==="waste"?wasteRect().x:foundRect(h.i).x),oy:mouse.y-(h.kind==="tab"?tabCardY(h.i,h.idx):TOPY),moving:false}}
   else sel=null});
 window.addEventListener("mouseup",function(ev){if(!drag)return;var d=drag;drag=null;mouse.x=ev.clientX;mouse.y=ev.clientY;
-  if(d.moving){var t=dropTarget(mouse.x-d.ox,mouse.y-d.oy);if(t&&move(d.src,t))return;glyphh.sfx.tone(200,0.05,"square",0.03);sel=null;return}
-  if(sameSrc(sel,d.src)){sel=null;glyphh.sfx.tone(300,0.03,"square",0.03)}else{sel=d.src;glyphh.sfx.tone(480,0.03,"square",0.04)}});
+  if(d.moving){var t=dropTarget(mouse.x-d.ox,mouse.y-d.oy);if(t&&move(d.src,t))return;drip.sfx.tone(200,0.05,"square",0.03);sel=null;return}
+  if(sameSrc(sel,d.src)){sel=null;drip.sfx.tone(300,0.03,"square",0.03)}else{sel=d.src;drip.sfx.tone(480,0.03,"square",0.04)}});
 document.addEventListener("keydown",function(ev){if(ev.key==="Escape"||ev.key==="m"||ev.key==="M"||ev.metaKey||ev.ctrlKey||ev.altKey)return;var k=ev.key;ev.preventDefault();if(ev.repeat)return;
   if(state==="title"){start();return}
-  if(k==="p"||k==="P"){if(state==="play"){paused=!paused;if(paused)pausedAt=performance.now();else pauseTotal+=performance.now()-pausedAt;glyphh.sfx.tone(paused?440:660,0.08,"triangle",0.06)}return}
+  if(k==="p"||k==="P"){if(state==="play"){paused=!paused;if(paused)pausedAt=performance.now();else pauseTotal+=performance.now()-pausedAt;drip.sfx.tone(paused?440:660,0.08,"triangle",0.06)}return}
   if(k===" "||k==="d"||k==="D")draw1();else if(k==="u"||k==="U")undo()});
 function text(str,x,y,size,col,align,weight){c.font=(weight||"700")+" "+Math.round(size)+"px "+FONT;c.textAlign=align||"center";c.textBaseline="middle";c.fillStyle=col;c.fillText(str,x,y)}
 function rrect(x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}

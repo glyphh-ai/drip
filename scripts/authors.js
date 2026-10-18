@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // A pull request's games and drips must be its opener's: every folder it adds
 // or changes names them as `author` in its JSON, and an existing folder keeps
-// its author. `glyphh` (Glyphh built) and changes to anyone's folder are for
+// its author. `drip` (Drip built) and changes to anyone's folder are for
 // the logins in MAINTAINERS. Run by CI on pull requests:
 //
 //   node scripts/authors.js <opener's login> <base ref>
@@ -12,7 +12,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { GLYPHH } from './rules.js'
+import { DRIP_AUTHOR } from './rules.js'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const [opener, base] = process.argv.slice(2)
@@ -45,7 +45,7 @@ for (const folder of folders) {
   const why =
     now === null && was === null ? null // removed, and wasn't there
     : isMaintainer ? null
-    : now?.toLowerCase() === GLYPHH || was?.toLowerCase() === GLYPHH ? `only Glyphh publishes as "${GLYPHH}"`
+    : now?.toLowerCase() === DRIP_AUTHOR || was?.toLowerCase() === DRIP_AUTHOR ? `only Drip's own publish as "${DRIP_AUTHOR}"`
     : was !== null && was.toLowerCase() !== opener.toLowerCase() ? `it is ${was}'s: only they change it`
     : now !== null && now.toLowerCase() !== opener.toLowerCase() ? `its author is "${now}", but ${opener} opened this pull request`
     : null

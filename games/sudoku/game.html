@@ -11,7 +11,7 @@ canvas{position:absolute;left:0;top:0;display:block}
 // three end the game. Each solved puzzle has fewer givens; the score counts
 // the givens taken away and the time left.
 (function(){
-var W=glyphh.width,H=glyphh.height,BEST=glyphh.best,cv=document.getElementById("c"),c=cv.getContext("2d");
+var W=drip.width,H=drip.height,BEST=drip.best,cv=document.getElementById("c"),c=cv.getContext("2d");
 var DPR=Math.min(2,window.devicePixelRatio||1);cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+"px";cv.style.height=H+"px";c.scale(DPR,DPR);
 var FONT="'Avenir Next','Helvetica Neue',Helvetica,Arial,sans-serif";
 var COL={panel:"rgba(24,16,38,0.95)",edge:"#c084fc",grid:"#f6f1ff",line:"#3b2a55",thick:"#1b1230",given:"#1b1230",user:"#6d28d9",wrong:"#dc2626",sel:"rgba(192,132,252,0.45)",peer:"rgba(192,132,252,0.14)",same:"rgba(192,132,252,0.3)",text:"#f6f1ff",dim:"rgba(246,241,255,0.6)",gold:"#ffd60a",bad:"#ff6b6b",note:"#6b5b85"};
@@ -33,28 +33,28 @@ function cluesFor(n){return Math.max(24,40-3*(n-1))}
 function newPuzzle(){puzzle++;var m=make(cluesFor(puzzle));sol=m.sol;puz=m.puz;clues=m.clues;cell=puz.slice();wrong=[];notes=[];for(var i=0;i<81;i++){wrong.push(false);notes.push(0)}
   startAt=performance.now();pauseTotal=0;if(puz[cur.r*9+cur.c]){for(var j=0;j<81;j++)if(!puz[j]){cur={r:Math.floor(j/9),c:j%9};break}}}
 function elapsedS(){return ((paused?pausedAt:performance.now())-startAt-pauseTotal)/1000}
-function close(){if(closed)return;closed=true;c.clearRect(0,0,W,H);glyphh.end()}
-function start(){state="play";puzzle=0;score=0;mistakes=0;beat=false;newPuzzle();glyphh.sfx.notes([[523,0.08,0],[659,0.08,0.09],[784,0.16,0.18]],"triangle",0.08)}
+function close(){if(closed)return;closed=true;c.clearRect(0,0,W,H);drip.end()}
+function start(){state="play";puzzle=0;score=0;mistakes=0;beat=false;newPuzzle();drip.sfx.notes([[523,0.08,0],[659,0.08,0.09],[784,0.16,0.18]],"triangle",0.08)}
 function done(){for(var i=0;i<81;i++)if(cell[i]!==sol[i])return false;return true}
-function solved(){solvedPts=(81-clues)*20+Math.max(0,Math.round(TIME_BONUS_S-elapsedS()))*2;score+=solvedPts;glyphh.score(score);solvedAt=tNow;state="solved";
-  glyphh.sfx.notes([[523,0.1,0],[659,0.1,0.1],[784,0.1,0.2],[1047,0.1,0.3],[1319,0.4,0.4]],"triangle",0.1);
-  if(BEST>0&&!beat&&score>BEST){beat=true;beatAt=tNow;glyphh.sfx.notes([[784,0.08,0.7],[988,0.08,0.78],[1319,0.24,0.86]],"triangle",0.1)}}
-function over(){state="end";endAt=tNow;glyphh.sfx.noise(0.6,0.3,900,80);glyphh.sfx.notes([[392,0.2,0.1],[330,0.2,0.3],[262,0.5,0.5]],"triangle",0.14)}
+function solved(){solvedPts=(81-clues)*20+Math.max(0,Math.round(TIME_BONUS_S-elapsedS()))*2;score+=solvedPts;drip.score(score);solvedAt=tNow;state="solved";
+  drip.sfx.notes([[523,0.1,0],[659,0.1,0.1],[784,0.1,0.2],[1047,0.1,0.3],[1319,0.4,0.4]],"triangle",0.1);
+  if(BEST>0&&!beat&&score>BEST){beat=true;beatAt=tNow;drip.sfx.notes([[784,0.08,0.7],[988,0.08,0.78],[1319,0.24,0.86]],"triangle",0.1)}}
+function over(){state="end";endAt=tNow;drip.sfx.noise(0.6,0.3,900,80);drip.sfx.notes([[392,0.2,0.1],[330,0.2,0.3],[262,0.5,0.5]],"triangle",0.14)}
 function clearPeerNotes(i,d){var r=Math.floor(i/9),cc=i%9,br=r-r%3,bc=cc-cc%3;for(var k=0;k<9;k++){notes[r*9+k]&=~(1<<d);notes[k*9+cc]&=~(1<<d);notes[(br+Math.floor(k/3))*9+bc+k%3]&=~(1<<d)}}
 function enter(d){if(state!=="play"||paused)return;var i=cur.r*9+cur.c;if(puz[i])return;
-  if(d===0){if(cell[i]||notes[i]){cell[i]=0;wrong[i]=false;notes[i]=0;glyphh.sfx.tone(240,0.03,"square",0.03)}return}
-  if(noteMode){if(cell[i])return;notes[i]^=1<<d;glyphh.sfx.tone(700,0.03,"triangle",0.03);return}
+  if(d===0){if(cell[i]||notes[i]){cell[i]=0;wrong[i]=false;notes[i]=0;drip.sfx.tone(240,0.03,"square",0.03)}return}
+  if(noteMode){if(cell[i])return;notes[i]^=1<<d;drip.sfx.tone(700,0.03,"triangle",0.03);return}
   if(cell[i]===d)return;cell[i]=d;notes[i]=0;placedAt=tNow;placedCell=i;
-  if(d!==sol[i]){wrong[i]=true;mistakes++;shakeAt=tNow;shakeCell=i;glyphh.sfx.tone(170,0.16,"square",0.07,120);if(mistakes>=MAXMISS){over();return}}
-  else{wrong[i]=false;clearPeerNotes(i,d);glyphh.sfx.tone(520+d*30,0.05,"triangle",0.05,780);var n=0;for(var k=0;k<81;k++)if(cell[k]===d)n++;if(n===9)glyphh.sfx.notes([[880,0.06,0.05],[1175,0.1,0.11]],"triangle",0.05);if(done())solved()}}
-function moveCur(dr,dc){cur.r=(cur.r+dr+9)%9;cur.c=(cur.c+dc+9)%9;glyphh.sfx.tone(380,0.015,"square",0.02)}
+  if(d!==sol[i]){wrong[i]=true;mistakes++;shakeAt=tNow;shakeCell=i;drip.sfx.tone(170,0.16,"square",0.07,120);if(mistakes>=MAXMISS){over();return}}
+  else{wrong[i]=false;clearPeerNotes(i,d);drip.sfx.tone(520+d*30,0.05,"triangle",0.05,780);var n=0;for(var k=0;k<81;k++)if(cell[k]===d)n++;if(n===9)drip.sfx.notes([[880,0.06,0.05],[1175,0.1,0.11]],"triangle",0.05);if(done())solved()}}
+function moveCur(dr,dc){cur.r=(cur.r+dr+9)%9;cur.c=(cur.c+dc+9)%9;drip.sfx.tone(380,0.015,"square",0.02)}
 document.addEventListener("keydown",function(ev){if(ev.key==="Escape"||ev.key==="m"||ev.key==="M"||ev.metaKey||ev.ctrlKey||ev.altKey)return;var k=ev.key;
   if(state==="title"){ev.preventDefault();start();return}if(state!=="play"&&state!=="solved")return;ev.preventDefault();
-  if(k==="p"||k==="P"){if(!ev.repeat&&state==="play"){paused=!paused;if(paused)pausedAt=performance.now();else pauseTotal+=performance.now()-pausedAt;glyphh.sfx.tone(paused?440:660,0.08,"triangle",0.06)}return}
+  if(k==="p"||k==="P"){if(!ev.repeat&&state==="play"){paused=!paused;if(paused)pausedAt=performance.now();else pauseTotal+=performance.now()-pausedAt;drip.sfx.tone(paused?440:660,0.08,"triangle",0.06)}return}
   if(paused||state!=="play")return;
   if(k==="ArrowUp"||k==="w"||k==="W")moveCur(-1,0);else if(k==="ArrowDown"||k==="s"||k==="S")moveCur(1,0);else if(k==="ArrowLeft"||k==="a"||k==="A")moveCur(0,-1);else if(k==="ArrowRight"||k==="d"||k==="D")moveCur(0,1);
   else if(/^[1-9]$/.test(k)){if(!ev.repeat)enter(+k)}else if(k==="0"||k==="Backspace"||k==="Delete"||k===" "){if(!ev.repeat)enter(0)}
-  else if((k==="n"||k==="N")&&!ev.repeat){noteMode=!noteMode;glyphh.sfx.tone(noteMode?600:450,0.05,"triangle",0.05)}});
+  else if((k==="n"||k==="N")&&!ev.repeat){noteMode=!noteMode;drip.sfx.tone(noteMode?600:450,0.05,"triangle",0.05)}});
 // Layout: the grid, a side panel with the clock, score and a number pad.
 var G,CS,GX,GY,PX,PY,PW,PH,SX,SW,pad=[],noteBtn=null;
 function layout(){var side=Math.min(220,W*0.26);G=Math.floor(Math.min(H*0.84,W*0.9-side-30));CS=G/9;PW=G+side+Math.round(G*0.08);PH=G+Math.round(G*0.08);PX=Math.round(W/2-PW/2);PY=Math.round(H/2-PH/2);
@@ -63,9 +63,9 @@ function layout(){var side=Math.min(220,W*0.26);G=Math.floor(Math.min(H*0.84,W*0
   noteBtn={x:SX,y:by+3*(bw+6),w:SW,h:bw*0.7}}
 layout();
 cv.addEventListener("mousedown",function(ev){ev.preventDefault();if(state==="title"){start();return}if(state!=="play"||paused)return;var x=ev.clientX,y=ev.clientY;
-  if(x>=GX&&x<GX+G&&y>=GY&&y<GY+G){cur={r:Math.min(8,Math.floor((y-GY)/CS)),c:Math.min(8,Math.floor((x-GX)/CS))};glyphh.sfx.tone(380,0.015,"square",0.02);return}
+  if(x>=GX&&x<GX+G&&y>=GY&&y<GY+G){cur={r:Math.min(8,Math.floor((y-GY)/CS)),c:Math.min(8,Math.floor((x-GX)/CS))};drip.sfx.tone(380,0.015,"square",0.02);return}
   for(var i=0;i<pad.length;i++){var p=pad[i];if(x>=p.x&&x<=p.x+p.w&&y>=p.y&&y<=p.y+p.h){enter(p.d);return}}
-  if(noteBtn&&x>=noteBtn.x&&x<=noteBtn.x+noteBtn.w&&y>=noteBtn.y&&y<=noteBtn.y+noteBtn.h){noteMode=!noteMode;glyphh.sfx.tone(noteMode?600:450,0.05,"triangle",0.05)}});
+  if(noteBtn&&x>=noteBtn.x&&x<=noteBtn.x+noteBtn.w&&y>=noteBtn.y&&y<=noteBtn.y+noteBtn.h){noteMode=!noteMode;drip.sfx.tone(noteMode?600:450,0.05,"triangle",0.05)}});
 cv.addEventListener("contextmenu",function(ev){ev.preventDefault();if(state==="play"&&!paused)enter(0)});
 function text(str,x,y,size,col,align,weight){c.font=(weight||"700")+" "+Math.round(size)+"px "+FONT;c.textAlign=align||"center";c.textBaseline="middle";c.fillStyle=col;c.fillText(str,x,y)}
 function rrect(x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
