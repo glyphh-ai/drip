@@ -90,8 +90,7 @@ The game must:
    ```
    Fix whatever it reports, and run it again until it passes.
 5. Tell the person it's ready: `/drip list` shows it in the Drip
-   pane, and `/drip <name>` plays it. Games other than Missiles need Glyphh
-   Drip bought (`/drip unlock`, $4.99 once).
+   pane, and `/drip <name>` plays it.
 
 To share it, the person runs `/drip share <name>`: a pull request to the
 gallery, glyphh-ai/drip, from their GitHub account (its `author` must be

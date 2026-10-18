@@ -10,8 +10,6 @@ export const MATRIX_LINGER_MS = 2_000
 export const MATRIX = 'matrix'
 
 export type FunDeps = {
-  /** Whether effects may play now (the licence allows it). */
-  isAllowed(): Promise<boolean>
   play(recipe: string): Promise<void>
   /** Starts the matrix unless it already runs; true when this started it. */
   ensure(effect: string): Promise<boolean>
@@ -41,7 +39,7 @@ export function createFun(d: FunDeps, settings: Settings) {
       linger?.cancel()
       linger = null
       if (owned) return
-      owned = (async () => (await d.isAllowed()) && (await d.ensure(MATRIX)))()
+      owned = d.ensure(MATRIX)
       await owned.catch(d.report)
     },
     /** A tool call of the main loop ended. */
@@ -59,7 +57,7 @@ export function createFun(d: FunDeps, settings: Settings) {
       linger = null
       await release()
       const isLong = t.reason === 'answer' && t.durationMs > LONG_TURN_MS
-      if (settings.confettiAfterLongTurn && isLong && (await d.isAllowed())) await d.play('confetti')
+      if (settings.confettiAfterLongTurn && isLong) await d.play('confetti')
     },
   }
 }

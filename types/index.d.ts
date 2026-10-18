@@ -10,20 +10,9 @@ export type Display = 'claude-window' | 'fullscreen'
  *  the session's memory (never on disk) so a reload of the mod finds it again. */
 export type HelperInfo = { port: number; token: string }
 
-/** The licence as this install holds it (hooks/unlock). */
-export type LicenceState = {
-  /** A licence that checked out, kept in the store. */
-  licence: string | null
-  /** Checkout is open and the site is being asked whether it went through. */
-  isWaiting: boolean
-  /** What the last unlock attempt came to. */
-  note: string | null
-}
-
 declare module 'claude-code' {
   interface PluginState {
     'glyphh-drip': {
-      licence: LicenceState
       helper: HelperInfo | null
       /** The Browser pane's tab showing the Drips page, kept across reloads. */
       pageTab: string | null

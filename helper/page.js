@@ -177,36 +177,6 @@ $("mode").onchange = () => {
 }
 $("count-input").oninput = drawPreview
 
-// ── The licence ─────────────────────────────────────────────────────────────
-// The mod tells the page the licence's state in words: unlocked, or locked
-// until it is bought (a one-time price, per machine). Unlock, Cancel and Copy
-// licence key go back to it; the buying and checking stay in the mod, and the
-// licence itself never reaches the page.
-let licence = null
-const licenceAsk = action => api("/api/licence", { action }).catch(() => {})
-const button = (label, cls, onclick) => Object.assign(el("button", `btn ${cls}`, label), { type: "button", onclick })
-
-function drawLicence() {
-  const bar = $("licence")
-  bar.replaceChildren()
-  if (licence?.kind === "licensed") bar.append(el("span", "plan", "Unlocked"), button("Copy licence key", "secondary", () => licenceAsk("copy")))
-  const locked = $("locked")
-  const isLocked = licence?.kind === "locked"
-  locked.classList.toggle("hidden", !isLocked)
-  $("app").classList.toggle("hidden", isLocked)
-  if (!isLocked) return locked.replaceChildren()
-  const card = el("div", "card")
-  card.append(el("h1", "", licence.product), ...licence.about.map(line => el("p", "", line)))
-  card.append(el("p", "ended", `${licence.product} is a one-time ${licence.price} for this machine.`))
-  const row = el("div", "row-buttons")
-  if (licence.isWaiting) row.append(el("span", "", licence.note || "Finish checkout in your browser…"), button("Cancel", "secondary", () => licenceAsk("cancel")))
-  else row.append(button(`Unlock — ${licence.price}`, "primary", () => licenceAsk("buy")))
-  card.append(row)
-  if (licence.note && !licence.isWaiting) card.append(el("p", "small", licence.note))
-  card.append(el("p", "small", `Bought it on another machine? ${licence.command} key <licence>`))
-  locked.replaceChildren(card)
-}
-
 // ── Updates from the helper ─────────────────────────────────────────────────
 async function loadLibrary() {
   library = await api("/api/library")
@@ -217,13 +187,5 @@ const events = new EventSource(`/events?t=${T}`)
 events.onmessage = ev => {
   const m = JSON.parse(ev.data)
   if (m.t === "library") return loadLibrary()
-  if (m.t === "licence") {
-    licence = m.status
-    return drawLicence()
-  }
 }
 loadLibrary().catch(() => {})
-api("/api/licence-state").then(r => {
-  licence = r.status ?? null
-  drawLicence()
-}, () => {})

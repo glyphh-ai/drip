@@ -6,19 +6,13 @@
 // overlay takes the pointer and keys while a game is on. Each game posts its
 // score as it goes, and the top one is kept for the next round to beat.
 // /drip (or /drip list) opens the Drip pane: every game and drip, here or in the
-// gallery, each with who made it and Play (Get for the gallery's, fetched
-// then played). Missiles and every drip are free; the other games wait for
-// Glyphh Drip to be bought.
+// gallery, each with who made it and Play (Install for the gallery's). Every
+// game and drip is free.
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On, PluginOptions } from 'claude-code'
 
 import { ancestorsOf, eventsOf, overlayHost, prepareOverlay, type OverlayDeps, type Placement, type Prepared } from '../overlay/host.ts'
 import { selectTarget, type Target, type TerminalEnv } from '../overlay/target.ts'
-import { INITIAL, refusal } from '../unlock/access.ts'
-import type { LicenceState } from '../../types'
-import { MOD, PRICE, PRODUCT } from '../unlock/config.ts'
-import { buy, type Deps } from '../unlock/flow.ts'
-import { verify } from '../unlock/verify.ts'
 import { BUILTIN_EFFECT_LIST, ONE_SHOT_EFFECTS } from '../drips/effects.ts'
 import { dripsDir, gamesDir, loadDrips, loadGames, skippedText, type FolderDeps, type FolderGame } from '../content/folders.ts'
 import { GALLERY_API, get as galleryGet, listing as galleryListing, type Entry } from '../content/gallery.ts'
@@ -33,7 +27,6 @@ import { FAVOURITES_KEY } from './favourites.ts'
 import { scoresOf, type Store } from './scores.ts'
 import { settingsOf, type Settings } from './settings.ts'
 
-const licence = atom({ plugin: 'glyphh-drip', key: 'licence' } as const, INITIAL)
 /** A drip the pane asked to play: the drips' half (../drips) takes it. */
 const queued = atom({ plugin: 'glyphh-drip', key: 'queued' } as const, null as { recipe: string; at: number } | null)
 /** The pane's search, type filter and page (from 0). */
@@ -61,9 +54,6 @@ const GALLERY_MS = 5 * 60_000
 /** The gallery's listing as last read, for the pane's draws. */
 let galleryKept: { at: number; index: Awaited<ReturnType<typeof galleryListing>> } | null = null
 
-/** The games anyone can play, bought or not (every drip is free too). */
-export const FREE_GAMES: readonly string[] = ['missiles']
-
 /** A drip's name as the card shows it: "matrix" → "Matrix". */
 const titleOf = (name: string) => name.charAt(0).toUpperCase() + name.slice(1)
 
@@ -78,12 +68,6 @@ let gameOpen: string | null = null
 let target: Promise<Target | null> | null = null
 /** Said once per load: Claude's window not found. */
 let isMissedSaid = false
-/** The store's key for the licence (../unlock/flow.ts keeps it there). */
-const LICENCE_KEY = 'licence'
-/** The saved licence last checked here, so a locked pane checks it once, not at every draw. */
-let licenceChecked: string | null = null
-/** That licence when it checked out; null when it didn't. */
-let licenceHeld: string | null = null
 
 const short = (err: unknown) => String(err instanceof Error ? err.message : err).replace(/^(Hooks)?Error: /, '').slice(0, 300)
 
@@ -206,36 +190,11 @@ async function listing($: EngineInterface): Promise<string> {
     lines.push(`  ${g.name.padEnd(9)} ${g.title}${best > 0 ? `  ·  best ${best}` : ''}${mine}`)
   }
   if (yours.skipped) lines.push('', yours.skipped)
-  // Not the refusal line: that one draws as the unlock module's card, this as the card.
-  if (refusal(await licenceNow($))) lines.push('', `Missiles is free; the other games are ${PRICE}, once: /drip unlock buys ${PRODUCT}.`)
   return lines.join('\n')
 }
 
-/** The licence as this half sees it. Locked here but a licence saved in the
- *  store (bought in another session, or the start's check not reached): it is
- *  checked once and, when it holds, the mod unlocks. Never from a draw: a draw
- *  may not write state, and the check is done by /drip before the pane opens. */
-async function licenceNow($: EngineInterface): Promise<LicenceState> {
-  const state = await read($, licence)
-  if (state.licence) return state
-  const kept = await $.store.get(LICENCE_KEY)
-  if (typeof kept !== 'string') return state
-  if (kept !== licenceChecked) {
-    licenceChecked = kept
-    licenceHeld = (await verify(kept, MOD)) ? kept : null
-  }
-  if (!licenceHeld) return state
-  await update($, licence, s => ({ ...s, licence: licenceHeld, isWaiting: false, note: null }))
-  return { ...state, licence: licenceHeld, isWaiting: false, note: null }
-}
-
-/** Why the game `name` may not be played now (not bought, and not free), or null. */
-async function gameRefusal($: EngineInterface, name: string): Promise<string | null> {
-  return FREE_GAMES.includes(name) ? null : refusal(await licenceNow($))
-}
-
 /** /drip's own words, never a name to look for in the gallery. */
-const WORDS = ['list', 'stop', 'save', 'delete', 'page', 'unlock', 'key', 'get', 'share']
+const WORDS = ['list', 'stop', 'save', 'delete', 'page', 'get', 'share']
 
 /** Whether `name` plays as a drip here: built in, a folder of one, or a saved recipe. */
 async function isDripHere($: EngineInterface, name: string): Promise<boolean> {
@@ -267,13 +226,11 @@ export type Row = {
   best: number
   isYours: boolean
   isGallery: boolean
-  isLocked: boolean
 }
 
 /** Every game and drip for the pane: here first (games, then drips), then the gallery's not fetched yet. */
-async function paneRows($: EngineInterface, isBought: boolean): Promise<Row[]> {
+async function paneRows($: EngineInterface): Promise<Row[]> {
   const scores = scoresOf(store($))
-  const locked = (name: string) => !isBought && !FREE_GAMES.includes(name)
   const rows: Row[] = []
   for (const g of [...GAMES, ...(await folderGames($)).games]) {
     const f = 'isYours' in g ? (g as FolderGame) : null
@@ -287,7 +244,6 @@ async function paneRows($: EngineInterface, isBought: boolean): Promise<Row[]> {
       best: await scores.best(g.name),
       isYours: f?.isYours === true,
       isGallery: false,
-      isLocked: locked(g.name),
     })
   }
   const own = await folderDrips($)
@@ -302,7 +258,6 @@ async function paneRows($: EngineInterface, isBought: boolean): Promise<Row[]> {
     best: 0,
     isYours: d.isYours,
     isGallery: false,
-    isLocked: false,
   })
   rows.push(
     ...BUILTIN_EFFECT_LIST.map(d => drip({ name: d.name, title: titleOf(d.name), by: byOf(GLYPHH), isYours: false })),
@@ -324,7 +279,6 @@ async function paneRows($: EngineInterface, isBought: boolean): Promise<Row[]> {
     best: 0,
     isYours: false,
     isGallery: true,
-    isLocked: kind === 'game' && locked(e.name),
   })
   for (const e of index?.games ?? []) if (!here.has(e.name)) rows.push(fromGallery('game', e))
   for (const e of index?.drips ?? []) if (!here.has(e.name)) rows.push(fromGallery('drip', e))
@@ -351,14 +305,12 @@ export const favKey = (kind: Kind, name: string) => `${kind}:${name}`
 const SVG_MAX = 131_072
 
 /** The pane's rows as last read, kept until a /drip command or a fetch changes what's here: a press redraws at once. */
-let rowsKept: { isBought: boolean; rows: Row[] } | null = null
+let rowsKept: Row[] | null = null
 
 /** The pane's rows: kept ones, else read afresh. */
-async function rowsOf($: EngineInterface, isBought: boolean): Promise<Row[]> {
-  if (rowsKept?.isBought === isBought) return rowsKept.rows
-  const rows = await paneRows($, isBought)
-  rowsKept = { isBought, rows }
-  return rows
+async function rowsOf($: EngineInterface): Promise<Row[]> {
+  rowsKept ??= await paneRows($)
+  return rowsKept
 }
 
 /** Each page's screenshot as the pane draws it, by "kind:name": loading while it is read, null for none. */
@@ -419,9 +371,8 @@ async function toggleFavourite($: EngineInterface, key: string): Promise<void> {
 }
 
 /** Play or Install on the pane (or the tray): plays it, or installs the gallery's
- *  (its row then says Play); a locked game opens checkout. */
+ *  (its row then says Play). */
 async function press($: EngineInterface, row: Row): Promise<void> {
-  if (row.isLocked) return checkout($)
   if (row.isGallery) {
     const got = await getFromGallery($, row.name).catch(err => `/drip: ${short(err)}`)
     await update($, shotTick, n => n + 1)
@@ -451,25 +402,6 @@ async function getThenPlay($: EngineInterface, kind: Kind, name: string): Promis
   }
   const game = await findGame($, name)
   return game ? play($, game) : got
-}
-
-/** What /drip unlock does, from the card's Unlock (a mod can't run its own
- *  command, and the engine follows $ only within this file). */
-async function checkout($: EngineInterface): Promise<void> {
-  const d: Deps = {
-    store: { get: key => $.store.get(key), set: (key, value) => $.store.set(key, value), delete: key => $.store.delete(key) },
-    state: { get: () => read($, licence), set: async fn => void (await update($, licence, fn)) },
-    now: () => $.clock.now(),
-    every: (ms, fn) => $.clock.every(ms, () => void fn()),
-    check: async text => (await verify(text, MOD)) !== null,
-    fetch: url => $.http.fetch(url),
-    open: async url => (await $.process.run(['open', url]).catch(() => null))?.exitCode === 0,
-    copy: async text => (await $.ui.copy({ text })).isCopied,
-    toast: (text, ms) => $.ui.toast(text, ms ? { timeoutMs: ms } : undefined),
-    log: text => $.ui.log(text),
-  }
-  await buy(d)
-  if (!(await read($, licence)).licence) $.ui.toast(`Checkout for ${PRODUCT} (${PRICE}, once) is open in your browser. ${PRODUCT} unlocks on its own when you've paid.`)
 }
 
 /** Starts `game` in the overlay; resolves once it is on screen. The score it
@@ -510,8 +442,6 @@ export function arcade(on: On, options: PluginOptions) {
   gameOpen = null
   target = null
   isMissedSaid = false
-  licenceChecked = null
-  licenceHeld = null
   galleryKept = null
   galleryCovers.clear()
   shots.clear()
@@ -519,15 +449,14 @@ export function arcade(on: On, options: PluginOptions) {
 
   // The Drip pane (/drip, /drip list): a search, a filter by type, and a
   // table, fifteen rows a page: emoji, name, line, type, ☆ (the tray) and Play
-  // (Install for the gallery's, Locked until it's bought). Unlock above it until it's bought.
+  // (Install for the gallery's).
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     const { Box, Text, Button, ...els } = $.ui.resolve(e)
     const Input = 'Input' in els ? els.Input : null
     // Every surface but the terminal draws SVG: the logo; the terminal gets the word.
     const Svg = e.surface !== 'terminal' && 'Svg' in els ? els.Svg : null
-    const isBought = refusal(await read($, licence)) === null
     await read($, shotTick) // an install redraws the rows
-    const all = await rowsOf($, isBought)
+    const all = await rowsOf($)
     const q = await read($, query)
     const f = await read($, filter)
     const rows = shown(all, q, f)
@@ -576,11 +505,7 @@ export function arcade(on: On, options: PluginOptions) {
             {item.best > 0 ? ` · Best ${item.best.toLocaleString('en-GB')}` : ''}
           </Text>
           <Box key="act" flexDirection="row" alignItems="center" gap={1}>
-            {item.isLocked ? (
-              <Button key="unlock" label={`Unlock all games - ${PRICE}`} variant="primary" onPress={() => void checkout($)} />
-            ) : (
-              <Button key={`${item.isGallery ? 'get' : 'play'}:${key}`} label={item.isGallery ? 'Install' : 'Play'} variant="primary" onPress={() => void press($, item)} />
-            )}
+            <Button key={`${item.isGallery ? 'get' : 'play'}:${key}`} label={item.isGallery ? 'Install' : 'Play'} variant="primary" onPress={() => void press($, item)} />
             <Button key={`fav:${key}`} label={isStar ? '★' : '☆'} plain dimColor={!isStar} onPress={() => void toggleFavourite($, key)} />
           </Box>
         </Box>
@@ -597,12 +522,6 @@ export function arcade(on: On, options: PluginOptions) {
             <Text bold>drip</Text>
           )}
         </Box>
-        {isBought ? null : (
-          <Box flexDirection="row" alignItems="center" gap={2}>
-            <Text dimColor>Unlock all games for a one time payment of {PRICE}.</Text>
-            <Button key="unlock" label={`Unlock all games - ${PRICE}`} variant="primary" onPress={() => void checkout($)} />
-          </Box>
-        )}
         {Input ? (
           <Input
             key="search"
@@ -643,18 +562,12 @@ export function arcade(on: On, options: PluginOptions) {
                   <Text dimColor>{TYPES[r.kind]}</Text>
                 </Box>
                 <Button key={`fav:${key}`} label={isStar ? '★' : '☆'} plain dimColor={!isStar} onPress={() => void toggleFavourite($, key)} />
-                {r.isLocked ? (
-                  <Box key={`locked:${key}`} flexShrink={0}>
-                    <Text dimColor>Locked</Text>
-                  </Box>
-                ) : (
-                  <Button
-                    key={`${r.isGallery ? 'get' : 'play'}:${key}`}
-                    label={r.isGallery ? 'Install' : 'Play'}
-                    variant="secondary"
-                    onPress={() => void press($, r)}
-                  />
-                )}
+                <Button
+                  key={`${r.isGallery ? 'get' : 'play'}:${key}`}
+                  label={r.isGallery ? 'Install' : 'Play'}
+                  variant="secondary"
+                  onPress={() => void press($, r)}
+                />
               </Box>
             )
           })}
@@ -680,13 +593,12 @@ export function arcade(on: On, options: PluginOptions) {
     const games = (await read($, favourites)).filter(k => k.startsWith('game:')).map(k => k.slice(5))
     if (games.length === 0) return band
     const { Box, Button } = $.ui.resolve(e)
-    const isBought = refusal(await read($, licence)) === null
-    const all = await rowsOf($, isBought)
+    const all = await rowsOf($)
     const tray = games.map(n => all.find(r => r.kind === 'game' && r.name === n)).filter((r): r is Row => r !== undefined)
     return (
       <Box flexDirection="row" flexWrap="wrap" gap={1}>
         {tray.map(r => (
-          <Button key={`tray:game:${r.name}`} label={`${r.emoji} ${r.title}`} dimColor={r.isLocked} onPress={() => void press($, r)} />
+          <Button key={`tray:game:${r.name}`} label={`${r.emoji} ${r.title}`} onPress={() => void press($, r)} />
         ))}
         {band}
       </Box>
@@ -703,7 +615,6 @@ export function arcade(on: On, options: PluginOptions) {
     if (verb?.toLowerCase() === 'share') return { text: rest.length === 1 ? await shareToGallery($, rest[0]!) : 'Usage: /drip share <name>' }
     if (!name || name.toLowerCase() === 'list') {
       // The pane; where no surface places one (a bare terminal), the list in words.
-      await licenceNow($) // the pane draws from state: a saved licence is in it before it opens
       const { isPlaced } = await $.ui.open({ id: PANE, title: 'Drip', focus: true })
       if (isPlaced) return { text: OPENED }
       const drips = await next({ ...e, args: 'list' })
@@ -711,18 +622,14 @@ export function arcade(on: On, options: PluginOptions) {
     }
     const game = await findGame($, name)
     if (!game) {
-      // Not here: the gallery's, fetched and played (a game waits for it to be bought).
+      // Not here: the gallery's, fetched and played.
       const want = name.toLowerCase()
       if (!NAME.test(want) || WORDS.includes(want) || (await isDripHere($, want))) return next(e)
       const index = await gallery($)
       const kind = index?.games.some(g => g.name === want) ? 'game' : index?.drips.some(d => d.name === want) ? 'drip' : null
       if (!kind) return next(e)
-      const no = kind === 'game' ? await gameRefusal($, want) : null
-      if (no) return { text: no }
       return { text: await getThenPlay($, kind, want).catch(err => `/drip: ${short(err)}`) }
     }
-    const no = await gameRefusal($, game.name)
-    if (no) return { text: no }
     try {
       return { text: await play($, game) }
     } catch (err) {

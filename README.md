@@ -14,8 +14,8 @@ new ones.
 /drip 3 hearts stars
 ```
 
-Missiles and every drip are free. The other games are a one-time $4.99 per
-Mac: no account, no subscription.
+Every game and every drip is free: no account, no subscription, no
+purchase.
 
 ## What it is, and where it works
 
@@ -76,8 +76,6 @@ page for you.
 | `/drip delete <name>` | Deletes a saved drip |
 | `/drip stop` | Stops every effect that keeps playing |
 | `/drip page` | Opens the Drips page: your saved drips and an editor |
-| `/drip unlock` | Buys Glyphh Drip: $4.99, once, for this machine (Missiles and every drip are free) |
-| `/drip key <licence>` | Unlocks Glyphh Drip with a licence bought on another Mac |
 
 `/drip` runs straight away, even while Claude is working.
 
@@ -87,10 +85,9 @@ page for you.
 a filter by type and a table, fifteen rows a page. Each row is an emoji, the name,
 one line, the type, **☆** and a button: **Play** for what's on your Mac,
 **Install** for what the gallery has that isn't yet (one press fetches it,
-and the row turns to Play), and **Locked** for a paid game until you buy.
-Click a name for its page: a screenshot, its line, and Play or Unlock. The ☆
-puts it in the tray above the prompt, opened by the drip button. Until Glyphh
-Drip is bought, **Unlock** sits above the table. One game plays at a time;
+and the row turns to Play).
+Click a name for its page: a screenshot, its line, and Play. The ☆
+puts it in the tray above the prompt, opened by the drip button. One game plays at a time;
 drips play over anything, as many as you like.
 
 ## Games
@@ -118,8 +115,7 @@ under it; in the desktop app, in the prompt's footer. Press it and a row opens j
 prompt: **fireworks**, **confetti**, **hearts**, **stars**, and **powow**, then your
 saved drips, then **■ Stop** while something keeps playing, and **✕** to
 close the row. A press plays the effect the way `/drip` does, where your
-**Where effects play** setting says. Until Glyphh Drip is bought, the row
-says so and **Open Drips** opens the page to buy it. To hide the
+**Where effects play** setting says. To hide the
 button, turn off **Drip button** under Glyphh Drip in `/config`.
 
 ## Recipes
@@ -211,27 +207,10 @@ Two more rows in `/config`, both off until you turn them on:
   run. It goes a moment after the last one finishes. A matrix you started
   yourself is left alone.
 
-## Buying it
-
-Missiles and every drip are free, for good. The other games are a one-time
-$4.99 for each Mac: no account, no subscription, no trial. Until you buy,
-the Drip pane shows those games as **Locked**.
-
-**Buy.** Run `/drip unlock`, or open a locked game in the pane and press
-**Unlock all games**. Stripe's checkout opens in your browser; pay there,
-and Glyphh Drip unlocks on its own a few seconds later, with a notification.
-**Cancel** in the page stops it waiting.
-
-**Another Mac.** In the Drips page of the Mac you bought it on, press
-**Copy licence key**, then on the other Mac run `/drip key <licence>`.
-
-**Offline.** Your licence is checked on your Mac, with a signature, and
-Glyphh Drip never calls home once it holds one.
-
 ## Where things are kept
 
 Everything stays on your machine. Your saved drips are kept in Claude
-Code's store for Glyphh Drip, and so is your licence, with your best scores.
+Code's store for Glyphh Drip, with your best scores.
 Your own games and drips are in `~/.glyphh/`. The overlay program is kept in
 `~/Library/Caches/glyphh-overlay`.
 
@@ -251,15 +230,13 @@ Your own games and drips are in `~/.glyphh/`. The overlay program is kept in
   minutes), and quits if Claude Code goes away. To find Claude's window it
   reads only each window's owner, layer and position, never a title or what
   a window shows.
-- Glyphh Drip talks to Glyphh only while you unlock it: it asks glyphh.ai whether
-  this install's purchase has gone through, sending the mod's name and a
-  random install ID, never your drips or anything about your Mac. The
-  licence is never shown to the page or written to a log.
+- Glyphh Drip never talks to a Glyphh server. The only network calls are to
+  GitHub, to list and fetch the gallery's games and drips.
 
 ## For developers
 
 This mod is built from the private source repository to the Glyphh mod standard
-(`docs/mod-standard.md` there). Its account code in `hooks/licence/` is a copy of the
+(`docs/mod-standard.md` there). Its overlay code in `hooks/overlay/` is a copy of the
 shared module: change the source and sync, never the copy.
 
 Each drip is one file in `hooks/drips/effects/` that builds its whole

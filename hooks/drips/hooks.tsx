@@ -110,7 +110,6 @@ function build($: EngineInterface): Mod {
   const m: Mod = { manager, native: null, target: null, fun: null as never }
   m.fun = createFun(
     {
-      isAllowed: async () => !(await refused($)),
       play: async recipe => void (await manager.execute(() => hostOf($, m), recipe)),
       ensure: async effect => manager.ensure(await hostOf($, m, true), effect),
       release: effect => manager.release(effect),
@@ -174,11 +173,6 @@ async function withButton($: EngineInterface, e: Parameters<EngineInterface['ui'
   )
 }
 
-/** Why drips may not play now, or null: never, as every drip is free. */
-async function refused(_$: EngineInterface): Promise<string | null> {
-  return null
-}
-
 // ── The Drips page's helper ─────────────────────────────────────────────────
 
 const linkOf = ($: EngineInterface, info: HelperInfo) => linkTo((url, init) => $.http.fetch(url, init), info.port, info.token)
@@ -200,8 +194,6 @@ async function onPage($: EngineInterface, m: PageMessage): Promise<void> {
   const { manager } = modOf($)
   if (m.t === 'stop') return manager.stopAll()
   if (m.t === 'play') {
-    const no = await refused($)
-    if (no) return $.ui.toast(no)
     await manager.execute(() => hostOf($, modOf($)), m.recipe, { preview: true })
     return
   }
@@ -287,10 +279,8 @@ function startHelper($: EngineInterface): Promise<Link> {
 
 // ── The Drips button and its row ────────────────────────────────────────────
 
-/** A play from the row or the card: the gate first, then the same path as /drip. */
+/** A play from the row or the card: the same path as /drip. */
 async function bandPlay($: EngineInterface, recipe: string): Promise<void> {
-  const no = await refused($)
-  if (no) return $.ui.toast(no)
   await readYours($).catch(() => undefined)
   const m = modOf($)
   await m.manager.execute(() => hostOf($, m), recipe).catch(err => void (err instanceof Unavailable || $.ui.toast(`Drips: ${short(err)}`)))
@@ -325,8 +315,8 @@ async function takeQueued($: EngineInterface): Promise<void> {
 async function registerAll($: EngineInterface): Promise<void> {
   await $.command.register({
     name: 'drip',
-    description: 'Glyphh Drip: /drip list opens the pane of games and drips; /drip snake starts a game; /drip confetti, /drip 3 hearts stars, /drip -1 aurora play drips; get <name> fetches a game or drip from the gallery, share <name> sends one of yours there; stop, save <name> <recipe>, delete <name>; page opens your saved drips and the editor; unlock buys the games (Missiles and every drip are free); key <licence> unlocks it with a licence from another machine',
-    argumentHint: '<game> | <recipe> | get <name> | share <name> | stop | save <name> <recipe> | delete <name> | page | unlock | key <licence>',
+    description: 'Glyphh Drip: /drip list opens the pane of games and drips; /drip snake starts a game; /drip confetti, /drip 3 hearts stars, /drip -1 aurora play drips; get <name> fetches a game or drip from the gallery, share <name> sends one of yours there; stop, save <name> <recipe>, delete <name>; page opens your saved drips and the editor. Every game and drip is free',
+    argumentHint: '<game> | <recipe> | get <name> | share <name> | stop | save <name> <recipe> | delete <name> | page',
     immediate: true,
   })
   await $.tool.register({
@@ -371,10 +361,6 @@ export function drips(on: On, options: PluginOptions) {
       if (!(await read($, nodePath))) return { text: NODE_MISSING }
       return { text: await showPage(pageDeps($)).then(shownText, err => `The Drip page ✗ ${short(err)}`) }
     }
-    if (!['list', 'save', 'delete', 'stop'].includes(sub)) {
-      const no = await refused($)
-      if (no) return { text: no }
-    }
     try {
       await readYours($).catch(() => undefined)
       const m = modOf($)
@@ -387,8 +373,6 @@ export function drips(on: On, options: PluginOptions) {
   })
 
   on('tool.call', { tool: 'mcp__glyphh-drip__play_drip' }, async ($, e) => {
-    const no = await refused($)
-    if (no) return { result: `Not played: ${no}` }
     const recipe = String((e.input as { recipe?: unknown } | undefined)?.recipe ?? '').trim()
     if (NOT_A_RECIPE.includes(recipe.split(/\s+/)[0]?.toLowerCase() ?? '')) return { result: 'play_drip takes a recipe or "stop"; list_drips lists the effects.' }
     try {
@@ -401,8 +385,6 @@ export function drips(on: On, options: PluginOptions) {
   })
 
   on('tool.call', { tool: 'mcp__glyphh-drip__list_drips' }, async ($, e) => {
-    const no = await refused($)
-    if (no) return { result: `Not played: ${no}` }
     await readYours($).catch(() => undefined)
     const own = yourDrips().map(d => ({ name: d.name, kind: d.kind, title: d.title }))
     return { result: JSON.stringify({ effects: BUILTIN_EFFECT_LIST, yours: own, custom: await listCustoms(store($)), running: modOf($).manager.running() }) }

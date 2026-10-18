@@ -10,13 +10,9 @@
 // /api/quit) or when the mod has not asked for the page's messages for 30
 // seconds.
 //
-// The mod sends the saved drips (POST /api/library) and the licence's state in
-// words (POST /api/licence-state: a trial and its days, unlocked, or the trial
-// over; never the licence); the page leaves its asks (POST /api/ask: play,
-// stop, save, delete; POST /api/licence: buy, cancel, copy) for the mod to
-// collect (GET /api/inbox,
-// GET /api/licence-inbox). Everything reaches the page on one event stream
-// (GET /events).
+// The mod sends the saved drips (POST /api/library); the page leaves its asks
+// (POST /api/ask: play, stop, save, delete) for the mod to collect (GET
+// /api/inbox). Everything reaches the page on one event stream (GET /events).
 //
 // Locked to this machine and this page (./gate.mjs): it listens on 127.0.0.1
 // only, on a random port; every request carries the session's random token
@@ -58,7 +54,6 @@ const ASSETS = {
 }
 const DISPLAYS = ["claude-window", "fullscreen"]
 const ASKS = ["play", "stop", "save", "delete"]
-const isLicenceAction = a => ["buy", "cancel", "copy"].includes(a)
 
 const SECURITY = {
   "Content-Security-Policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; frame-src 'none'; frame-ancestors 'none'",
@@ -68,10 +63,8 @@ const SECURITY = {
 }
 
 const inbox = []
-const licenceAsks = []
 let heardFrom = Date.now()
 let library = { drips: [], effects: [], display: "claude-window" }
-let licenceState = null
 const events = new Set()
 
 /** A message for the mod: kept for GET /api/inbox, and printed when run by hand. */
@@ -148,20 +141,6 @@ const server = createServer(async (req, res) => {
       if (!ASKS.includes(body?.t)) return json(res, { error: "unknown ask" }, 400)
       say(body)
       json(res, {})
-    } else if (route === "POST /api/licence-state") {
-      const body = await readBody(req)
-      licenceState = body?.status ?? null
-      emit({ t: "licence", status: licenceState })
-      json(res, {})
-    } else if (route === "GET /api/licence-state") {
-      json(res, { status: licenceState })
-    } else if (route === "POST /api/licence") {
-      const body = await readBody(req)
-      if (!isLicenceAction(body?.action)) return json(res, { error: "unknown action" }, 400)
-      licenceAsks.push(body.action)
-      json(res, {})
-    } else if (route === "GET /api/licence-inbox") {
-      json(res, { actions: licenceAsks.splice(0) })
     } else if (route === "POST /api/quit") {
       json(res, {})
       shutdown(0)

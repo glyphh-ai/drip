@@ -47,7 +47,7 @@ button, input, select { font: inherit; color: inherit; }
 
 #app { max-width: 760px; margin: 0 auto; padding: 20px 16px 40px; }
 
-/* The list's header: title, search, the licence's line (Unlocked, Copy licence key), + Add. */
+/* The list's header: title, search, + Add. */
 #head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
 #head h2 { margin: 0; font-size: 18px; font-weight: 600; flex: 1; }
 .search { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--c-line); border-radius: 7px;
@@ -55,9 +55,6 @@ button, input, select { font: inherit; color: inherit; }
 .search:focus-within { border-color: var(--c-accent); }
 .search svg { width: 14px; height: 14px; flex-shrink: 0; }
 .search input { flex: 1; min-width: 0; border: none; outline: none; background: none; font-size: 13px; color: var(--c-text); }
-#licence { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--c-text-2); }
-#licence:empty { display: none; }
-#licence .plan { color: var(--c-text); }
 
 .btn { border: 1px solid var(--c-line-2); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 13px; background: var(--c-field); color: var(--c-text); }
 .btn:hover { background: color-mix(in srgb, var(--c-field) 80%, var(--c-text) 8%); }
@@ -121,14 +118,6 @@ button, input, select { font: inherit; color: inherit; }
 .dialog p { margin: 0; color: var(--c-text-2); }
 .dialog .actions { margin-top: 18px; }
 
-/* Not bought on this machine yet. */
-#locked { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: var(--c-bg); padding: 24px; }
-#locked .card { max-width: 520px; display: flex; flex-direction: column; gap: 10px; }
-#locked h1 { margin: 0 0 4px; font-size: 18px; font-weight: 600; }
-#locked p { margin: 0; color: var(--c-text-2); line-height: 1.5; }
-#locked .ended { color: var(--c-text); margin-top: 6px; }
-#locked .row-buttons { display: flex; gap: 10px; margin-top: 8px; }
-#locked .small { font-size: 12px; }
 
 @media (max-width: 520px) {
   .search { width: 140px; }
