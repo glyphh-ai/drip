@@ -161,3 +161,8 @@ updated. From then on it's in everyone's Drip pane.
 By contributing you license your work under this repository's MIT licence.
 A game or drip is code that runs on players' Macs: keep it to what it says
 on the tin.
+
+
+## License
+
+Apache-2.0. See LICENSE and NOTICE. Copyright 2026 Chris Timmerman / Glyphh AI LLC. More about it: https://glyphh.ai/projects/drip
